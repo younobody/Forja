@@ -1,0 +1,105 @@
+{
+  "aluno": {
+    "id": "marcos",
+    "nome": "Marcos R. Abati",
+    "objetivo": "Recomposicao corporal — reduzir gordura visceral e ganhar massa sem prejudicar pedal (meta 160km century 2026)",
+    "notas": "LESOES ATIVAS: (1) Ombro esq instavel (deslocamento antigo) — sem barra atras da nuca, sem rotacao posterior; movimentos de puxar com pegada NEUTRA. (2) Cotovelo esq: epicondilite medial inicial (cotovelo de golfista) 2/10 ha ~2 semanas — rosca em pegada MARTELO, isometrico de punho no aquecimento, monitorar 0-10 a cada Pull; + luxacao previa antiga (sem Smith pegada atras). PERFIL GENETICO (relatorio PRS): fragilidade conjuntiva (4 SNPs - COL5A1/COL1A1/GDF5/MMP3) — progressao de carga 30-50% mais lenta, EXCENTRICA 3s em todos os compostos, mobilidade pre-treino 5min obrigatoria, progride so apos 2 sessoes consecutivas no RIR alvo (streak 2). PRS DM2 percentil 75 — meta proteica 130-150g/dia (era 200g), reduzir carbo refinado. CICLISMO: PPARGC1A TT (resposta mitocondrial reduzida) — pedal polarizado 85/15, cadencia 85-90rpm teto 95, minimo 50km/semana. FCmax confirmar (192 ou 194). DELOAD autorregulado pelos marcadores, nao fixo no calendario."
+  },
+  "plano": [
+    { "dia": "A", "exercicio": "Supino inclinado barra", "series": "3", "reps": "10", "carga": "34kg", "rir": "2", "obs": "EXCENTRICA 3s. Liberado 36kg (anilha de 1kg). Progride so apos 2 sessoes consecutivas fechadas (streak 2). Incremento +1-1.5kg" },
+    { "dia": "A", "exercicio": "Desenvolvimento halter bilateral", "series": "3", "reps": "12", "carga": "12kg D / 12kg E", "rir": "2", "obs": "ROM ate 90 graus cotovelo — NAO desce abaixo da linha do ombro. Recalibrado para 12kg. Incremento fino +1kg, monitorar ombro 0-10" },
+    { "dia": "A", "exercicio": "Crucifixo trave", "series": "3", "reps": "12", "carga": "24kg", "rir": "2", "obs": "fechar 3x12 RIR2 com 24kg antes de subir. Incremento +2kg" },
+    { "dia": "A", "exercicio": "Triceps corda trave", "series": "3", "reps": "10", "carga": "40kg", "rir": "1", "obs": "liberado 42.5kg. Trave pula para 50kg — avaliar trocar para halter" },
+    { "dia": "A", "exercicio": "Prancha frontal", "series": "3", "reps": "60s", "carga": "corporal", "rir": "", "obs": "fechar 3x60s firmes por 2 sessoes antes de avaliar 75s" },
+    { "dia": "B", "exercicio": "Puxada frontal pegador V", "series": "3", "reps": "12", "carga": "40kg", "rir": "2", "obs": "REFORMULADO 25/05: pegada NEUTRA (pegador V) poupa ombro esq e melhora conexao com dorsal. Carga de calibracao — nao progride ate fechar execucao limpa" },
+    { "dia": "B", "exercicio": "Remada serrote halter", "series": "3", "reps": "10", "carga": "20kg", "rir": "2", "obs": "subiu para 2o lugar — estabilizacao unilateral feita com corpo menos fadigado. Reconstruir de 20kg (reset de 22kg)" },
+    { "dia": "B", "exercicio": "Remada baixa polia V", "series": "3", "reps": "10", "carga": "45kg", "rir": "2", "obs": "NOVO 25/05: substituiu remada barra supinada (execucao nunca limpa + equipamento ocupado). Pegada neutra, estavel. EXCENTRICA 3s. Carga de calibracao — nao progride ate fechar execucao" },
+    { "dia": "B", "exercicio": "Rosca alternada halter", "series": "3", "reps": "12", "carga": "10kg cada braco", "rir": "1", "obs": "ATENCAO cotovelo de golfista (epicondilite medial esq 2/10): pegada MARTELO/neutra, NAO supinada. Isometrico de punho no aquecimento. Alternada, nao simultanea. Incremento +1kg" },
+    { "dia": "B", "exercicio": "Abdominal remador", "series": "3", "reps": "10", "carga": "corporal", "rir": "2", "obs": "3x10 e PARA — nao fazer 15 (caibra/apneia). Expira na contracao" },
+    { "dia": "C", "exercicio": "Hack squat (almofada no ombro)", "series": "3", "reps": "10", "carga": "60kg", "rir": "2", "obs": "EXCENTRICA 3s. Almofada no trapezio nao engatilha ombro. Incremento +5kg" },
+    { "dia": "C", "exercicio": "Leg press 45", "series": "3", "reps": "12", "carga": "100kg", "rir": "2", "obs": "EXCENTRICA 3s. Fechar 3x12 antes de subir. Incremento reduzido para +10kg (fragilidade conjuntiva)" },
+    { "dia": "C", "exercicio": "Agachamento halter livre", "series": "3", "reps": "10", "carga": "44kg", "rir": "2", "obs": "EXCENTRICA 3s. Pegada neutra firme, cotovelo esq sem forcar pronacao. Incremento reduzido para +2kg" },
+    { "dia": "C", "exercicio": "Cadeira extensora", "series": "3", "reps": "12", "carga": "40kg", "rir": "2", "obs": "fechar 3x12 antes de subir para 45kg" },
+    { "dia": "C", "exercicio": "Cadeira flexora", "series": "3", "reps": "10", "carga": "65kg", "rir": "2", "obs": "EXCENTRICA 3s" },
+    { "dia": "C", "exercicio": "Stiff halter", "series": "3", "reps": "10", "carga": "40kg", "rir": "2", "obs": "EXCENTRICA 3s. Fechar reps completas antes de progredir" }
+  ],
+  "registros": [
+    { "timestamp": "2026-05-05T18:00:00-03:00", "dia": "B", "exercicio": "Puxada frontal pulley", "carga": "40kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "" },
+    { "timestamp": "2026-05-05T18:10:00-03:00", "dia": "B", "exercicio": "Remada serrote halter", "carga": "16-18kg", "reps": "12/12/10", "rir": "", "completou": "sim", "obs": "subiu carga dentro da sessao" },
+    { "timestamp": "2026-05-05T18:20:00-03:00", "dia": "B", "exercicio": "Remada curvada barra supinada", "carga": "25kg", "reps": "12/12/12 + drop", "rir": "", "completou": "sim", "obs": "serie extra + drop nao prescritos. Medida historica incerta (barra fixa)" },
+    { "timestamp": "2026-05-05T18:30:00-03:00", "dia": "B", "exercicio": "Rosca barra W", "carga": "20kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "exercicio depois descontinuado" },
+
+    { "timestamp": "2026-05-06T18:00:00-03:00", "dia": "C", "exercicio": "Agachamento Smith", "carga": "peso maq +10kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "depois migrou para halter livre (cotovelo esq)" },
+    { "timestamp": "2026-05-06T18:10:00-03:00", "dia": "C", "exercicio": "Cadeira extensora", "carga": "35kg", "reps": "12/12/12", "rir": "", "completou": "sim", "obs": "" },
+    { "timestamp": "2026-05-06T18:20:00-03:00", "dia": "C", "exercicio": "Cadeira flexora", "carga": "50-60kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "subiu carga dentro da sessao" },
+    { "timestamp": "2026-05-06T18:30:00-03:00", "dia": "C", "exercicio": "Leg press 45", "carga": "80kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "substituiu panturrilha — nao cobre o musculo" },
+
+    { "timestamp": "2026-05-07T08:00:00-03:00", "dia": "A", "exercicio": "Supino barra inclinada", "carga": "34kg", "reps": "10/10/8", "rir": "", "completou": "nao", "obs": "falha na 3a serie" },
+    { "timestamp": "2026-05-07T08:10:00-03:00", "dia": "A", "exercicio": "Crucifixo trave", "carga": "20-25kg", "reps": "10/10/falha", "rir": "", "completou": "nao", "obs": "subiu carga dentro da sessao + falha" },
+    { "timestamp": "2026-05-07T08:20:00-03:00", "dia": "A", "exercicio": "Desenvolvimento halter", "carga": "10kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "carga subestimada — ordem trocada com crucifixo" },
+    { "timestamp": "2026-05-07T08:30:00-03:00", "dia": "A", "exercicio": "Triceps corda trave", "carga": "40kg", "reps": "10/10/9", "rir": "", "completou": "nao", "obs": "falha na 3a serie" },
+
+    { "timestamp": "2026-05-08T18:00:00-03:00", "dia": "B", "exercicio": "Remada curvada barra supinada", "carga": "40kg", "reps": "3 series", "rir": "", "completou": "sim", "obs": "salto de +15kg vs sessao anterior (fora da dupla progressao)" },
+    { "timestamp": "2026-05-08T18:10:00-03:00", "dia": "B", "exercicio": "Puxada frontal pulley", "carga": "45kg", "reps": "3 series", "rir": "", "completou": "sim", "obs": "progressao correta +5kg" },
+    { "timestamp": "2026-05-08T18:20:00-03:00", "dia": "B", "exercicio": "Remada serrote halter", "carga": "18kg", "reps": "3 series", "rir": "", "completou": "sim", "obs": "manteve" },
+    { "timestamp": "2026-05-08T18:30:00-03:00", "dia": "B", "exercicio": "Rosca barra W", "carga": "20kg", "reps": "3 series", "rir": "", "completou": "sim", "obs": "manteve" },
+
+    { "timestamp": "2026-05-11T18:00:00-03:00", "dia": "C", "exercicio": "Agachamento halter livre", "carga": "40kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "migrou de Smith — resolveu cotovelo" },
+    { "timestamp": "2026-05-11T18:10:00-03:00", "dia": "C", "exercicio": "Cadeira extensora", "carga": "40kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "reps caíram pos-agachamento (esperado)" },
+    { "timestamp": "2026-05-11T18:20:00-03:00", "dia": "C", "exercicio": "Cadeira flexora", "carga": "60kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "manteve" },
+    { "timestamp": "2026-05-11T18:30:00-03:00", "dia": "C", "exercicio": "Stiff halter", "carga": "40kg", "reps": "3 series", "rir": "", "completou": "sim", "obs": "primeira sessao — adaptacao" },
+
+    { "timestamp": "2026-05-12T18:00:00-03:00", "dia": "A", "exercicio": "Supino barra inclinada", "carga": "34kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "fechou 3x10 — pronto para subir" },
+    { "timestamp": "2026-05-12T18:10:00-03:00", "dia": "A", "exercicio": "Desenvolvimento halter bilateral", "carga": "12-14kg", "reps": "12/12/10", "rir": "", "completou": "sim", "obs": "esquerdo: dor 5/10 com amplitude completa" },
+    { "timestamp": "2026-05-12T18:20:00-03:00", "dia": "A", "exercicio": "Crucifixo trave", "carga": "20kg", "reps": "12/12/12", "rir": "", "completou": "sim", "obs": "carga fixa nas 3 series — execucao correta" },
+    { "timestamp": "2026-05-12T18:30:00-03:00", "dia": "A", "exercicio": "Triceps corda trave", "carga": "40kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "manteve" },
+    { "timestamp": "2026-05-12T18:40:00-03:00", "dia": "A", "exercicio": "Prancha frontal", "carga": "corporal", "reps": "45s/45s/45s", "rir": "", "completou": "sim", "obs": "primeira sessao de core estruturado" },
+
+    { "timestamp": "2026-05-13T18:00:00-03:00", "dia": "B", "exercicio": "Puxada frontal pulley", "carga": "45kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "fechou 3x10. Ombro esq 0/10. Pegada aberta pronada, barra ate a clavicula" },
+    { "timestamp": "2026-05-13T18:10:00-03:00", "dia": "B", "exercicio": "Remada barra reta supinada em pe", "carga": "70kg total", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "execucao nao confirmada — possivel impulso de quadril" },
+    { "timestamp": "2026-05-13T18:20:00-03:00", "dia": "B", "exercicio": "Remada serrote halter", "carga": "20kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "subiu de 18kg — fechou" },
+    { "timestamp": "2026-05-13T18:30:00-03:00", "dia": "B", "exercicio": "Rosca barra W", "carga": "20kg", "reps": "5/5/5", "rir": "negativo", "completou": "nao", "obs": "FALHOU ultimas 5 reps. Barra W DESCONTINUADA — substituida por rosca alternada halter" },
+    { "timestamp": "2026-05-13T18:40:00-03:00", "dia": "B", "exercicio": "Abdominal remador", "carga": "corporal", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "primeira sessao — adaptacao ok" },
+
+    { "timestamp": "2026-05-14T18:00:00-03:00", "dia": "A", "exercicio": "Supino inclinado barra", "carga": "34kg", "reps": "10/10/10", "rir": "0", "completou": "sim", "obs": "PRE-TORNEIO era pra ser RIR3 — foi a falha (RIR0)" },
+    { "timestamp": "2026-05-14T18:10:00-03:00", "dia": "A", "exercicio": "Desenvolvimento halter", "carga": "14kg D / 14kg E", "reps": "10/10/10", "rir": "0", "completou": "sim", "obs": "nao era pra fazer (pre-torneio). Ombro esq subiu para 14kg em volume cheio ate a falha — risco" },
+    { "timestamp": "2026-05-14T18:20:00-03:00", "dia": "A", "exercicio": "Crucifixo trave", "carga": "24kg", "reps": "12/12/12", "rir": "0", "completou": "sim", "obs": "+4kg sem autorizacao, foi a falha" },
+    { "timestamp": "2026-05-14T18:30:00-03:00", "dia": "A", "exercicio": "Triceps corda trave", "carga": "40kg", "reps": "10/10/10", "rir": "2", "completou": "sim", "obs": "unico dentro do prescrito" },
+    { "timestamp": "2026-05-14T18:40:00-03:00", "dia": "A", "exercicio": "Prancha frontal", "carga": "corporal", "reps": "45s/45s/45s", "rir": "", "completou": "sim", "obs": "" },
+
+    { "timestamp": "2026-05-15T18:00:00-03:00", "dia": "B", "exercicio": "Puxada frontal pulley", "carga": "35kg", "reps": "12/12/12", "rir": "1", "completou": "sim", "obs": "baixou de 45kg para corrigir execucao (pegada aberta pronada)" },
+    { "timestamp": "2026-05-15T18:10:00-03:00", "dia": "B", "exercicio": "Remada barra supinada em pe", "carga": "70kg total", "reps": "10/10/10", "rir": "1", "completou": "sim", "obs": "carga em observacao — confirmar execucao" },
+    { "timestamp": "2026-05-15T18:20:00-03:00", "dia": "B", "exercicio": "Remada serrote halter", "carga": "20kg", "reps": "10/10/10", "rir": "2", "completou": "sim", "obs": "" },
+    { "timestamp": "2026-05-15T18:30:00-03:00", "dia": "B", "exercicio": "Rosca alternada halter", "carga": "10kg cada braco", "reps": "12/12/12", "rir": "0", "completou": "sim", "obs": "estreia do exercicio — RIR0 esperado na adaptacao" },
+    { "timestamp": "2026-05-15T18:40:00-03:00", "dia": "B", "exercicio": "Abdominal remador", "carga": "corporal", "reps": "15/15/15", "rir": "1", "completou": "sim", "obs": "caibra abdominal + dificuldade respiratoria (apneia)" },
+
+    { "timestamp": "2026-05-17T10:00:00-03:00", "dia": "A", "exercicio": "Supino inclinado barra", "carga": "34kg", "reps": "10/10/10", "rir": "2", "completou": "sim", "obs": "consolidado com tecnica boa — liberado subir para 36kg" },
+    { "timestamp": "2026-05-17T10:10:00-03:00", "dia": "A", "exercicio": "Desenvolvimento halter", "carga": "14kg D / 14kg E", "reps": "12/12/12", "rir": "1", "completou": "sim", "obs": "ombro esq tolerou 14kg sem ir a falha — sinal positivo" },
+    { "timestamp": "2026-05-17T10:20:00-03:00", "dia": "A", "exercicio": "Crucifixo trave", "carga": "22kg", "reps": "12/12/12", "rir": "2", "completou": "sim", "obs": "fechou — proxima 24kg" },
+    { "timestamp": "2026-05-17T10:30:00-03:00", "dia": "A", "exercicio": "Triceps corda trave", "carga": "40kg", "reps": "10/10/10", "rir": "1", "completou": "sim", "obs": "proxima sobe para 42.5kg" },
+    { "timestamp": "2026-05-17T10:40:00-03:00", "dia": "A", "exercicio": "Prancha frontal", "carga": "corporal", "reps": "60s/60s/60s", "rir": "", "completou": "sim", "obs": "subiu de 45s para 60s" },
+
+    { "timestamp": "2026-05-18T18:00:00-03:00", "dia": "C", "exercicio": "Hack squat (almofada no ombro)", "carga": "30kg cada lado", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "estreia — carga conservadora correta. Liberado, nao engatilha dor de ombro" },
+    { "timestamp": "2026-05-18T18:10:00-03:00", "dia": "C", "exercicio": "Leg press 45", "carga": "100kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "subiu de 80 para 100kg (+25%) — possivel porque perna estava descansada" },
+    { "timestamp": "2026-05-18T18:20:00-03:00", "dia": "C", "exercicio": "Cadeira extensora", "carga": "40kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "manteve" },
+    { "timestamp": "2026-05-18T18:30:00-03:00", "dia": "C", "exercicio": "Cadeira flexora", "carga": "65kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "subiu de 60 para 65kg" },
+    { "timestamp": "2026-05-18T18:40:00-03:00", "dia": "C", "exercicio": "Stiff halter", "carga": "40kg", "reps": "10/10/10", "rir": "", "completou": "sim", "obs": "" },
+
+    { "timestamp": "2026-05-19T18:00:00-03:00", "dia": "B", "exercicio": "Puxada frontal pulley", "carga": "35kg", "reps": "12/12/12", "rir": "1", "completou": "sim", "obs": "manteve 35kg (prescrito era 37.5kg)" },
+    { "timestamp": "2026-05-19T18:10:00-03:00", "dia": "B", "exercicio": "Remada barra supinada em pe", "carga": "70kg total", "reps": "10/10/10", "rir": "1", "completou": "sim", "obs": "execucao ainda pendente de confirmacao" },
+    { "timestamp": "2026-05-19T18:20:00-03:00", "dia": "B", "exercicio": "Remada serrote halter", "carga": "22kg", "reps": "10/10/10", "rir": "0", "completou": "nao", "obs": "subiu 20->22kg, RIR0 na 3a serie — salto rapido demais" },
+    { "timestamp": "2026-05-19T18:30:00-03:00", "dia": "B", "exercicio": "Rosca alternada halter", "carga": "10kg cada braco", "reps": "10/10/10", "rir": "0", "completou": "nao", "obs": "RIR 1/0/0 — 2 series a falha em isolador, excesso" },
+    { "timestamp": "2026-05-19T18:40:00-03:00", "dia": "B", "exercicio": "Abdominal remador", "carga": "corporal", "reps": "15/15/10", "rir": "0", "completou": "nao", "obs": "3a serie caiu para 10 reps — fadiga progressiva" },
+
+    { "timestamp": "2026-05-21T18:00:00-03:00", "dia": "B", "exercicio": "Puxada frontal pulley", "carga": "37.5kg", "reps": "12/12/12", "rir": "1", "completou": "sim", "obs": "progressao limpa — fechou 3x12" },
+    { "timestamp": "2026-05-21T18:10:00-03:00", "dia": "B", "exercicio": "Remada barra supinada em pe", "carga": "70kg total", "reps": "10/10/10", "rir": "1", "completou": "nao", "obs": "2 de 3 series mal executadas — movimento desce do joelho (impulso de quadril). DECISAO: reduzir para 60kg" },
+    { "timestamp": "2026-05-21T18:20:00-03:00", "dia": "B", "exercicio": "Remada serrote halter", "carga": "20kg", "reps": "10/10/10", "rir": "2", "completou": "sim", "obs": "tentou 22kg com RIR0, reduziu para 20kg — fechou limpo" },
+    { "timestamp": "2026-05-21T18:30:00-03:00", "dia": "B", "exercicio": "Rosca alternada halter", "carga": "10kg cada braco", "reps": "12/12/12", "rir": "2", "completou": "sim", "obs": "fechou 3x12 RIR2 — saiu da falha das sessoes anteriores" },
+    { "timestamp": "2026-05-21T18:40:00-03:00", "dia": "B", "exercicio": "Abdominal remador", "carga": "corporal", "reps": "15/15/15", "rir": "2", "completou": "sim", "obs": "prescrito era 3x10 — fez 15 no limite" },
+
+    { "timestamp": "2026-05-25T18:00:00-03:00", "dia": "B", "exercicio": "Puxada frontal pulley", "carga": "35kg", "reps": "3 series", "rir": "", "completou": "sim", "obs": "tecnica melhorada mas dificuldade de conexao com dorsal — motivou a troca para pegador V" },
+    { "timestamp": "2026-05-25T18:10:00-03:00", "dia": "B", "exercicio": "Remada serrote halter", "carga": "20kg", "reps": "10/10/10", "rir": "2", "completou": "sim", "obs": "22kg estava ocupado (academia cheia)" },
+    { "timestamp": "2026-05-25T18:20:00-03:00", "dia": "B", "exercicio": "Rosca alternada halter", "carga": "10kg cada braco", "reps": "10/10/10", "rir": "2", "completou": "sim", "obs": "RIR 0 na ultima serie com excentrica 3s — aceitavel para isolador" },
+    { "timestamp": "2026-05-25T18:30:00-03:00", "dia": "B", "exercicio": "Remada (improviso)", "carga": "halter 20kg + polia trave", "reps": "2+2 series", "rir": "", "completou": "nao", "obs": "barra supinada ocupada — 2 series halter livre 20kg + 2 series polia trave barra reta. Sessao fragmentada. Motivou a reformulacao do B (remada baixa polia V)" }
+  ]
+}
