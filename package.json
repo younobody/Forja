@@ -6,7 +6,10 @@
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:all": "npm run test && npm run test:e2e"
   },
   "repository": {
     "type": "git",
@@ -17,6 +20,7 @@
   "license": "ISC",
   "devDependencies": {
     "@babel/preset-env": "^8.0.2",
+    "@playwright/test": "^1.61.1",
     "babel-jest": "^30.4.1",
     "jest": "^30.4.2"
   }
