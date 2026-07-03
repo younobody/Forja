@@ -1,0 +1,3657 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0a0a0a" />
+<title>FORJA — Coach Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230a0a0a'/%3E%3Cg fill='none' stroke='%2306b6d4' stroke-width='4' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M14 26 h30 a8 8 0 0 1 -8 8 h-6 l-2 0 a10 10 0 0 0 14 0'/%3E%3Cpath d='M28 34 v10'/%3E%3Cpath d='M20 46 h16'/%3E%3C/g%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg-soft: #18181b;
+    --bg-card: rgba(20, 20, 24, 0.55);
+    --bg-glass: rgba(24, 24, 30, 0.45);
+    --border: #27272a;
+    --border-hot: #3f3f46;
+    --text: #fafafa;
+    --text-dim: #a1a1aa;
+    --text-faint: #71717a;
+    --accent-a: #ef4444;
+    --accent-b: #f59e0b;
+    --accent-c: #10b981;
+    --accent-d: #06b6d4;
+    --accent-e: #a78bfa;
+    --admin: #06b6d4;
+    --glow: rgba(6, 182, 212, 0.55);
+    --ctx: #06b6d4;            /* cor de contexto da tela (mutavel via JS) */
+    --ctx-soft: rgba(6,182,212,0.14);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background-color: #0a0a0a;
+  }
+  /* BASE VIVA: grafite escuro + GRADE animada + ORBS de luz + vinheta */
+  body {
+    margin: 0;
+    min-height: 100vh;
+    position: relative;
+    background:
+      radial-gradient(100% 70% at 50% -10%, var(--ctx-soft) 0%, transparent 50%),
+      linear-gradient(160deg, #0c0c10 0%, #131318 40%, #0e0e13 75%, #0a0a0d 100%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+  }
+  /* GRADE tecnica que escorrega lentamente (z atras de tudo) */
+  body::before {
+    content: "";
+    position: fixed; inset: -2px;
+    pointer-events: none; z-index: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(130% 100% at 50% 0%, #000 35%, transparent 80%);
+    -webkit-mask-image: radial-gradient(130% 100% at 50% 0%, #000 35%, transparent 80%);
+    animation: gridDrift 22s linear infinite;
+  }
+  @keyframes gridDrift { from { background-position: 0 0, 0 0; } to { background-position: 44px 44px, 44px 44px; } }
+  /* VINHETA + leve grao por cima da grade */
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(130% 110% at 50% 45%, transparent 50%, rgba(0,0,0,0.6) 100%);
+  }
+  /* ORBS de luz flutuantes (containers injetados via JS no body) */
+  .fx-orbs { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+  .orb { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.5; mix-blend-mode: screen; }
+  .orb-1 { width: 420px; height: 420px; background: var(--ctx); top: -120px; left: -80px; animation: float1 18s ease-in-out infinite; }
+  .orb-2 { width: 340px; height: 340px; background: #7c3aed; bottom: -100px; right: -60px; opacity: 0.32; animation: float2 24s ease-in-out infinite; }
+  .orb-3 { width: 260px; height: 260px; background: var(--ctx); top: 40%; right: 12%; opacity: 0.18; animation: float3 30s ease-in-out infinite; }
+  @keyframes float1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(60px,40px)} }
+  @keyframes float2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-50px,-30px)} }
+  @keyframes float3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,20px) scale(1.15)} }
+  /* conteudo acima do fundo */
+  body > *:not(.fx-orbs) { position: relative; z-index: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    body::before, .orb { animation: none !important; }
+  }
+
+  .display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.02em; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .scanlines { background-image: linear-gradient(180deg, transparent 50%, rgba(255,255,255,0.015) 50%); background-size: 100% 4px; }
+  .hidden { display: none !important; }
+  .fade-in { animation: fadeIn 0.25s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .toast { animation: slideIn 0.2s ease-out; }
+  @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+  /* GLOW utilitario nos titulos / numeros */
+  .glow-ctx { text-shadow: 0 0 18px var(--ctx-soft), 0 0 40px var(--ctx-soft); }
+  .display.text-cyan-400, .text-cyan-400.display { text-shadow: 0 0 22px rgba(6,182,212,0.45); }
+
+  /* inputs futuristas */
+  input, textarea, select {
+    background: rgba(9, 9, 11, 0.75);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.55rem 0.8rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.2s, background 0.2s;
+    border-radius: 2px;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--ctx);
+    box-shadow: 0 0 0 1px var(--ctx), 0 0 18px var(--ctx-soft);
+    background: rgba(9, 9, 11, 0.95);
+  }
+  input[type="number"] { -moz-appearance: textfield; }
+  input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  /* BOTOES futuristas: borda fina, sweep de luz no hover */
+  .btn {
+    position: relative;
+    padding: 0.65rem 1.05rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.015);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    text-transform: uppercase;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .btn::before {
+    content: "";
+    position: absolute; top: 0; left: -120%;
+    width: 60%; height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.12), transparent);
+    transition: left 0.5s ease;
+  }
+  .btn:hover { border-color: var(--text); color: var(--text); box-shadow: 0 0 16px rgba(255,255,255,0.06); }
+  .btn:hover::before { left: 130%; }
+  .btn-primary { background: var(--text); color: #0a0a0a; border-color: var(--text); }
+  .btn-primary:hover { background: #e4e4e7; color: #0a0a0a; box-shadow: 0 0 22px rgba(250,250,250,0.25); }
+  .btn-danger:hover { border-color: var(--accent-a); color: var(--accent-a); box-shadow: 0 0 16px rgba(239,68,68,0.25); }
+  .btn-success { background: var(--accent-c); color: #04140d; border-color: var(--accent-c); }
+  .btn-success:hover { background: #34d399; color: #04140d; box-shadow: 0 0 22px rgba(16,185,129,0.4); }
+
+  .chip { padding: 0.14rem 0.55rem; font-size: 0.625rem; letter-spacing: 0.1em; border: 1px solid var(--border); border-radius: 2px; background: rgba(255,255,255,0.02); }
+
+  /* CARDS de vidro com PROFUNDIDADE: superficie clara, blur visivel,
+     sombra em camadas, highlight no topo, parece flutuar */
+  .glass {
+    position: relative;
+    background: linear-gradient(160deg, rgba(40,40,48,0.62) 0%, rgba(24,24,30,0.5) 100%);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 8px;
+    box-shadow:
+      0 10px 30px -10px rgba(0,0,0,0.7),
+      0 2px 8px rgba(0,0,0,0.4),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+    transition: transform 0.25s cubic-bezier(.2,.8,.2,1), box-shadow 0.25s, border-color 0.25s;
+  }
+  /* linha de luz no topo do card */
+  .glass::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(160deg, rgba(255,255,255,0.06), transparent 35%);
+  }
+  .glass:hover {
+    transform: translateY(-3px);
+    border-color: var(--ctx);
+    box-shadow:
+      0 18px 44px -12px rgba(0,0,0,0.8),
+      0 0 26px var(--ctx-soft),
+      inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+
+  /* painel com brilho de borda na cor de contexto */
+  .panel-ctx { border-color: var(--ctx); box-shadow: inset 0 0 40px var(--ctx-soft), 0 0 24px var(--ctx-soft); }
+
+  /* barra de scan animada (para headers): aplica .scanbar num elemento relative */
+  .scanbar { position: relative; overflow: hidden; }
+  .scanbar::after {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--ctx), transparent);
+    animation: scanMove 3.5s linear infinite; opacity: 0.7;
+  }
+  @keyframes scanMove { 0%{transform:translateY(0)} 100%{transform:translateY(140px)} }
+
+  /* entrada com stagger dos cards */
+  @keyframes riseIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  .rise { opacity: 0; animation: riseIn 0.5s cubic-bezier(.2,.8,.2,1) forwards; }
+
+  /* glow pulsante (borda de contexto) */
+  @keyframes borderPulse {
+    0%,100% { box-shadow: 0 0 0 1px var(--ctx), 0 0 12px var(--ctx-soft); }
+    50% { box-shadow: 0 0 0 1px var(--ctx), 0 0 26px var(--ctx-soft); }
+  }
+  .pulse-ctx { animation: borderPulse 3s ease-in-out infinite; }
+
+  /* tabela */
+  table.editable { width: 100%; border-collapse: collapse; }
+  table.editable th { font-family: 'JetBrains Mono', monospace; font-size: 0.625rem; letter-spacing: 0.1em; color: var(--text-faint); text-transform: uppercase; text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--border); }
+  table.editable td { padding: 0.25rem; border-bottom: 1px solid var(--border); }
+  table.editable input { width: 100%; }
+
+  /* avatars */
+  .avatar { width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 1.125rem; border-radius: 3px; }
+
+  /* tabs */
+  .tab-btn { padding: 0.5rem 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; letter-spacing: 0.1em; border-bottom: 2px solid transparent; color: var(--text-faint); cursor: pointer; text-transform: uppercase; transition: color 0.15s, text-shadow 0.2s; }
+  .tab-btn:hover { color: var(--text-dim); }
+  .tab-btn.active { color: var(--text); }
+  .tab-btn[data-day="A"].active { border-bottom-color: var(--accent-a); text-shadow: 0 0 14px rgba(239,68,68,0.5); }
+  .tab-btn[data-day="B"].active { border-bottom-color: var(--accent-b); text-shadow: 0 0 14px rgba(245,158,11,0.5); }
+  .tab-btn[data-day="C"].active { border-bottom-color: var(--accent-c); text-shadow: 0 0 14px rgba(16,185,129,0.5); }
+  .tab-btn[data-day="D"].active { border-bottom-color: var(--accent-d); text-shadow: 0 0 14px rgba(6,182,212,0.5); }
+  .tab-btn[data-day="E"].active { border-bottom-color: var(--accent-e); text-shadow: 0 0 14px rgba(167,139,250,0.5); }
+
+  /* sombras */
+  .shadow-hot { box-shadow: 0 0 0 1px var(--border-hot); }
+
+  /* hide scroll */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* loader */
+  .loader { width: 16px; height: 16px; border: 2px solid var(--ctx); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; box-shadow: 0 0 12px var(--ctx-soft); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* pulso sutil pro hero */
+  @keyframes pulseGlow {
+    0%, 100% { text-shadow: 0 0 24px rgba(6,182,212,0.25), 0 0 60px rgba(6,182,212,0.12); }
+    50% { text-shadow: 0 0 36px rgba(6,182,212,0.4), 0 0 90px rgba(6,182,212,0.2); }
+  }
+  .hero-glow { animation: pulseGlow 4s ease-in-out infinite; }
+
+  /* corner accents (cantos tecnologicos) — aplicar .corners num container relative */
+  .corners::before, .corners::after {
+    content: ""; position: absolute; width: 14px; height: 14px; pointer-events: none;
+    border-color: var(--ctx); opacity: 0.6;
+  }
+  .corners::before { top: -1px; left: -1px; border-top: 1px solid; border-left: 1px solid; }
+  .corners::after { bottom: -1px; right: -1px; border-bottom: 1px solid; border-right: 1px solid; }
+</style>
+</head>
+<body>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay" class="fixed inset-0 bg-zinc-950/70 backdrop-blur-sm z-40 hidden items-center justify-center">
+  <div class="loader"></div>
+</div>
+
+<!-- =========================================== -->
+<!-- TELA: CONFIGURACAO INICIAL                  -->
+<!-- =========================================== -->
+<section id="view-config" class="hidden min-h-screen flex items-center justify-center px-6 py-12">
+  <div class="max-w-xl w-full">
+    <div class="display text-6xl mb-2">FORJA</div>
+    <div class="mono text-xs text-zinc-500 tracking-widest mb-8">CONFIGURACAO INICIAL</div>
+    <div class="glass p-6">
+      <p class="text-sm text-zinc-400 mb-6 leading-relaxed">
+        Esta pagina precisa da URL do seu <strong class="text-zinc-100">Google Apps Script</strong> publicado como Web App para funcionar.
+        Veja o arquivo <span class="mono text-cyan-400">SETUP.md</span> para instrucoes passo a passo.
+      </p>
+      <div class="mb-4">
+        <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">URL DO APPS SCRIPT</label>
+        <input id="config-url" type="text" placeholder="https://script.google.com/macros/s/AKfy.../exec" class="w-full" />
+      </div>
+      <div class="flex gap-2">
+        <button id="btn-config-test" class="btn flex-1">TESTAR</button>
+        <button id="btn-config-save" class="btn btn-primary flex-1">SALVAR E CONTINUAR</button>
+      </div>
+      <div id="config-status" class="mono text-xs mt-4"></div>
+    </div>
+    <div class="mono text-[10px] text-zinc-600 mt-4 text-center tracking-wider">
+      Voce so precisa fazer isso uma vez. A URL fica salva no seu navegador.
+    </div>
+  </div>
+</section>
+
+<!-- =========================================== -->
+<!-- TELA: HOME                                  -->
+<!-- =========================================== -->
+<section id="view-home" class="hidden min-h-screen flex items-center justify-center px-6 py-12">
+  <div class="max-w-3xl w-full">
+    <div class="text-center mb-14">
+      <div class="flex items-center justify-center gap-4 mb-3">
+        <svg width="46" height="46" viewBox="0 0 64 64" fill="none" stroke="#06b6d4" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" style="filter:drop-shadow(0 0 10px rgba(6,182,212,0.5))">
+          <path d="M14 26 h30 a8 8 0 0 1 -8 8 h-8 a10 10 0 0 0 14 0"/>
+          <path d="M28 34 v10"/><path d="M20 46 h16"/>
+        </svg>
+        <div class="display text-8xl md:text-9xl leading-none hero-glow">FORJA</div>
+      </div>
+      <div class="mono text-xs text-zinc-500 tracking-[0.4em] mt-2">COACH&nbsp;DASHBOARD&nbsp;·&nbsp;<span class="forja-ver">v?</span>&nbsp;·&nbsp;backend&nbsp;<span class="forja-backend">?</span></div>
+    </div>
+    <div class="max-w-xs mx-auto glass p-6">
+      <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">SEU CODIGO</label>
+      <input id="home-pin" type="password" inputmode="numeric" placeholder="••••" autocomplete="current-password" class="w-full text-center text-2xl tracking-[0.3em] mb-4" />
+      <button id="btn-home-entrar" class="btn btn-primary w-full">ENTRAR ▸</button>
+      <div id="home-login-status" class="mono text-xs mt-3 text-center"></div>
+      <div class="mono text-[10px] text-zinc-600 mt-4 text-center tracking-wider leading-relaxed">
+        Digite o seu codigo. O trainer usa a chave admin.
+      </div>
+    </div>
+    <div class="mono text-[10px] text-zinc-600 mt-14 text-center tracking-widest">
+      <button onclick="resetConfig()" class="hover:text-zinc-400 transition-colors">▸ RECONFIGURAR URL</button>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================== -->
+<!-- TELA: LOGIN TRAINER                         -->
+<!-- =========================================== -->
+<section id="view-trainer-login" class="hidden min-h-screen flex items-center justify-center px-6 py-12">
+  <div class="max-w-md w-full">
+    <button onclick="navigateTo('#home')" class="mono text-xs text-zinc-500 hover:text-zinc-100 tracking-widest mb-6">◂ VOLTAR</button>
+    <div class="display text-5xl text-cyan-400 mb-1">TRAINER</div>
+    <div class="mono text-xs text-zinc-500 tracking-widest mb-8">AUTENTICACAO ADMIN</div>
+    <div class="glass p-6">
+      <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">CHAVE ADMIN</label>
+      <input id="trainer-key" type="password" placeholder="sua chave secreta" class="w-full mb-4" />
+      <button id="btn-trainer-entrar" class="btn btn-primary w-full">ENTRAR</button>
+      <div id="trainer-login-status" class="mono text-xs mt-3 text-center"></div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================== -->
+<!-- TELA: TRAINER DASHBOARD                     -->
+<!-- =========================================== -->
+<section id="view-trainer" class="hidden min-h-screen pb-16">
+  <header class="scanbar px-6 py-4 sticky top-0 z-30" style="background:rgba(10,10,13,0.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--ctx);box-shadow:0 4px 24px var(--ctx-soft)">
+    <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 bg-cyan-500 flex items-center justify-center display text-xl text-zinc-950">F</div>
+        <div>
+          <div class="display text-2xl leading-none">FORJA<span class="text-cyan-400">.coach</span></div>
+          <div class="mono text-[10px] text-zinc-500 tracking-widest">MODO TRAINER · <span class="forja-ver">v?</span> · backend <span class="forja-backend">?</span></div>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button id="btn-trainer-refresh" class="btn">SYNC</button>
+        <button id="btn-trainer-import" class="btn">IMPORTAR JSON</button>
+        <button id="btn-trainer-novo" class="btn btn-primary">+ NOVO ALUNO</button>
+        <button onclick="logout()" class="btn btn-danger">SAIR</button>
+      </div>
+    </div>
+  </header>
+  <main class="max-w-6xl mx-auto px-6 py-8">
+    <!-- Stats -->
+    <div class="grid grid-cols-3 gap-4 mb-8">
+      <div class="glass p-4">
+        <div class="mono text-[10px] text-zinc-500 tracking-widest mb-2">ALUNOS</div>
+        <div id="stat-total-alunos" class="display text-4xl">—</div>
+      </div>
+      <div class="glass p-4">
+        <div class="mono text-[10px] text-zinc-500 tracking-widest mb-2">SESSOES 7D</div>
+        <div id="stat-sessoes-7d" class="display text-4xl">—</div>
+      </div>
+      <div class="glass p-4">
+        <div class="mono text-[10px] text-zinc-500 tracking-widest mb-2">ATIVOS 7D</div>
+        <div id="stat-ativos-7d" class="display text-4xl">—</div>
+      </div>
+    </div>
+    <!-- Lista de alunos -->
+    <div id="trainer-alunos-list" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+  </main>
+</section>
+
+<!-- =========================================== -->
+<!-- TELA: EDITAR ALUNO (TRAINER)                -->
+<!-- =========================================== -->
+<section id="view-edit-aluno" class="hidden min-h-screen pb-16">
+  <header class="scanbar px-6 py-4 sticky top-0 z-30" style="background:rgba(10,10,13,0.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--ctx);box-shadow:0 4px 24px var(--ctx-soft)">
+    <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
+      <button onclick="navigateTo('#trainer')" class="mono text-xs text-zinc-400 hover:text-white tracking-widest">◂ ALUNOS</button>
+      <div id="edit-aluno-title" class="display text-2xl"></div>
+      <div class="flex gap-2">
+        <button id="btn-export-aluno" class="btn">EXPORTAR</button>
+        <button id="btn-share-aluno" class="btn">COMPARTILHAR</button>
+        <button id="btn-remover-aluno" class="btn btn-danger">REMOVER</button>
+      </div>
+    </div>
+  </header>
+  <main class="max-w-6xl mx-auto px-6 py-8">
+    <!-- Perfil -->
+    <div class="glass p-5 mb-8">
+      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-4">PERFIL</div>
+      <div class="grid md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">ID (slug)</label>
+          <input id="edit-id" type="text" disabled class="w-full opacity-50" />
+        </div>
+        <div>
+          <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">PIN (4-6 digitos)</label>
+          <input id="edit-pin" type="text" class="w-full" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">NOME</label>
+          <input id="edit-nome" type="text" class="w-full" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">OBJETIVO</label>
+          <input id="edit-objetivo" type="text" class="w-full" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">NOTAS / RESTRICOES</label>
+          <textarea id="edit-notas" rows="3" class="w-full"></textarea>
+        </div>
+      </div>
+      <button id="btn-salvar-perfil" class="btn btn-success">SALVAR PERFIL</button>
+    </div>
+    <!-- Plano por tabs -->
+    <div class="glass p-5 mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <div class="mono text-[10px] text-zinc-500 tracking-widest">PLANO DE TREINO</div>
+        <div class="flex gap-2">
+          <button id="btn-add-exercise" class="btn">+ EXERCICIO</button>
+          <button id="btn-salvar-plano" class="btn btn-success">SALVAR PLANO</button>
+        </div>
+      </div>
+      <div class="flex border-b border-zinc-800 mb-4">
+        <button class="tab-btn active" data-day="A" onclick="setEditDay('A')">A</button>
+        <button class="tab-btn" data-day="B" onclick="setEditDay('B')">B</button>
+        <button class="tab-btn" data-day="C" onclick="setEditDay('C')">C</button>
+        <button class="tab-btn" data-day="D" onclick="setEditDay('D')">D</button>
+        <button class="tab-btn" data-day="E" onclick="setEditDay('E')">E</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="editable" id="plano-table">
+          <thead>
+            <tr>
+              <th style="width: 1.5rem">#</th>
+              <th>EXERCICIO</th>
+              <th style="width: 4rem">SERIES</th>
+              <th style="width: 4rem">REPS</th>
+              <th style="width: 5rem">CARGA</th>
+              <th style="width: 3.5rem">RIR</th>
+              <th style="width: 6.5rem">TIPO</th>
+              <th style="width: 4.5rem">ALVO</th>
+              <th>OBS</th>
+              <th style="width: 4rem"></th>
+            </tr>
+          </thead>
+          <tbody id="plano-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- EVOLUCAO / HISTORICO -->
+    <div class="glass p-5">
+      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-4 flex items-center gap-2">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+        EVOLUCAO & HISTORICO
+      </div>
+
+      <!-- v19: seletor de periodo -->
+      <div id="evo-periodo-trainer" class="flex flex-wrap gap-2 mb-4"></div>
+      <!-- Stats -->
+      <div id="evo-stats-trainer" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"></div>
+
+      <!-- v18: calendario de frequencia -->
+      <div id="evo-calendario-trainer" class="mb-6"></div>
+
+      <!-- Grafico de carga por exercicio -->
+      <div class="glass p-4 mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="mono text-[10px] text-zinc-500 tracking-widest">PROGRESSAO DE CARGA</div>
+          <label class="mono text-[10px] text-zinc-500 tracking-widest flex items-center gap-1.5 cursor-pointer ml-auto mr-2">
+            <input type="checkbox" id="evo-compare-trainer" style="accent-color:#06b6d4" /> COMPARAR ALUNOS
+          </label>
+          <select id="evo-select-trainer" class="text-xs"></select>
+        </div>
+        <div style="position:relative; height:240px;">
+          <canvas id="evo-chart-trainer"></canvas>
+        </div>
+        <div id="evo-chart-empty-trainer" class="mono text-[10px] text-zinc-600 text-center py-8 hidden">
+          Sem dados numericos de carga para este exercicio.
+        </div>
+      </div>
+
+      <!-- Historico por sessao -->
+      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-3">SESSOES REGISTRADAS</div>
+      <div id="evo-historico-trainer" class="space-y-3"></div>
+    </div>
+  </main>
+</section>
+
+<!-- =========================================== -->
+<!-- TELA: LOGIN ALUNO                           -->
+<!-- =========================================== -->
+<section id="view-aluno-login" class="hidden min-h-screen flex items-center justify-center px-6 py-12">
+  <div class="max-w-md w-full">
+    <button onclick="navigateTo('#home')" class="mono text-xs text-zinc-500 hover:text-zinc-100 tracking-widest mb-6">◂ VOLTAR</button>
+    <div class="display text-5xl mb-1">ALUNO</div>
+    <div class="mono text-xs text-zinc-500 tracking-widest mb-8">ACESSO AO PLANO</div>
+    <div class="glass p-6">
+      <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">SEU ID</label>
+      <input id="aluno-id" type="text" placeholder="ex: marcos" class="w-full mb-4" />
+      <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">PIN</label>
+      <input id="aluno-pin" type="password" placeholder="****" class="w-full mb-4" />
+      <button id="btn-aluno-entrar" class="btn btn-primary w-full">ENTRAR</button>
+      <div id="aluno-login-status" class="mono text-xs mt-3 text-center"></div>
+    </div>
+    <div class="mono text-[10px] text-zinc-600 mt-4 text-center tracking-wider">
+      Seu trainer te passou ID e PIN. Esqueceu? Pede pra ele.
+    </div>
+  </div>
+</section>
+
+<!-- =========================================== -->
+<!-- TELA: ALUNO DASHBOARD                       -->
+<!-- =========================================== -->
+<section id="view-aluno" class="hidden min-h-screen pb-16">
+  <header class="scanbar px-6 py-4 sticky top-0 z-30" style="background:rgba(10,10,13,0.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--ctx);box-shadow:0 4px 24px var(--ctx-soft)">
+    <div class="max-w-4xl mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div id="aluno-avatar" class="avatar bg-zinc-100 text-zinc-950">—</div>
+        <div>
+          <div id="aluno-nome" class="display text-2xl leading-none">—</div>
+          <div id="aluno-last" class="mono text-[10px] text-zinc-500 tracking-widest">—</div>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button id="btn-aluno-refresh" class="btn">SYNC</button>
+        <button onclick="logout()" class="btn btn-danger">SAIR</button>
+      </div>
+    </div>
+  </header>
+  <main class="max-w-4xl mx-auto px-6 py-8">
+    <!-- Tabs (renderizado dinamicamente conforme dias que o aluno tem) -->
+    <div id="aluno-day-tabs" class="flex border-b border-zinc-800 mb-6"></div>
+    <!-- Objetivo / notas -->
+    <div id="aluno-meta" class="mono text-xs text-zinc-500 mb-6"></div>
+    <!-- v24: Mapa Muscular (heroi do home) -->
+    <div id="aluno-mapa" class="mb-8"></div>
+    <!-- Plano -->
+    <div id="aluno-plano" class="space-y-3 mb-8"></div>
+    <!-- CTAs -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-12">
+      <button id="btn-aluno-treinar" class="btn btn-success py-4 text-base sm:col-span-3">▸ TREINAR AGORA</button>
+      <button id="btn-aluno-registrar" class="btn py-4">LANCAR SESSAO</button>
+      <button id="btn-aluno-historico" class="btn py-4">EVOLUCAO</button>
+      <button id="btn-aluno-peso" class="btn py-4">⚖ PESO</button>
+    </div>
+    <!-- Historico / Evolucao (collapse) -->
+    <div id="aluno-historico-section" class="hidden glass p-5">
+      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-4 flex items-center gap-2">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+        SUA EVOLUCAO
+      </div>
+      <div id="evo-periodo-aluno" class="flex flex-wrap gap-2 mb-4"></div>
+      <div id="evo-stats-aluno" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"></div>
+      <div id="evo-calendario-aluno" class="mb-6"></div>
+      <div class="glass p-4 mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="mono text-[10px] text-zinc-500 tracking-widest">PROGRESSAO DE CARGA</div>
+          <select id="evo-select-aluno" class="text-xs"></select>
+        </div>
+        <div style="position:relative; height:220px;">
+          <canvas id="evo-chart-aluno"></canvas>
+        </div>
+        <div id="evo-chart-empty-aluno" class="mono text-[10px] text-zinc-600 text-center py-8 hidden">
+          Sem dados numericos de carga para este exercicio.
+        </div>
+      </div>
+      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-3">SESSOES REGISTRADAS</div>
+      <div id="evo-historico-aluno" class="space-y-3"></div>
+    </div>
+    <div class="mt-10 text-center mono text-[10px] text-zinc-700 tracking-widest">
+      FORJA · <span class="forja-ver">v?</span> · backend <span class="forja-backend">?</span>
+    </div>
+  </main>
+</section>
+
+<!-- =========================================== -->
+<!-- TELA: TREINAR AGORA (mobile-first guided)   -->
+<!-- =========================================== -->
+<section id="view-treinar" class="hidden fixed inset-0 bg-zinc-950 z-30 overflow-y-auto">
+  <header class="border-b border-zinc-800 px-4 py-3 sticky top-0 bg-zinc-950 z-10">
+    <div class="max-w-2xl mx-auto flex items-center justify-between gap-3">
+      <button onclick="encerrarTreinar()" class="mono text-xs text-zinc-500 hover:text-zinc-100 tracking-widest">◂ SAIR</button>
+      <div class="flex items-center gap-2">
+        <span id="treinar-day-badge" class="display text-3xl leading-none">A</span>
+        <span class="mono text-[10px] text-zinc-500 tracking-widest">TREINANDO</span>
+      </div>
+      <div class="mono text-xs text-zinc-300 text-right">
+        <span id="treinar-progress-text">1 / 6</span>
+        <span id="treinar-timer" class="block text-[10px] text-zinc-500"></span>
+      </div>
+    </div>
+    <div class="max-w-2xl mx-auto mt-2 h-1 bg-zinc-900 overflow-hidden">
+      <div id="treinar-progress-bar" class="h-full bg-emerald-500 transition-all" style="width: 0%"></div>
+    </div>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-4 py-6">
+    <!-- Status por exercicio: tap pra navegar, cor mostra estado -->
+    <div id="treinar-status-bar" class="flex gap-1.5 mb-4 flex-wrap"></div>
+
+    <div class="flex items-start justify-between gap-3 mb-2">
+      <div id="treinar-exercicio-nome" class="display text-4xl text-zinc-100 leading-tight">—</div>
+      <!-- v26: trocar exercicio flexivel por equivalente (so nesta sessao) -->
+      <button id="btn-treinar-trocar" type="button" onclick="abrirTrocaExercicio()" class="btn hidden shrink-0 mt-1 px-3 py-2 text-xs text-cyan-300 border-cyan-700/50 whitespace-nowrap">⇄ TROCAR</button>
+    </div>
+    <div id="treinar-substituido" class="hidden mono text-[10px] text-cyan-400 tracking-widest mb-2"></div>
+    <div id="treinar-ja-salvo" class="hidden mono text-[10px] text-emerald-400 tracking-widest mb-2">✓ JA REGISTRADO NESTA SESSAO — mostrando o que voce salvou</div>
+    <div id="treinar-alvo" class="mono text-xs text-zinc-500 mb-1 tracking-widest">—</div>
+    <div id="treinar-obs" class="mono text-[11px] text-amber-500/90 mt-3 mb-4 leading-relaxed"></div>
+
+    <div class="grid grid-cols-3 gap-3 my-6">
+      <div>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">CARGA</label>
+        <input id="treinar-input-carga" type="text" inputmode="decimal" autocomplete="off" class="w-full text-2xl py-3 text-center" />
+      </div>
+      <div>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">REPS</label>
+        <input id="treinar-input-reps" type="text" inputmode="text" autocomplete="off" class="w-full text-2xl py-3 text-center" />
+      </div>
+      <div>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">RIR FINAL</label>
+        <input id="treinar-input-rir" type="text" inputmode="numeric" autocomplete="off" class="w-full text-2xl py-3 text-center" />
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">OBS</label>
+      <input id="treinar-input-obs" type="text" placeholder="opcional" class="w-full" />
+    </div>
+
+    <!-- Data do treino: pre-preenchida com hoje. Sobrepoe o timestamp do servidor
+         pra fins de agrupamento na Evolucao. Util pra corrigir manualmente o dia. -->
+    <div class="mb-6">
+      <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DATA DO TREINO (opcional, padrao hoje)</label>
+      <input id="treinar-input-data" type="date" class="w-full text-sm" />
+    </div>
+
+    <!-- v20: descanso ENTRE SERIES — toca DESCANSAR entre uma serie e outra. -/+ ajustam o padrao. -->
+    <div class="flex items-center justify-center gap-2 mb-3">
+      <button type="button" onclick="ajustarPadraoDescanso(-15)" class="btn px-4 py-3 text-lg">−</button>
+      <button id="btn-treinar-descansar" type="button" onclick="iniciarRest(restSecAtual())" class="btn flex-1 py-3 text-cyan-300 border-cyan-700/50">⏱ DESCANSAR <span id="treinar-rest-label">120s</span></button>
+      <button type="button" onclick="ajustarPadraoDescanso(15)" class="btn px-4 py-3 text-lg">+</button>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <button id="btn-treinar-faltei" class="btn btn-danger py-6 text-lg">✗ FALTEI</button>
+      <!-- v26.1: FECHEI por PRESSAO — segure ~0,5s pra confirmar. A barra enche
+           enquanto segura; soltar antes cancela. Toque solto (bolso/desbloqueio)
+           nao completa, entao nao salva. -->
+      <button id="btn-treinar-fechei" class="btn btn-success py-6 text-lg relative overflow-hidden" style="touch-action:manipulation;user-select:none;-webkit-user-select:none;">
+        <span id="fechei-fill" class="absolute inset-y-0 left-0" style="width:0;background:rgba(255,255,255,.28);pointer-events:none;"></span>
+        <span class="relative leading-tight" style="pointer-events:none;">✓ FECHEI<span class="block mono text-[9px] font-normal mt-0.5" style="opacity:.85;">segure pra fechar</span></span>
+      </button>
+    </div>
+
+    <!-- Navegacao livre: pula pro proximo/anterior SEM registrar. Util quando
+         o equipamento esta ocupado e voce quer trocar a ordem. -->
+    <div class="grid grid-cols-2 gap-3 mt-3">
+      <button onclick="exercicioAnterior()" class="btn py-3">◂ ANTERIOR</button>
+      <button onclick="exercicioProximo()" class="btn py-3">PROXIMO ▸</button>
+    </div>
+
+    <!-- v26: link "FINALIZAR TREINO AGORA" removido — a sessao encerra sozinha
+         quando todo exercicio esta fechado; pra sair antes, use ◂ SAIR no topo. -->
+  </main>
+
+  <!-- v19: overlay de descanso opcional entre exercicios -->
+  <div id="treinar-rest-overlay" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-40 flex items-center justify-center">
+    <div class="text-center px-6">
+      <div class="mono text-xs text-zinc-500 tracking-widest mb-4">DESCANSO</div>
+      <div id="treinar-rest-seconds" class="display text-9xl text-cyan-400 leading-none mb-6">120</div>
+      <div class="mono text-[10px] text-zinc-600 tracking-widest mb-8">DESCANSO ENTRE SERIES</div>
+      <div class="flex gap-3 justify-center mb-6">
+        <button onclick="ajustarRest(-15)" class="btn px-6 py-3">-15s</button>
+        <button onclick="ajustarRest(15)" class="btn px-6 py-3">+15s</button>
+      </div>
+      <button onclick="pularRest()" class="btn btn-primary py-3 px-8 text-base">✓ PRONTO</button>
+    </div>
+  </div>
+
+  <!-- Summary final -->
+  <div id="treinar-summary" class="hidden fixed inset-0 bg-zinc-950 z-40 flex items-center justify-center">
+    <div class="text-center px-6 max-w-md">
+      <div class="display text-7xl text-emerald-400 mb-2">FECHADO</div>
+      <div class="mono text-xs text-zinc-500 tracking-widest mb-8">SESSAO REGISTRADA</div>
+      <div id="treinar-summary-stats" class="mono text-sm text-zinc-300 mb-8"></div>
+      <button onclick="finalizarTreinar()" class="btn btn-success py-4 px-12 text-base">VOLTAR</button>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================== -->
+<!-- MODAL: REGISTRAR SESSAO (ALUNO)             -->
+<!-- =========================================== -->
+<!-- MODAL: REGISTRAR PESO (v23) -->
+<div id="modal-peso" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-40 overflow-y-auto">
+  <div class="max-w-md mx-auto px-6 py-10">
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
+      <div>
+        <div class="display text-4xl">PESO</div>
+        <div class="mono text-[10px] text-zinc-500 tracking-widest">REGISTRAR PESAGEM</div>
+      </div>
+      <button onclick="document.getElementById('modal-peso').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    <div class="glass p-5 space-y-4">
+      <div>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">PESO (kg)</label>
+        <input id="peso-input-kg" type="text" inputmode="decimal" autocomplete="off" placeholder="ex: 84.4" class="w-full text-3xl py-3 text-center" />
+      </div>
+      <div>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">BALANCA</label>
+        <select id="peso-input-balanca" class="w-full text-sm">
+          <option value="Academia">Academia</option>
+          <option value="Casa">Casa</option>
+          <option value="Outra">Outra</option>
+        </select>
+      </div>
+      <div>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">OBS (opcional)</label>
+        <input id="peso-input-obs" type="text" autocomplete="off" placeholder="jejum, pos-treino..." class="w-full text-sm" />
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button onclick="document.getElementById('modal-peso').classList.add('hidden')" class="btn flex-1">CANCELAR</button>
+        <button id="btn-salvar-peso" class="btn btn-success flex-1">SALVAR</button>
+      </div>
+      <div id="peso-status" class="mono text-xs text-center"></div>
+    </div>
+    <div id="peso-historico" class="mt-6"></div>
+  </div>
+</div>
+
+<!-- MODAL: TROCAR EXERCICIO (v26) — substitui por equivalente so na sessao atual -->
+<div id="modal-trocar" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-40 overflow-y-auto">
+  <div class="max-w-md mx-auto px-6 py-10">
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
+      <div>
+        <div class="display text-4xl">TROCAR</div>
+        <div class="mono text-[10px] text-zinc-500 tracking-widest">SUBSTITUIR SO NESTA SESSAO</div>
+      </div>
+      <button onclick="document.getElementById('modal-trocar').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    <div class="mono text-[11px] text-zinc-500 mb-4 leading-relaxed">Escolha um exercicio equivalente. A troca vale so pra este treino — seu plano nao muda. O registro grava o nome do substituto.</div>
+    <div id="trocar-opcoes" class="space-y-2"></div>
+  </div>
+</div>
+
+<div id="modal-registrar" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-40 overflow-y-auto">
+  <div class="max-w-2xl mx-auto px-6 py-8">
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
+      <div>
+        <div id="modal-reg-day" class="display text-4xl">—</div>
+        <div class="mono text-[10px] text-zinc-500 tracking-widest">REGISTRAR EXECUCAO</div>
+      </div>
+      <button onclick="document.getElementById('modal-registrar').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    <div id="modal-reg-form" class="space-y-4 mb-6"></div>
+    <!-- Data do treino (pre-preenchida com hoje, opcional sobrescrever) -->
+    <div class="mb-4 pb-4 border-b border-zinc-800">
+      <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DATA DO TREINO (opcional, padrao hoje)</label>
+      <input id="reg-data-treino" type="date" class="w-full text-sm" />
+    </div>
+    <div class="flex gap-3">
+      <button onclick="document.getElementById('modal-registrar').classList.add('hidden')" class="btn flex-1">CANCELAR</button>
+      <button id="btn-salvar-sessao" class="btn btn-success flex-1">SALVAR SESSAO</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================== -->
+<!-- MODAL: COMPARTILHAR ALUNO                   -->
+<!-- =========================================== -->
+<div id="modal-share" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-40 overflow-y-auto">
+  <div class="max-w-xl mx-auto px-6 py-12">
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
+      <div class="display text-3xl">COMPARTILHAR</div>
+      <button onclick="document.getElementById('modal-share').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    <div class="mb-4">
+      <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">LINK DO ALUNO</label>
+      <div class="flex gap-2">
+        <input id="share-url" type="text" readonly class="flex-1" />
+        <button id="btn-copy-url" class="btn">COPIAR</button>
+      </div>
+    </div>
+    <div class="mb-6">
+      <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">MENSAGEM</label>
+      <textarea id="share-msg" rows="8" class="w-full text-xs"></textarea>
+    </div>
+    <div class="flex gap-3">
+      <button id="btn-share-wa" class="btn btn-success flex-1">WHATSAPP</button>
+      <button id="btn-share-email" class="btn flex-1">EMAIL</button>
+    </div>
+    <div class="mono text-[10px] text-zinc-600 mt-4 text-center tracking-wider">
+      O aluno precisa do PIN tambem. Envie pelo mesmo canal ou em separado.
+    </div>
+  </div>
+</div>
+
+<!-- =========================================== -->
+<!-- MODAL: NOVO ALUNO                           -->
+<!-- =========================================== -->
+<div id="modal-novo" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-40 overflow-y-auto">
+  <div class="max-w-md mx-auto px-6 py-12">
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
+      <div class="display text-3xl">NOVO ALUNO</div>
+      <button onclick="document.getElementById('modal-novo').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-1">ID (slug, sem espacos)</label>
+        <input id="novo-id" type="text" placeholder="ex: marcos, joao, ana-b" class="w-full" />
+      </div>
+      <div>
+        <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-1">NOME</label>
+        <input id="novo-nome" type="text" placeholder="Marcos R. Abati" class="w-full" />
+      </div>
+      <div>
+        <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-1">PIN (4-6 digitos)</label>
+        <input id="novo-pin" type="text" placeholder="1234" class="w-full" />
+      </div>
+      <div>
+        <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-1">OBJETIVO</label>
+        <input id="novo-objetivo" type="text" placeholder="ex: recomposicao corporal" class="w-full" />
+      </div>
+      <div>
+        <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-1">NOTAS / RESTRICOES</label>
+        <textarea id="novo-notas" rows="3" placeholder="ombro esq instavel, sem barra atras..." class="w-full"></textarea>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button onclick="document.getElementById('modal-novo').classList.add('hidden')" class="btn flex-1">CANCELAR</button>
+      <button id="btn-criar-aluno" class="btn btn-success flex-1">CRIAR ALUNO</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- =========================================== -->
+<!-- MODAL: IMPORT JSON                          -->
+<!-- =========================================== -->
+<div id="modal-import" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-40 overflow-y-auto">
+  <div class="max-w-2xl mx-auto px-6 py-12">
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
+      <div>
+        <div class="display text-3xl">IMPORTAR ALUNO</div>
+        <div class="mono text-[10px] text-zinc-500 tracking-widest">VIA JSON</div>
+      </div>
+      <button onclick="document.getElementById('modal-import').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    <p class="text-sm text-zinc-400 mb-4 leading-relaxed">
+      Cola um JSON com <span class="mono text-cyan-400">aluno</span>, <span class="mono text-cyan-400">plano</span> e (opcional) <span class="mono text-cyan-400">registros</span>.
+      Cria o aluno, o plano (qualquer subset de A a E) e importa o historico de sessoes de uma vez. Se o ID ja existir, sobrescreve plano e historico.
+    </p>
+    <div class="mb-4">
+      <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">PIN DO ALUNO (voce define agora)</label>
+      <input id="import-pin" type="text" placeholder="ex: 1234" class="w-full" />
+      <div class="mono text-[10px] text-zinc-600 mt-1">O PIN sobrescreve qualquer valor que vier no JSON. Anote pra mandar pro aluno.</div>
+    </div>
+    <div class="mb-4">
+      <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">OPCAO 1 · CARREGAR ARQUIVO .JSON (recomendado)</label>
+      <input id="import-file" type="file" accept=".json,application/json,text/plain" class="w-full text-xs" />
+      <div class="mono text-[10px] text-zinc-600 mt-1">Selecione o arquivo bootstrap_marcos.json — preenche o campo abaixo sozinho. Sem copiar e colar.</div>
+    </div>
+    <div class="mb-4">
+      <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">OPCAO 2 · COLAR JSON</label>
+      <textarea id="import-json" rows="10" class="w-full text-xs mono" placeholder='{
+  "aluno": { "id": "marcos", "nome": "...", "objetivo": "...", "notas": "..." },
+  "plano": [ { "dia": "A", "exercicio": "...", "series": "3", "reps": "10", "carga": "34kg", "rir": "2", "obs": "..." } ],
+  "registros": [ ... ]
+}'></textarea>
+    </div>
+    <div id="import-status" class="mono text-xs mb-3"></div>
+    <div class="flex gap-3">
+      <button onclick="document.getElementById('modal-import').classList.add('hidden')" class="btn flex-1">CANCELAR</button>
+      <button id="btn-import-validar" class="btn flex-1">VALIDAR</button>
+      <button id="btn-import-confirmar" class="btn btn-success flex-1">IMPORTAR</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ===================================================================
+//   FORJA — vanilla JS
+//   VERSAO: v18 (2026-06-09)
+//   v2: aba Evolucao, upload de arquivo no import, aluno remove registro,
+//       anti-duplo-clique no salvar, versionamento
+//   v3: suporte a 5 dias dinamicos (A/B/C/D/E). Trainer edita qualquer dia;
+//       aluno ve apenas os dias com exercicios. Cores D=ciano, E=violeta.
+//   v4: modo TREINAR AGORA - fluxo guiado mobile-first com timer de descanso
+//       extraido do campo obs (ex: "Descanso: 90s"). Botoes FECHEI/FALTEI por
+//       exercicio. Vibration API ao final do descanso quando suportada.
+//   v5: URL do Apps Script embutida como DEFAULT_APPS_URL. Aluno novo
+//       (qualquer navegador / dispositivo) abre o link e vai direto pra
+//       tela ALUNO sem ver a tela de "CONFIGURACAO INICIAL". localStorage
+//       continua sobrescrevendo o default se voce quiser apontar pra outra URL.
+//   v10: REQUER REIMPLANTAR O APPS SCRIPT. Adiciona: (a) data_treino opcional
+//        em cada registro — input de data no TREINAR AGORA e LANCAR SESSAO,
+//        pre-preenchido com hoje, sobrescritivel. Backend persiste; frontend
+//        usa pra agrupar quando preenchido, senao cai no timestamp local.
+//        (b) REMOVER SESSAO inteira num clique (acao removerRegistrosBatch
+//        no backend) — bem mais rapido que apagar registro por registro.
+//   v9: divisao adicional por GAP TEMPORAL dentro do (data, dia). Se 2 registros
+//       consecutivos estao separados por mais de 90 minutos, viram sessoes
+//       diferentes (cards separados). Resolve "2 treinos C no mesmo dia
+//       virando 1 card de 10 exercicios". Card agora mostra a hora local
+//       do inicio da sessao (ex: "26/05/26 · 18:00") pra desambiguar visualmente.
+//   v8: agrupamento de historico por (data_local, dia). Antes o slice direto do
+//       timestamp misturava registros do dia errado por causa de UTC vs local.
+//       Agora helper dataLocalIso() interpreta o timestamp como momento e
+//       devolve YYYY-MM-DD no fuso do navegador. Tambem: 2 treinos diferentes
+//       (ex A e C) no mesmo dia viram 2 cards separados.
+//   v7: fix cache do navegador em apiGet (SYNC agora SEMPRE traz dado fresco)
+//       + botao EXPORTAR no edit-aluno: baixa um JSON unico com perfil + plano
+//       + registros, mesmo formato dos bootstrap_*.json. Pode ser re-importado.
+//   v6: rede de seguranca contra perda de dado por falha de rede.
+//       - Buffer localStorage por aluno: todo registro gravado local PRIMEIRO,
+//         depois envia. Falha de rede nao perde dado nunca.
+//       - Re-sincroniza pendentes automaticamente ao abrir o app.
+//       - Status visual por exercicio (verde=salvo / vermelho=guardado local /
+//         cinza=pulou / ciano=atual). Tap pra navegar.
+//       - Botoes ANTERIOR / PROXIMO pra reordenar exercicios em tempo real
+//         (quando o equipamento esta ocupado na academia).
+//       - Toast positivo a cada save bem-sucedido.
+//       - Sumario final avisa se ainda tem registros pendentes no buffer.
+// ===================================================================
+
+// CHANGELOG v11-v18 (resumo):
+//   v18: calendario de frequencia mensal na Evolucao (verde=treinou,
+//        vermelho=faltou, meta <=5 faltas/mes, navegacao entre meses);
+//        campo TIPO no plano (COMPOSTO descanso 2-3min / ISOLADO 1-2min) —
+//        select no trainer, badge no plano do aluno e no TREINAR (persistir
+//        exige backend v2, que migra a coluna sozinho); cronometro de treino
+//        (1o save -> fim) no header do TREINAR + duracao nos cards do
+//        historico + stat TEMPO MEDIO; COMPARAR ALUNOS no grafico do trainer
+//        (sobrepoe progressao de todos no exercicio selecionado).
+//   v17: TREINAR lembra o que foi registrado na sessao (revisitar mostra o
+//        salvo, nao o padrao do plano) e BLOQUEIA registrar 2x o mesmo
+//        exercicio (cliques repetidos geravam linhas duplicadas no banco);
+//        LANCAR SESSAO e o sobrescrever usam acoes batch do backend v2
+//        (1 chamada por sessao, sobrescrever atomico) com fallback automatico
+//        pro backend v1. Requer forja_apps_script_v2.gs pra ganhar o batch,
+//        mas funciona 100% no backend antigo tambem.
+//   v16: trava de duplicata tambem no TREINAR AGORA (confirma SOBRESCREVER no
+//        1o save; sessao antiga apagada ao finalizar, depois dos saves novos);
+//        campo DATA trava visualmente apos congelar; stats da Evolucao agora
+//        contam sessoes por (dataSessao, dia) — back-date e A+C no mesmo dia
+//        contavam errado; aviso de rotacao dinamico (dias do plano + registros,
+//        nao mais A/B/C fixo; dia planejado nunca registrado tambem alerta);
+//        status pos-flush cruzado por _localId (fim da heuristica fragil).
+//   v15: refactor de data — data_treino sempre gravado (default hoje) e uniforme
+//        por sessao; TREINAR congela a data no 1o save; trava de duplicata por
+//        (dia + data_treino) com opcao SOBRESCREVER (= editar a sessao);
+//        EXPORT agora inclui data_treino; aviso de rotacao/gap no historico;
+//        REMOVIDO o timer de descanso entre series (FECHEI vai direto ao proximo).
+//   v14/v13: visual. v12: fmtDate fuso-safe. v11: dataTreinoLimpa()/dataSessao().
+// v19: login unificado na 1a tela; descanso opcional (toggle OFF/90/120/180s);
+//      confirmacao ao salvar/finalizar sessao; historico nao fragmenta sessao
+//      com data_treino explicito (conserta registro manual sumindo); seletor de
+//      periodo na Evolucao (30/90/180/tudo). Ver >30 dias completo exige backend
+//      v2 (getAluno sem corte de 100 registros).
+// v20: login SO por codigo (campo unico; tenta alunos conhecidos + chave admin);
+//      descanso ENTRE SERIES — botao DESCANSAR manual na tela do exercicio, o
+//      overlay volta pro MESMO exercicio (nao avanca); FECHEI sem auto-descanso.
+//      Lembrete: ver sessoes antigas (>~20) ainda exige backend v2 (corte de 100).
+// v21: indicador da versao do BACKEND no rodape/headers — o app pinga o
+//      Apps Script e mostra "backend v2" (ou "v1 (antigo)" se o deploy do v2
+//      ainda nao entrou no ar). Termometro pra confirmar a publicacao do backend.
+// v22: agrupamento robusto a timestamp SO com data (linha adicionada na mao
+//      sem hora) e sem data_treino — antes caia no card do dia anterior e
+//      rachava a sessao. Agora junta no dia certo, num card so.
+// v23: (1) coluna ALVO (carga-alvo 1 ano) no plano + linha tracejada de alvo
+//      no grafico de carga (persiste via backend v3, coluna meta);
+//      (2) REGISTRAR PESO: modal (peso + balanca) grava na aba peso (backend v3),
+//      stat PESO na evolucao + historico das ultimas pesagens.
+// v24: MAPA MUSCULAR - corpo (frente/costas) colorido por recuperacao a partir
+//      dos registros (verde pronto / ambar recuperando / vermelho atrasado) +
+//      sugestao do "treino de hoje". Etapa 1 do redesign visual (SVG inline).
+// v25: (1) MAPA MUSCULAR com COSTAS redesenhada (silhueta cheia, lats em V,
+//      trapezio/gluteo/posterior/panturrilha definidos + contornos);
+//      (2) FECHEI em 2 toques no TREINAR (confirma antes de gravar - nao salva
+//      mais por toque acidental ao destravar o celular).
+const FORJA_VERSION = 'v26';
+
+// URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
+// vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
+// a implantacao (URL nova), atualize aqui e republique o forja.html.
+// A seguranca continua sendo ADMIN_KEY (trainer) e PIN (aluno) — a URL
+// sozinha nao da acesso a nada, e equivale a saber o endereco de um predio
+// trancado.
+const DEFAULT_APPS_URL = 'https://script.google.com/macros/s/AKfycbzz9UplVRMcK2wH-JHwPB-COnunGWFKfF2BvFPPVWeTMFjuKYQmk1YWNZE3GezeQhp95w/exec';
+
+// Dias suportados pelo sistema
+const DAYS = ['A', 'B', 'C', 'D', 'E'];
+const DAY_COLORS_TEXT = { A: 'text-red-500', B: 'text-amber-500', C: 'text-emerald-500', D: 'text-cyan-400', E: 'text-violet-400' };
+const DAY_COLORS_BG   = { A: 'bg-red-500',   B: 'bg-amber-500',   C: 'bg-emerald-500',   D: 'bg-cyan-500',   E: 'bg-violet-500'   };
+const DAY_COLORS_HEX  = { A: '#ef4444',      B: '#f59e0b',        C: '#10b981',          D: '#06b6d4',       E: '#a78bfa'         };
+function dayColorText(d) { return DAY_COLORS_TEXT[String(d).toUpperCase()] || 'text-zinc-400'; }
+function dayColorBg(d)   { return DAY_COLORS_BG[String(d).toUpperCase()]   || 'bg-zinc-400'; }
+function dayColorHex(d)  { return DAY_COLORS_HEX[String(d).toUpperCase()]  || '#71717a'; }
+function emptyPlanoMap() { const o = {}; DAYS.forEach(d => o[d] = []); return o; }
+
+const APP = {
+  // configuracao salva em localStorage
+  appsScriptUrl: null,
+  // sessao atual
+  trainerKey: null,
+  alunoSession: null, // {id, pin}
+  // dados cached
+  data: null,
+  currentAluno: null, // id do aluno sendo editado
+  editPlano: emptyPlanoMap(),
+  editDay: 'A',
+  alunoDay: 'A',
+  evoCharts: { trainer: null, aluno: null },
+  savingSession: false, // trava anti-duplo-clique no registro
+};
+
+// ---------- UTIL ----------
+
+const $ = (id) => document.getElementById(id);
+
+function toast(msg, kind = 'info') {
+  const c = $('toast-container');
+  const colors = {
+    info: 'bg-zinc-800 border-zinc-700 text-zinc-100',
+    success: 'bg-emerald-700 border-emerald-600 text-white',
+    error: 'bg-red-900 border-red-700 text-white',
+  };
+  const t = document.createElement('div');
+  t.className = `toast border px-4 py-2 mono text-xs tracking-wider ${colors[kind]}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+function showLoading(b) {
+  const o = $('loading-overlay');
+  if (b) { o.classList.remove('hidden'); o.classList.add('flex'); }
+  else { o.classList.add('hidden'); o.classList.remove('flex'); }
+}
+
+function slugify(s) {
+  return String(s || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[\u0300-\u036f]/g, '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function initials(name) {
+  const parts = String(name || '?').trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+}
+
+function fmtDate(iso) {
+  try {
+    // BUG corrigido: new Date("2026-05-28") era interpretado como meia-noite
+    // UTC -> no fuso do Brasil (-3) virava 21h do dia ANTERIOR, e o card
+    // mostrava a data um dia atras. Quando a entrada e uma data pura
+    // "YYYY-MM-DD" (o grupo.data do historico), montamos um Date no fuso
+    // LOCAL (ano, mes-1, dia) pra nao girar o calendario.
+    const s = String(iso || '');
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const d = m
+      ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+      : new Date(iso);
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  } catch { return '—'; }
+}
+
+function fmtDateTime(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  } catch { return '—'; }
+}
+
+function daysAgo(iso) {
+  try {
+    const d = new Date(iso);
+    const diff = (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24);
+    if (diff < 1) return 'hoje';
+    if (diff < 2) return 'ontem';
+    return `${Math.floor(diff)}d atras`;
+  } catch { return '—'; }
+}
+
+// Retorna YYYY-MM-DD da data LOCAL do timestamp. Robusto a:
+//  - ISO UTC ("2026-05-27T01:00:00.000Z" no Brasil = 22h do dia 26)
+//  - ISO com timezone explicito ("2026-05-26T22:00:00-03:00")
+//  - Date object retornado pelo Sheets
+// Funciona porque new Date() entende todos esses formatos e depois
+// usamos getFullYear/Month/Date que retornam ja no fuso local do navegador.
+function dataLocalIso(ts) {
+  try {
+    const s = String(ts == null ? '' : ts).trim();
+    // v22: timestamp SO com a data ("2026-06-22", sem hora) -> usa direto.
+    // Sem isso, new Date("2026-06-22") vira meia-noite UTC e no Brasil cai no
+    // dia ANTERIOR (jogava registro manual pro card do dia errado).
+    const bare = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (bare) return `${bare[1]}-${bare[2]}-${bare[3]}`;
+    const d = new Date(s);
+    if (isNaN(d.getTime())) {
+      const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      return m ? `${m[1]}-${m[2]}-${m[3]}` : s.slice(0, 10);
+    }
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  } catch { return String(ts || '').slice(0, 10); }
+}
+
+// Extrai YYYY-MM-DD do campo data_treino, tolerando o que o Google Sheets
+// devolve. O Sheets reconhece "2026-05-28" como DATA e, ao ler de volta,
+// manda como Date -> vira "2026-05-28T00:00:00.000Z" no JSON (com a hora
+// colada). O teste antigo /^\d{4}-\d{2}-\d{2}$/ exigia a string LIMPA e
+// FALHAVA nesse caso, fazendo o app ignorar o data_treino que o aluno
+// confirmou e cair no timestamp UTC (que de noite ja virou o dia seguinte,
+// jogando o treino pro card do dia errado).
+// Aqui pegamos so o prefixo da data, funcione ela como texto puro, ISO com
+// hora, ou Date. Se nao houver data valida, devolve ''.
+function dataTreinoLimpa(v) {
+  const s = String(v == null ? '' : v).trim();
+  if (!s) return '';
+  // "2026-05-28" ou "2026-05-28T00:00:00.000Z" -> "2026-05-28"
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  // Formatos pt-BR que o Sheets as vezes guarda ("28/05/2026" ou "28/05/26")
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (m) {
+    let dd = m[1], mm = m[2], yy = m[3];
+    if (yy.length === 2) yy = '20' + yy;
+    return `${yy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  }
+  return '';
+}
+
+// Data da sessao para agrupar/plotar: prioriza o data_treino confirmado pelo
+// aluno; so cai no timestamp local se nao houver data_treino valido.
+function dataSessao(r) {
+  return dataTreinoLimpa(r.data_treino) || dataLocalIso(r.timestamp);
+}
+
+// v15: YYYY-MM-DD de hoje no fuso local
+function hojeIso() {
+  const h = new Date();
+  return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}-${String(h.getDate()).padStart(2,'0')}`;
+}
+
+// v15: registros de uma sessao existente (mesmo dia + mesma data do treino).
+// Base da trava de duplicata e do "sobrescrever".
+function registrosDaSessao(dia, dataIso) {
+  const D = String(dia).toUpperCase();
+  const regs = (APP.data && APP.data.registros) ? APP.data.registros : [];
+  return regs.filter(r => String(r.dia).toUpperCase() === D && dataSessao(r) === dataIso);
+}
+
+// v18: classificacao composto/isolado -> sugestao de descanso
+function tipoInfo(t) {
+  const s = String(t || '').toLowerCase();
+  if (s.startsWith('c')) return { label: 'COMPOSTO', desc: 'descanso 2-3min', cor: '#06b6d4' };
+  if (s.startsWith('i')) return { label: 'ISOLADO', desc: 'descanso 1-2min', cor: '#a78bfa' };
+  return null;
+}
+
+// v18: duracao real das sessoes a partir dos timestamps (1o save -> ultimo save).
+// So conta sessoes com 2+ registros e span plausivel (3min a 5h) — LANCAR
+// SESSAO grava tudo de uma vez (span ~0) e fica de fora de proposito.
+function duracaoSessoes(regs) {
+  const g = {};
+  (regs || []).forEach(r => {
+    const k = dataSessao(r) + '__' + String(r.dia || '').toUpperCase();
+    const t = new Date(r.timestamp).getTime();
+    if (!isNaN(t)) (g[k] = g[k] || []).push(t);
+  });
+  const durs = [];
+  Object.values(g).forEach(ts => {
+    if (ts.length < 2) return;
+    const span = (Math.max.apply(null, ts) - Math.min.apply(null, ts)) / 60000;
+    if (span >= 3 && span <= 300) durs.push(span);
+  });
+  return durs;
+}
+
+// ---------- CALENDARIO DE FREQUENCIA (v18) ----------
+// Mapa de calor mensal: verde = dia treinado, vermelho = dia passado sem
+// treino, contorno ciano = hoje (ainda sem treino), apagado = futuro.
+// Meta visual: no maximo 5 faltas no mes.
+const EVO_CAL = { offset: {}, regs: {} };
+
+function calMes(suffix, delta) {
+  EVO_CAL.offset[suffix] = (EVO_CAL.offset[suffix] || 0) + delta;
+  renderEvoCalendario(EVO_CAL.regs[suffix] || [], 'evo-calendario-' + suffix);
+}
+
+function renderEvoCalendario(regs, containerId) {
+  const c = $(containerId);
+  if (!c) return;
+  const suffix = containerId.replace('evo-calendario-', '');
+  EVO_CAL.regs[suffix] = regs;
+  const off = EVO_CAL.offset[suffix] || 0;
+  const hoje = new Date();
+  const ref = new Date(hoje.getFullYear(), hoje.getMonth() + off, 1);
+  const y = ref.getFullYear(), m = ref.getMonth();
+  const mesIso = `${y}-${String(m + 1).padStart(2, '0')}`;
+  const diasNoMes = new Date(y, m + 1, 0).getDate();
+  const treinados = new Set(
+    (regs || []).map(r => dataSessao(r))
+      .filter(d => d && d.slice(0, 7) === mesIso)
+      .map(d => parseInt(d.slice(8, 10), 10))
+  );
+  const hojeStr = hojeIso();
+  const ehMesAtual = hojeStr.slice(0, 7) === mesIso;
+  const mesFuturo = mesIso > hojeStr.slice(0, 7);
+  const diaHoje = parseInt(hojeStr.slice(8, 10), 10);
+  const primeiroDow = new Date(y, m, 1).getDay(); // 0=domingo
+
+  let faltas = 0;
+  let cells = '';
+  for (let i = 0; i < primeiroDow; i++) cells += '<div></div>';
+  for (let d = 1; d <= diasNoMes; d++) {
+    const treinou = treinados.has(d);
+    const passado = !mesFuturo && (!ehMesAtual || d < diaHoje);
+    const ehHoje = ehMesAtual && d === diaHoje;
+    let cls, sty = '';
+    if (treinou) {
+      cls = 'bg-emerald-600 text-white';
+    } else if (passado) {
+      cls = 'bg-red-900/70 text-red-200';
+      faltas++;
+    } else if (ehHoje) {
+      cls = 'text-cyan-300'; sty = 'box-shadow: inset 0 0 0 1px #06b6d4;';
+    } else {
+      cls = 'text-zinc-700';
+    }
+    cells += `<div class="mono text-[10px] py-1 text-center rounded-sm ${cls}" style="${sty}">${d}</div>`;
+  }
+  const nomeMes = ref.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
+  const corFaltas = faltas > 5 ? 'text-red-400' : (faltas === 5 ? 'text-amber-400' : 'text-emerald-400');
+  const resumo = mesFuturo ? '' :
+    `<span class="text-emerald-400">${treinados.size} treino${treinados.size === 1 ? '' : 's'}</span> · <span class="${corFaltas}">${faltas} falta${faltas === 1 ? '' : 's'}</span> <span class="text-zinc-600">(meta ≤5/mes)</span>`;
+  c.innerHTML = `
+    <div class="glass p-4">
+      <div class="flex items-center justify-between mb-3">
+        <button onclick="calMes('${suffix}', -1)" class="mono text-xs text-zinc-500 hover:text-zinc-100 px-2">◂</button>
+        <div class="mono text-[10px] text-zinc-400 tracking-widest">FREQUENCIA · ${nomeMes}</div>
+        <button onclick="calMes('${suffix}', 1)" class="mono text-xs text-zinc-500 hover:text-zinc-100 px-2">▸</button>
+      </div>
+      <div class="grid grid-cols-7 gap-1 mb-1">
+        ${['D','S','T','Q','Q','S','S'].map(d => `<div class="mono text-[9px] text-zinc-600 text-center">${d}</div>`).join('')}
+      </div>
+      <div class="grid grid-cols-7 gap-1">${cells}</div>
+      <div class="mono text-[10px] mt-3 text-center">${resumo}</div>
+    </div>`;
+}
+
+// ---------- API ----------
+
+async function apiGet(params) {
+  if (!APP.appsScriptUrl) throw new Error('URL nao configurada');
+  const url = new URL(APP.appsScriptUrl);
+  Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+  // Cache buster: forca o navegador a ir no servidor a cada chamada.
+  // Sem isso, o Chrome/Safari as vezes cacheava a resposta do Apps Script
+  // e o SYNC retornava dados antigos mesmo apos novos registros chegarem.
+  url.searchParams.set('_t', Date.now().toString());
+  const res = await fetch(url.toString(), {
+    method: 'GET',
+    cache: 'no-store',
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+async function apiPost(body) {
+  if (!APP.appsScriptUrl) throw new Error('URL nao configurada');
+  // Apps Script com Content-Type application/json gera erro de CORS de preflight.
+  // Usar text/plain (que e simple request) e parsear no servidor com JSON.parse.
+  const res = await fetch(APP.appsScriptUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+// ---------- ROUTER ----------
+
+function navigateTo(hash) {
+  window.location.hash = hash;
+  route();
+}
+
+function route() {
+  if (!APP.appsScriptUrl) {
+    show('view-config');
+    return;
+  }
+  const h = window.location.hash || '#home';
+  // hidden tudo
+  ['view-home','view-config','view-trainer-login','view-trainer','view-edit-aluno','view-aluno-login','view-aluno','view-treinar']
+    .forEach(id => $(id).classList.add('hidden'));
+
+  if (h === '#home') { show('view-home'); return; }
+  if (h === '#trainer-login') { show('view-trainer-login'); return; }
+  if (h === '#trainer') {
+    if (!APP.trainerKey) { show('view-trainer-login'); return; }
+    show('view-trainer'); loadTrainerData(); return;
+  }
+  if (h.startsWith('#trainer/edit/')) {
+    if (!APP.trainerKey) { show('view-trainer-login'); return; }
+    const id = h.replace('#trainer/edit/', '');
+    APP.currentAluno = id;
+    show('view-edit-aluno'); loadEditAluno(id); return;
+  }
+  if (h === '#aluno-login') { show('view-aluno-login'); return; }
+  if (h.startsWith('#aluno/')) {
+    const id = h.replace('#aluno/', '');
+    if (!APP.alunoSession || APP.alunoSession.id !== id) {
+      // pre-preenche id no login
+      $('aluno-id').value = id;
+      show('view-aluno-login');
+      return;
+    }
+    show('view-aluno'); loadAlunoData(); return;
+  }
+  show('view-home');
+}
+
+// Mapa de cor de contexto por tela (futurista: cada secao tem seu brilho)
+const CTX_COLORS = {
+  'view-home':          { c: '#06b6d4', soft: 'rgba(6,182,212,0.14)' },
+  'view-config':        { c: '#06b6d4', soft: 'rgba(6,182,212,0.12)' },
+  'view-trainer-login': { c: '#06b6d4', soft: 'rgba(6,182,212,0.14)' },
+  'view-trainer':       { c: '#06b6d4', soft: 'rgba(6,182,212,0.12)' },
+  'view-edit-aluno':    { c: '#06b6d4', soft: 'rgba(6,182,212,0.12)' },
+  'view-aluno-login':   { c: '#fafafa', soft: 'rgba(255,255,255,0.10)' },
+  'view-aluno':         { c: '#fafafa', soft: 'rgba(255,255,255,0.08)' },
+  'view-treinar':       { c: '#06b6d4', soft: 'rgba(6,182,212,0.16)' },
+};
+function setContextColor(id) {
+  const cfg = CTX_COLORS[id];
+  if (!cfg) return;
+  const r = document.documentElement;
+  r.style.setProperty('--ctx', cfg.c);
+  r.style.setProperty('--ctx-soft', cfg.soft);
+}
+// No modo aluno, tinge o contexto com a cor do dia ativo (chamavel externamente)
+function setContextDay(day) {
+  const hex = (typeof dayColorHex === 'function') ? dayColorHex(day) : '#06b6d4';
+  const r = document.documentElement;
+  r.style.setProperty('--ctx', hex);
+  // versao soft (mesma cor a ~14%): converte hex -> rgba
+  const h = hex.replace('#','');
+  const bigint = parseInt(h.length===3 ? h.split('').map(x=>x+x).join('') : h, 16);
+  const cr=(bigint>>16)&255, cg=(bigint>>8)&255, cb=bigint&255;
+  r.style.setProperty('--ctx-soft', `rgba(${cr},${cg},${cb},0.14)`);
+}
+
+function show(id) {
+  setContextColor(id);
+  $(id).classList.remove('hidden');
+  $(id).classList.add('fade-in');
+  window.scrollTo(0, 0);
+}
+
+function logout() {
+  APP.trainerKey = null;
+  APP.alunoSession = null;
+  sessionStorage.removeItem('forja-trainer-key');
+  sessionStorage.removeItem('forja-aluno-session');
+  navigateTo('#home');
+}
+
+// ---------- CONFIG ----------
+
+$('btn-config-test').onclick = async () => {
+  const url = $('config-url').value.trim();
+  if (!url) { $('config-status').innerHTML = '<span class="text-red-500">URL vazia</span>'; return; }
+  APP.appsScriptUrl = url;
+  $('config-status').innerHTML = '<span class="text-zinc-500">Testando...</span>';
+  try {
+    const r = await apiGet({ action: 'ping' });
+    $('config-status').innerHTML = '<span class="text-emerald-500">✓ Conexao ok. ' + r.time + '</span>';
+  } catch (e) {
+    $('config-status').innerHTML = '<span class="text-red-500">✗ ' + e.message + '</span>';
+    APP.appsScriptUrl = null;
+  }
+};
+
+$('btn-config-save').onclick = () => {
+  const url = $('config-url').value.trim();
+  if (!url) { toast('URL vazia', 'error'); return; }
+  APP.appsScriptUrl = url;
+  localStorage.setItem('forja-apps-url', url);
+  toast('URL salva', 'success');
+  navigateTo('#home');
+};
+
+function resetConfig() {
+  if (!confirm('Reconfigurar a URL do Apps Script?')) return;
+  localStorage.removeItem('forja-apps-url');
+  APP.appsScriptUrl = null;
+  route();
+}
+
+// ---------- LOGIN TRAINER ----------
+
+// v20: login SO por codigo. Tenta cada aluno conhecido com o codigo como PIN;
+// se nenhum bater, tenta como chave admin (trainer). O frontend nao pode listar
+// alunos sem a chave admin, entao os ids ficam aqui — adicionar novos alunos
+// nesta lista (ou migrar pra uma acao de backend depois).
+const IDS_CONHECIDOS = ['marcos', 'ricardo'];
+async function loginCodigo() {
+  const codigo = $('home-pin').value.trim();
+  const st = $('home-login-status');
+  if (!codigo) { st.innerHTML = '<span class="text-red-500">Digite seu codigo</span>'; return; }
+  showLoading(true);
+  st.textContent = '';
+  // 1) tenta como ALUNO (codigo = PIN), na ordem dos ids conhecidos
+  for (const id of IDS_CONHECIDOS) {
+    try {
+      const data = await apiGet({ action: 'getAluno', id, pin: codigo });
+      APP.alunoSession = { id, pin: codigo };
+      APP.data = data;
+      sessionStorage.setItem('forja-aluno-session', JSON.stringify(APP.alunoSession));
+      showLoading(false);
+      navigateTo('#aluno/' + id);
+      return;
+    } catch (e) { /* nao e esse aluno — tenta o proximo */ }
+  }
+  // 2) tenta como TRAINER (codigo = chave admin)
+  try {
+    const data = await apiGet({ action: 'getAdmin', key: codigo });
+    APP.trainerKey = codigo;
+    APP.data = data;
+    sessionStorage.setItem('forja-trainer-key', codigo);
+    showLoading(false);
+    navigateTo('#trainer');
+    return;
+  } catch (e) {
+    showLoading(false);
+    st.innerHTML = '<span class="text-red-500">✗ codigo invalido</span>';
+  }
+}
+$('btn-home-entrar').onclick = loginCodigo;
+{
+  const el = $('home-pin');
+  if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') loginCodigo(); });
+}
+
+$('btn-trainer-entrar').onclick = async () => {
+  const key = $('trainer-key').value.trim();
+  if (!key) { $('trainer-login-status').innerHTML = '<span class="text-red-500">Chave vazia</span>'; return; }
+  showLoading(true);
+  try {
+    APP.trainerKey = key;
+    const data = await apiGet({ action: 'getAdmin', key });
+    APP.data = data;
+    sessionStorage.setItem('forja-trainer-key', key);
+    navigateTo('#trainer');
+  } catch (e) {
+    APP.trainerKey = null;
+    $('trainer-login-status').innerHTML = '<span class="text-red-500">✗ ' + e.message + '</span>';
+  } finally {
+    showLoading(false);
+  }
+};
+
+// ---------- TRAINER DASHBOARD ----------
+
+$('btn-trainer-refresh').onclick = () => loadTrainerData();
+$('btn-trainer-novo').onclick = () => $('modal-novo').classList.remove('hidden');
+
+async function loadTrainerData() {
+  showLoading(true);
+  try {
+    APP.data = await apiGet({ action: 'getAdmin', key: APP.trainerKey });
+    renderTrainerDashboard();
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+function renderTrainerDashboard() {
+  const alunos = APP.data.alunos || [];
+  const registros = APP.data.registros || [];
+  const now = Date.now();
+  const sevenDays = 7 * 24 * 60 * 60 * 1000;
+  const recent = registros.filter(r => (now - new Date(r.timestamp).getTime()) <= sevenDays);
+  const ativos = new Set(recent.map(r => String(r.aluno_id)));
+
+  countUp($('stat-total-alunos'), alunos.length);
+  countUp($('stat-sessoes-7d'), recent.length);
+  countUp($('stat-ativos-7d'), ativos.size);
+
+  // Para cada aluno, ultima sessao
+  const ultimaPorAluno = {};
+  registros.forEach(r => {
+    const id = String(r.aluno_id);
+    if (!ultimaPorAluno[id] || new Date(r.timestamp) > new Date(ultimaPorAluno[id].timestamp)) {
+      ultimaPorAluno[id] = r;
+    }
+  });
+
+  const list = $('trainer-alunos-list');
+  if (alunos.length === 0) {
+    list.innerHTML = '<div class="col-span-full mono text-xs text-zinc-500 py-12 text-center">Sem alunos ainda. Clique em + NOVO ALUNO acima.</div>';
+    return;
+  }
+  list.innerHTML = alunos.map(a => {
+    const last = ultimaPorAluno[String(a.id)];
+    const ativoCor = ativos.has(String(a.id)) ? 'border-emerald-700' : 'border-zinc-800';
+    return `
+    <div class="border ${ativoCor} p-4 bg-zinc-900/30 hover:bg-zinc-900/60 transition-colors cursor-pointer" onclick="navigateTo('#trainer/edit/${a.id}')">
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <div class="avatar bg-cyan-500 text-zinc-950">${initials(a.nome)}</div>
+          <div>
+            <div class="display text-2xl leading-none">${escapeHtml(a.nome || a.id)}</div>
+            <div class="mono text-[10px] text-zinc-500">@${a.id}</div>
+          </div>
+        </div>
+      </div>
+      <div class="mono text-xs text-zinc-400 mb-2 truncate">${escapeHtml(a.objetivo || '—')}</div>
+      <div class="mono text-[10px] text-zinc-500 flex justify-between border-t border-zinc-800 pt-2 mt-3">
+        <span>${last ? `ULT: ${last.dia} · ${daysAgo(last.timestamp)}` : 'SEM REGISTROS'}</span>
+        <span class="text-cyan-400">EDITAR ▸</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------- NOVO ALUNO ----------
+
+$('btn-criar-aluno').onclick = async () => {
+  const id = slugify($('novo-id').value || $('novo-nome').value);
+  const nome = $('novo-nome').value.trim();
+  const pin = $('novo-pin').value.trim();
+  if (!id || !nome || !pin) { toast('ID, nome e PIN obrigatorios', 'error'); return; }
+  if (APP.data.alunos.some(a => String(a.id) === id)) { toast('ID ja existe', 'error'); return; }
+  showLoading(true);
+  try {
+    await apiPost({
+      action: 'salvarAluno',
+      key: APP.trainerKey,
+      id,
+      nome,
+      pin,
+      objetivo: $('novo-objetivo').value.trim(),
+      notas: $('novo-notas').value.trim(),
+    });
+    toast('Aluno criado', 'success');
+    $('modal-novo').classList.add('hidden');
+    ['novo-id','novo-nome','novo-pin','novo-objetivo','novo-notas'].forEach(k => $(k).value = '');
+    await loadTrainerData();
+    navigateTo('#trainer/edit/' + id);
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+};
+
+// ---------- IMPORT JSON ----------
+
+$('btn-trainer-import').onclick = () => {
+  $('import-status').innerHTML = '';
+  $('import-file').value = '';
+  $('modal-import').classList.remove('hidden');
+};
+
+// Le um arquivo .json escolhido e joga o conteudo no textarea
+$('import-file').addEventListener('change', (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    $('import-json').value = reader.result;
+    try {
+      const p = JSON.parse(reader.result);
+      const nReg = Array.isArray(p.registros) ? p.registros.length : 0;
+      const nPlano = Array.isArray(p.plano) ? p.plano.length : 0;
+      $('import-status').innerHTML = `<span class="text-emerald-500">✓ Arquivo lido: ${escapeHtml(file.name)} · ${nPlano} exercicios · ${nReg} registros. Agora clique em VALIDAR.</span>`;
+    } catch {
+      $('import-status').innerHTML = `<span class="text-emerald-500">✓ Arquivo carregado: ${escapeHtml(file.name)}. Clique em VALIDAR.</span>`;
+    }
+  };
+  reader.onerror = () => {
+    $('import-status').innerHTML = '<span class="text-red-500">✗ Erro ao ler o arquivo</span>';
+  };
+  reader.readAsText(file);
+});
+
+function parseImportJson() {
+  const raw = $('import-json').value.trim();
+  if (!raw) throw new Error('Carregue um arquivo ou cole o JSON primeiro');
+  let parsed;
+  try { parsed = JSON.parse(raw); }
+  catch (e) { throw new Error('JSON invalido: ' + e.message); }
+  if (!parsed.aluno) throw new Error('Falta o objeto "aluno"');
+  if (!parsed.aluno.id) throw new Error('Falta aluno.id');
+  if (!parsed.aluno.nome) throw new Error('Falta aluno.nome');
+  if (!Array.isArray(parsed.plano)) throw new Error('Falta o array "plano"');
+  // valida cada item
+  parsed.plano.forEach((p, i) => {
+    if (!p.dia || !DAYS.includes(String(p.dia).toUpperCase())) {
+      throw new Error(`plano[${i}].dia deve ser uma das letras: ${DAYS.join(', ')}`);
+    }
+    if (!p.exercicio) throw new Error(`plano[${i}].exercicio vazio`);
+  });
+  // registros sao opcionais
+  if (parsed.registros !== undefined) {
+    if (!Array.isArray(parsed.registros)) throw new Error('"registros" deve ser um array');
+    parsed.registros.forEach((r, i) => {
+      if (!r.exercicio) throw new Error(`registros[${i}].exercicio vazio`);
+    });
+  }
+  return parsed;
+}
+
+$('btn-import-validar').onclick = () => {
+  try {
+    const p = parseImportJson();
+    const porDia = {};
+    DAYS.forEach(d => porDia[d] = 0);
+    p.plano.forEach(x => { porDia[String(x.dia).toUpperCase()]++; });
+    const counts = DAYS.filter(d => porDia[d] > 0).map(d => `${d}:${porDia[d]}`).join(' ');
+    const nReg = Array.isArray(p.registros) ? p.registros.length : 0;
+    $('import-status').innerHTML = `<span class="text-emerald-500">✓ Valido · ${p.aluno.id} (${p.aluno.nome}) · plano ${counts} · ${nReg} registros no historico</span>`;
+  } catch (e) {
+    $('import-status').innerHTML = `<span class="text-red-500">✗ ${e.message}</span>`;
+  }
+};
+
+$('btn-import-confirmar').onclick = async () => {
+  try {
+    const p = parseImportJson();
+    const pin = $('import-pin').value.trim();
+    if (!pin) { $('import-status').innerHTML = '<span class="text-red-500">PIN obrigatorio</span>'; return; }
+    p.aluno.pin = pin;
+    showLoading(true);
+    const res = await apiPost({
+      action: 'importAluno',
+      key: APP.trainerKey,
+      aluno: p.aluno,
+      plano: p.plano.map(x => ({ ...x, dia: String(x.dia).toUpperCase() })),
+      registros: Array.isArray(p.registros) ? p.registros.map(r => ({ ...r, dia: String(r.dia || '').toUpperCase() })) : [],
+    });
+    toast(`Importado · ${res.exercicios_importados} exercicios · ${res.registros_importados || 0} registros`, 'success');
+    $('modal-import').classList.add('hidden');
+    $('import-json').value = '';
+    $('import-pin').value = '';
+    $('import-file').value = '';
+    await loadTrainerData();
+    navigateTo('#trainer/edit/' + p.aluno.id);
+  } catch (e) {
+    $('import-status').innerHTML = `<span class="text-red-500">✗ ${e.message}</span>`;
+  } finally {
+    showLoading(false);
+  }
+};
+
+// ---------- EDITAR ALUNO ----------
+
+async function loadEditAluno(id) {
+  showLoading(true);
+  try {
+    // refresh data
+    APP.data = await apiGet({ action: 'getAdmin', key: APP.trainerKey });
+    const aluno = APP.data.alunos.find(a => String(a.id) === String(id));
+    if (!aluno) {
+      toast('Aluno nao encontrado', 'error');
+      navigateTo('#trainer');
+      return;
+    }
+    $('edit-aluno-title').textContent = aluno.nome || aluno.id;
+    $('edit-id').value = aluno.id;
+    $('edit-nome').value = aluno.nome || '';
+    $('edit-pin').value = aluno.pin || '';
+    $('edit-objetivo').value = aluno.objetivo || '';
+    $('edit-notas').value = aluno.notas || '';
+
+    // plano agrupado por dia
+    const plano = APP.data.plano.filter(p => String(p.aluno_id) === String(id));
+    APP.editPlano = emptyPlanoMap();
+    plano.forEach(p => {
+      const dia = String(p.dia || 'A').toUpperCase();
+      if (!APP.editPlano[dia]) APP.editPlano[dia] = [];
+      APP.editPlano[dia].push({
+        exercicio: p.exercicio,
+        series: p.series,
+        reps: p.reps,
+        carga: p.carga,
+        rir: p.rir,
+        tipo: p.tipo || '',
+        obs: p.obs,
+      });
+    });
+    APP.editDay = 'A';
+    document.querySelectorAll('#view-edit-aluno .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.day === 'A'));
+    renderPlanoTable();
+
+    // registros do aluno
+    const regs = APP.data.registros.filter(r => String(r.aluno_id) === String(id));
+    regs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    renderEvolucao(regs, 'trainer', true);
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+function setEditDay(day) {
+  APP.editDay = day;
+  document.querySelectorAll('#view-edit-aluno .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.day === day));
+  renderPlanoTable();
+}
+
+function renderPlanoTable() {
+  const tbody = $('plano-tbody');
+  const list = APP.editPlano[APP.editDay] || [];
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" class="mono text-xs text-zinc-500 text-center py-6">Sem exercicios neste dia. Clique em + EXERCICIO.</td></tr>';
+    return;
+  }
+  const tipoSel = (i, val) => {
+    const v = String(val || '').toLowerCase();
+    const sel = (x) => v.startsWith(x) ? ' selected' : '';
+    return `<select data-i="${i}" data-f="tipo" class="w-full text-xs">
+      <option value=""${v === '' ? ' selected' : ''}>—</option>
+      <option value="composto"${sel('c')}>COMPOSTO</option>
+      <option value="isolado"${sel('i')}>ISOLADO</option>
+    </select>`;
+  };
+  tbody.innerHTML = list.map((ex, i) => `
+    <tr>
+      <td class="mono text-xs text-zinc-500 text-center">${i+1}</td>
+      <td><input type="text" data-i="${i}" data-f="exercicio" value="${escapeHtml(ex.exercicio || '')}" /></td>
+      <td><input type="text" data-i="${i}" data-f="series" value="${escapeHtml(ex.series || '')}" /></td>
+      <td><input type="text" data-i="${i}" data-f="reps" value="${escapeHtml(ex.reps || '')}" /></td>
+      <td><input type="text" data-i="${i}" data-f="carga" value="${escapeHtml(ex.carga || '')}" /></td>
+      <td><input type="text" data-i="${i}" data-f="rir" value="${escapeHtml(ex.rir != null ? ex.rir : '')}" /></td>
+      <td>${tipoSel(i, ex.tipo)}</td>
+      <td><input type="text" data-i="${i}" data-f="meta" value="${escapeHtml(ex.meta != null ? ex.meta : '')}" placeholder="kg" /></td>
+      <td><input type="text" data-i="${i}" data-f="obs" value="${escapeHtml(ex.obs || '')}" /></td>
+      <td class="text-center">
+        <button data-act="up" data-i="${i}" class="text-zinc-500 hover:text-cyan-400 px-1">▲</button>
+        <button data-act="down" data-i="${i}" class="text-zinc-500 hover:text-cyan-400 px-1">▼</button>
+        <button data-act="del" data-i="${i}" class="text-zinc-500 hover:text-red-500 px-1">✕</button>
+      </td>
+    </tr>
+  `).join('');
+  // listeners (inputs + selects de tipo)
+  tbody.querySelectorAll('input, select').forEach(inp => {
+    inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', () => {
+      const i = parseInt(inp.dataset.i, 10);
+      const f = inp.dataset.f;
+      APP.editPlano[APP.editDay][i][f] = inp.value;
+    });
+  });
+  tbody.querySelectorAll('button[data-act]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.i, 10);
+      const act = btn.dataset.act;
+      const list = APP.editPlano[APP.editDay];
+      if (act === 'del') { list.splice(i, 1); }
+      else if (act === 'up' && i > 0) { [list[i-1], list[i]] = [list[i], list[i-1]]; }
+      else if (act === 'down' && i < list.length - 1) { [list[i+1], list[i]] = [list[i], list[i+1]]; }
+      renderPlanoTable();
+    });
+  });
+}
+
+$('btn-add-exercise').onclick = () => {
+  APP.editPlano[APP.editDay].push({ exercicio: '', series: '3', reps: '10', carga: '', rir: '2', tipo: '', meta: '', obs: '' });
+  renderPlanoTable();
+};
+
+$('btn-salvar-perfil').onclick = async () => {
+  showLoading(true);
+  try {
+    await apiPost({
+      action: 'salvarAluno',
+      key: APP.trainerKey,
+      id: $('edit-id').value,
+      nome: $('edit-nome').value.trim(),
+      pin: $('edit-pin').value.trim(),
+      objetivo: $('edit-objetivo').value.trim(),
+      notas: $('edit-notas').value.trim(),
+    });
+    toast('Perfil salvo', 'success');
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+};
+
+$('btn-salvar-plano').onclick = async () => {
+  const planoFlat = [];
+  DAYS.forEach(dia => {
+    (APP.editPlano[dia] || []).forEach(ex => {
+      if (ex.exercicio && ex.exercicio.trim()) {
+        planoFlat.push({ ...ex, dia });
+      }
+    });
+  });
+  showLoading(true);
+  try {
+    await apiPost({
+      action: 'salvarPlano',
+      key: APP.trainerKey,
+      aluno_id: APP.currentAluno,
+      plano: planoFlat,
+    });
+    toast('Plano salvo · ' + planoFlat.length + ' exercicios', 'success');
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+};
+
+// Exporta TODOS os dados do aluno num arquivo JSON unico, pronto pra backup,
+// migracao ou pra compartilhar contexto. Mesmo formato dos bootstrap_*.json,
+// entao pode ser re-importado depois pelo proprio IMPORTAR JSON.
+$('btn-export-aluno').onclick = () => {
+  const id = APP.currentAluno;
+  const aluno = APP.data.alunos.find(a => String(a.id) === String(id));
+  if (!aluno) { toast('Aluno nao encontrado', 'error'); return; }
+  const planoAluno = APP.data.plano.filter(p => String(p.aluno_id) === String(id));
+  const registrosAluno = APP.data.registros.filter(r => String(r.aluno_id) === String(id))
+    .sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)));
+
+  // PIN NAO entra no export por seguranca. Ao re-importar voce define novo PIN.
+  const payload = {
+    _meta: {
+      exportado_em: new Date().toISOString(),
+      forja_version: FORJA_VERSION,
+      origem: 'FORJA EXPORTAR — botao na tela de edicao do aluno',
+    },
+    aluno: {
+      id: aluno.id,
+      nome: aluno.nome,
+      objetivo: aluno.objetivo || '',
+      notas: aluno.notas || '',
+    },
+    plano: planoAluno.map(p => ({
+      dia: p.dia,
+      exercicio: p.exercicio,
+      series: p.series,
+      reps: p.reps,
+      carga: p.carga,
+      rir: p.rir,
+      tipo: p.tipo || '',
+      obs: p.obs,
+    })),
+    registros: registrosAluno.map(r => ({
+      timestamp: r.timestamp,
+      dia: r.dia,
+      exercicio: r.exercicio,
+      carga: r.carga,
+      reps: r.reps,
+      rir: r.rir,
+      completou: r.completou,
+      obs: r.obs,
+      data_treino: r.data_treino || '',
+    })),
+  };
+
+  const dataStr = JSON.stringify(payload, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const ts = new Date().toISOString().slice(0, 10);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `forja-export-${aluno.id}-${ts}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast(`Export gerado: ${a.download} (${planoAluno.length} ex no plano · ${registrosAluno.length} registros)`, 'success');
+};
+
+$('btn-remover-aluno').onclick = async () => {
+  if (!confirm('Remover aluno ' + APP.currentAluno + ' e TODOS os dados dele? Acao irreversivel.')) return;
+  showLoading(true);
+  try {
+    await apiPost({ action: 'removerAluno', key: APP.trainerKey, id: APP.currentAluno });
+    toast('Aluno removido', 'success');
+    navigateTo('#trainer');
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+};
+
+// ---------- EVOLUCAO (grafico + historico) ----------
+
+// Extrai o primeiro numero de uma string de carga. "34kg"->34, "70kg total"->70,
+// "14kg D / 12kg E"->14, "30kg cada lado"->30, "corporal"->null
+function parseCargaNum(carga) {
+  if (carga == null) return null;
+  const s = String(carga).toLowerCase();
+  if (s.includes('corp')) return null;
+  const m = s.match(/(\d+(?:[.,]\d+)?)/);
+  return m ? parseFloat(m[1].replace(',', '.')) : null;
+}
+
+// Renderiza a aba de evolucao inteira. suffix = 'trainer' | 'aluno'
+// v19: guarda os regs completos por suffix + periodo, pra re-render ao trocar.
+APP.evoFull = APP.evoFull || {};
+APP.evoPeriodo = APP.evoPeriodo || {};
+const EVO_PERIODOS = [
+  { k: '30', label: '30 dias', dias: 30 },
+  { k: '90', label: '90 dias', dias: 90 },
+  { k: '180', label: '6 meses', dias: 180 },
+  { k: 'tudo', label: 'tudo', dias: null },
+];
+function filtrarPeriodo(regs, k) {
+  const opt = EVO_PERIODOS.find(o => o.k === k);
+  if (!opt || opt.dias == null) return regs;
+  const c = new Date(Date.now() - opt.dias * 86400000);
+  const corteIso = `${c.getFullYear()}-${String(c.getMonth()+1).padStart(2,'0')}-${String(c.getDate()).padStart(2,'0')}`;
+  return regs.filter(r => dataSessao(r) >= corteIso);
+}
+function renderPeriodoBtns(suffix) {
+  const c = $('evo-periodo-' + suffix);
+  if (!c) return;
+  const cur = APP.evoPeriodo[suffix] || 'tudo';
+  c.innerHTML = EVO_PERIODOS.map(o =>
+    `<button data-k="${o.k}" class="evo-per-btn mono text-[10px] tracking-widest px-3 py-1 border ${o.k === cur ? 'text-cyan-300 border-cyan-600/70 bg-cyan-500/10' : 'text-zinc-500 border-zinc-800 hover:border-zinc-600'}">${o.label}</button>`
+  ).join('');
+  c.querySelectorAll('.evo-per-btn').forEach(b => {
+    b.onclick = () => { APP.evoPeriodo[suffix] = b.dataset.k; _renderEvo(suffix); };
+  });
+}
+function _renderEvo(suffix) {
+  const full = APP.evoFull[suffix];
+  if (!full) return;
+  const sorted = [...(full.regs || [])].sort((a, b) =>
+    String(b.timestamp).localeCompare(String(a.timestamp)));
+  const filtrados = filtrarPeriodo(sorted, APP.evoPeriodo[suffix] || 'tudo');
+  renderPeriodoBtns(suffix);
+  renderEvoStats(filtrados, 'evo-stats-' + suffix);
+  renderEvoCalendario(filtrados, 'evo-calendario-' + suffix);
+  renderEvoHistorico(filtrados, 'evo-historico-' + suffix, full.isTrainer);
+  setupEvoChart(filtrados, suffix);
+}
+function renderEvolucao(regs, suffix, isTrainer) {
+  APP.evoFull[suffix] = { regs: regs || [], isTrainer };
+  if (!APP.evoPeriodo[suffix]) APP.evoPeriodo[suffix] = 'tudo';
+  _renderEvo(suffix);
+}
+
+function renderEvoStats(regs, containerId) {
+  const c = $(containerId);
+  if (!c) return;
+  // v16: conta sessoes por (dataSessao, dia) — MESMA base do historico.
+  // Antes usava dataLocalIso(timestamp): treino back-dated contava no dia errado,
+  // e quando A + C caiam na mesma data so um dos dois era contado.
+  const datasSet = new Set();
+  const porDiaSet = {};
+  DAYS.forEach(d => porDiaSet[d] = new Set());
+  regs.forEach(r => {
+    const data = dataSessao(r);
+    if (!data) return;
+    datasSet.add(data);
+    const dia = String(r.dia || '').toUpperCase();
+    if (porDiaSet[dia]) porDiaSet[dia].add(data);
+  });
+  const datas = [...datasSet].sort();
+  const porDia = {};
+  DAYS.forEach(d => porDia[d] = porDiaSet[d].size);
+  const nSessoes = DAYS.reduce((s, d) => s + porDia[d], 0) || datas.length;
+  let _si = 0;
+  const stat = (label, val, sub, num) => {
+    const delay = (_si++ * 0.07).toFixed(2);
+    const valHtml = num != null
+      ? `<span class="evo-count" data-count="${num}">0</span>`
+      : val;
+    return `
+    <div class="glass p-3 rise" style="animation-delay:${delay}s">
+      <div class="mono text-[9px] text-zinc-500 tracking-widest mb-1">${label}</div>
+      <div class="display text-3xl text-zinc-100 leading-none">${valHtml}</div>
+      <div class="mono text-[9px] text-zinc-600 mt-1">${sub || ''}</div>
+    </div>`;
+  };
+  const periodo = datas.length
+    ? fmtDate(datas[0]) + ' › ' + fmtDate(datas[datas.length - 1])
+    : '—';
+  // monta o stat "sessoes por dia" mostrando so dias com pelo menos uma sessao
+  const diasComSessao = DAYS.filter(d => porDia[d] > 0);
+  const labelDias = diasComSessao.length ? diasComSessao.join(' / ') : 'A / B / C';
+  const valDias = diasComSessao.length ? diasComSessao.map(d => porDia[d]).join(' / ') : '0 / 0 / 0';
+  // v18: tempo medio de treino (1o save -> ultimo save de cada sessao ao vivo)
+  const durs = duracaoSessoes(regs);
+  const tempoMedio = durs.length
+    ? Math.round(durs.reduce((a, b) => a + b, 0) / durs.length) + `<span class="text-base">min</span>`
+    : '—';
+  c.innerHTML =
+    stat('SESSOES', null, nSessoes === 1 ? 'sessao' : 'sessoes', nSessoes) +
+    stat('EXERCICIOS', null, 'registros totais', regs.length) +
+    stat(labelDias, valDias, 'sessoes por dia') +
+    stat('TEMPO MEDIO', tempoMedio, durs.length ? `${durs.length} treino${durs.length === 1 ? '' : 's'} cronometrado${durs.length === 1 ? '' : 's'}` : 'treine ao vivo p/ medir') +
+    stat('PERIODO', `<span class="text-base">${periodo}</span>`, '') +
+    (function () {
+      const pl = (APP.data && APP.data.peso) ? APP.data.peso : [];
+      if (!pl.length) return '';
+      const u = pl[0];
+      const sub = fmtDate(dataLocalIso(u.timestamp)) + (u.balanca ? ' - ' + escapeHtml(String(u.balanca)) : '');
+      return stat('PESO', `${escapeHtml(String(u.peso))}<span class="text-base">kg</span>`, sub);
+    })();
+  // dispara o count-up dos numeros recem-inseridos
+  c.querySelectorAll('.evo-count').forEach(el => countUp(el, el.dataset.count));
+}
+
+function setupEvoChart(regs, suffix) {
+  const select = $('evo-select-' + suffix);
+  if (!select) return;
+  const exCount = {};
+  regs.forEach(r => { if (r.exercicio) exCount[r.exercicio] = (exCount[r.exercicio] || 0) + 1; });
+  const exercicios = Object.keys(exCount).sort((a, b) => exCount[b] - exCount[a]);
+  if (exercicios.length === 0) {
+    select.innerHTML = '<option>—</option>';
+    drawEvoChart(regs, suffix);
+    return;
+  }
+  select.innerHTML = exercicios
+    .map(e => `<option value="${escapeHtml(e)}">${escapeHtml(e)} (${exCount[e]}x)</option>`)
+    .join('');
+  select.onchange = () => drawEvoChart(regs, suffix);
+  // v18: checkbox COMPARAR ALUNOS (so existe no trainer)
+  const cmp = $('evo-compare-' + suffix);
+  if (cmp) cmp.onchange = () => drawEvoChart(regs, suffix);
+  drawEvoChart(regs, suffix);
+}
+
+function drawEvoChart(regs, suffix) {
+  const select = $('evo-select-' + suffix);
+  const canvas = $('evo-chart-' + suffix);
+  const empty = $('evo-chart-empty-' + suffix);
+  if (!canvas) return;
+  const ex = select ? select.value : null;
+
+  // v18: modo COMPARAR ALUNOS (trainer): sobrepoe a progressao de todos os
+  // alunos que tem dado numerico de carga pro exercicio selecionado.
+  const cmp = $('evo-compare-' + suffix);
+  const comparar = !!(cmp && cmp.checked && APP.data && APP.data.alunos);
+
+  const ptsDe = (lista) => lista
+    .filter(r => r.exercicio === ex)
+    .map(r => ({ d: dataSessao(r), y: parseCargaNum(r.carga) }))
+    .filter(p => p.y != null)
+    .sort((a, b) => a.d.localeCompare(b.d));
+
+  if (APP.evoCharts[suffix]) { APP.evoCharts[suffix].destroy(); APP.evoCharts[suffix] = null; }
+
+  const PALETA = ['#06b6d4', '#f59e0b', '#10b981', '#ef4444', '#a78bfa', '#f472b6'];
+  let labels, datasets;
+
+  if (comparar) {
+    const todos = APP.data.registros || [];
+    const series = [];
+    (APP.data.alunos || []).forEach(a => {
+      const pts = ptsDe(todos.filter(r => String(r.aluno_id) === String(a.id)));
+      if (pts.length > 0) series.push({ id: String(a.id), nome: a.nome || a.id, pts });
+    });
+    if (series.length === 0) { canvas.style.display = 'none'; if (empty) empty.classList.remove('hidden'); return; }
+    // eixo X = uniao das datas de todos; cada serie alinha por data (gaps interpolados)
+    const datasUniao = [...new Set(series.flatMap(s => s.pts.map(p => p.d)))].sort();
+    labels = datasUniao.map(fmtDate);
+    datasets = series.map((s, i) => {
+      const mapa = {};
+      s.pts.forEach(p => { mapa[p.d] = p.y; });
+      const ehAtual = String(s.id) === String(APP.currentAluno);
+      const cor = PALETA[i % PALETA.length];
+      return {
+        label: s.nome,
+        data: datasUniao.map(d => mapa[d] != null ? mapa[d] : null),
+        borderColor: cor,
+        backgroundColor: 'transparent',
+        fill: false,
+        spanGaps: true,
+        tension: 0.25,
+        pointRadius: ehAtual ? 4 : 3,
+        pointHoverRadius: 6,
+        pointBackgroundColor: cor,
+        borderWidth: ehAtual ? 3 : 1.5,
+        borderDash: ehAtual ? [] : [5, 3],
+      };
+    });
+  } else {
+    const pts = ptsDe(regs);
+    if (pts.length === 0) {
+      canvas.style.display = 'none';
+      if (empty) empty.classList.remove('hidden');
+      return;
+    }
+    const accent = '#06b6d4';
+    labels = pts.map(p => fmtDate(p.d));
+    datasets = [{
+      label: 'carga (kg)',
+      data: pts.map(p => p.y),
+      borderColor: accent,
+      backgroundColor: 'rgba(6,182,212,0.12)',
+      fill: true,
+      tension: 0.25,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      pointBackgroundColor: accent,
+      borderWidth: 2,
+    }];
+    // v23: linha de ALVO (meta do exercicio no plano), tracejada laranja
+    const planoArr = (APP.data && APP.data.plano) || [];
+    const pe = planoArr.find(p => p.exercicio === ex &&
+      (suffix !== 'trainer' || String(p.aluno_id) === String(APP.currentAluno)));
+    const metaNum = pe ? parseCargaNum(pe.meta) : null;
+    APP._evoAlvo = APP._evoAlvo || {};
+    APP._evoAlvo[suffix] = (metaNum != null && labels.length);
+    if (APP._evoAlvo[suffix]) {
+      datasets.push({
+        label: 'alvo 1 ano (' + metaNum + 'kg)',
+        data: labels.map(() => metaNum),
+        borderColor: '#f59e0b',
+        backgroundColor: 'transparent',
+        fill: false,
+        pointRadius: 0,
+        borderWidth: 1.5,
+        borderDash: [6, 4],
+      });
+    }
+  }
+
+  canvas.style.display = '';
+  if (empty) empty.classList.add('hidden');
+
+  APP.evoCharts[suffix] = new Chart(canvas, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: (comparar || (APP._evoAlvo && APP._evoAlvo[suffix]))
+          ? { display: true, labels: { color: '#a1a1aa', font: { size: 10, family: 'JetBrains Mono' }, boxWidth: 14 } }
+          : { display: false },
+        tooltip: { displayColors: comparar }
+      },
+      scales: {
+        x: { ticks: { color: '#71717a', font: { size: 10, family: 'JetBrains Mono' } }, grid: { color: '#27272a' } },
+        y: { ticks: { color: '#71717a', font: { size: 10, family: 'JetBrains Mono' } }, grid: { color: '#27272a' }, beginAtZero: false }
+      }
+    }
+  });
+}
+
+function renderEvoHistorico(regs, containerId, isTrainer) {
+  const c = $(containerId);
+  if (!c) return;
+  if (regs.length === 0) {
+    c.innerHTML = '<div class="mono text-xs text-zinc-500 py-6 text-center">Sem sessoes registradas ainda.</div>';
+    return;
+  }
+  // Agrupamento por sessao real:
+  //   1) primeiro agrupa por (data_local, dia)
+  //   2) dentro de cada grupo, divide em sub-sessoes se houver gap > 90min
+  //      entre registros consecutivos (ex: 2 treinos C no mesmo dia,
+  //      um as 18h e outro as 21h, viram 2 cards separados)
+  const SESSION_GAP_MIN = 90;
+  const porDataDia = {};
+  regs.forEach(r => {
+    // Prioridade pra agrupar: data_treino confirmado pelo aluno > timestamp local.
+    // dataSessao() ja trata o data_treino que o Sheets devolve com hora colada.
+    const data = dataSessao(r);
+    const dia = String(r.dia || '').toUpperCase() || '?';
+    const key = data + '__' + dia;
+    if (!porDataDia[key]) porDataDia[key] = { data, dia, items: [] };
+    porDataDia[key].items.push(r);
+  });
+
+  const grupos = {};
+  Object.values(porDataDia).forEach(grp => {
+    const ordenado = [...grp.items].sort((a, b) =>
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+    // v19: se TODOS os registros tem data_treino explicito, e UMA sessao (o
+    // usuario datou) — nao fragmenta por gap de horario. O split de 90min so
+    // vale pro legado sem data_treino (sessao inferida pelos timestamps).
+    // Conserta registro manual/ao vivo que sumia/fragmentava por horario.
+    const temDataExplicita = grp.items.every(r => dataTreinoLimpa(r.data_treino));
+    let sessao = 0;
+    let lastTime = null;
+    ordenado.forEach(r => {
+      // v22: gap so conta entre registros com HORA real. Timestamp so com data
+      // ("2026-06-22", linha adicionada na mao) nao gera split nem reseta a
+      // referencia — senao a meia-noite UTC viraria um buraco de horas e
+      // rachava a sessao num card a parte (no dia errado).
+      const temHora = /\dT\d{2}:\d{2}/.test(String(r.timestamp));
+      const t = new Date(r.timestamp).getTime();
+      if (!temDataExplicita && temHora && lastTime !== null && (t - lastTime) / 60000 > SESSION_GAP_MIN) {
+        sessao++;
+      }
+      if (temHora && !isNaN(t)) lastTime = t;
+      const sessKey = `${grp.data}__${grp.dia}__s${sessao}`;
+      if (!grupos[sessKey]) {
+        grupos[sessKey] = {
+          data: grp.data,
+          dia: grp.dia,
+          sessao,
+          startTime: (temHora && !isNaN(t)) ? t : null,
+          items: []
+        };
+      } else if (grupos[sessKey].startTime == null && temHora && !isNaN(t)) {
+        grupos[sessKey].startTime = t;
+      }
+      grupos[sessKey].items.push(r);
+    });
+  });
+
+  // Ordena: data desc; mesma data → sessao desc (mais recente primeiro);
+  // dia asc apenas como desempate teorico
+  const keys = Object.keys(grupos).sort((a, b) => {
+    const ga = grupos[a], gb = grupos[b];
+    if (ga.data !== gb.data) return gb.data.localeCompare(ga.data);
+    if (ga.startTime !== gb.startTime) return gb.startTime - ga.startTime;
+    return ga.dia.localeCompare(gb.dia);
+  });
+
+  // v15: alerta de rotacao/gap — dias desde o ultimo de cada tipo de treino.
+  // v16: tipos vem do PLANO do aluno + dos registros (antes era A/B/C fixo —
+  // ignorava D/E). Dia planejado que nunca foi registrado tambem alerta.
+  const sessDesc = keys.map(k => grupos[k]);
+  const alunoIdRot = isTrainer ? APP.currentAluno : (APP.alunoSession && APP.alunoSession.id);
+  const tiposRot = new Set();
+  (APP.data && APP.data.plano || []).forEach(p => {
+    if (alunoIdRot && p.aluno_id != null && String(p.aluno_id) !== String(alunoIdRot)) return;
+    const d = String(p.dia || '').toUpperCase();
+    if (DAYS.includes(d)) tiposRot.add(d);
+  });
+  sessDesc.forEach(s => { if (DAYS.includes(s.dia)) tiposRot.add(s.dia); });
+  const alertasRot = [];
+  DAYS.filter(d => tiposRot.has(d)).forEach(tp => {
+    const ult = sessDesc.find(s => s.dia === tp);
+    if (ult) {
+      const dias = Math.floor((Date.now() - new Date(ult.data + 'T12:00:00').getTime()) / 86400000);
+      if (dias >= 7) alertasRot.push(`${dias}d sem ${tp}`);
+    } else if (sessDesc.length > 0) {
+      alertasRot.push(`nunca registrou ${tp}`);
+    }
+  });
+  const bannerRot = alertasRot.length
+    ? `<div class="glass mb-2" style="border-color:rgba(245,158,11,0.45)"><div class="px-3 py-2 mono text-[11px] text-amber-400">⚠ rotacao: ${alertasRot.join(' · ')}</div></div>`
+    : '';
+
+  c.innerHTML = bannerRot + keys.map(k => {
+    const grupo = grupos[k];
+    const regsD = grupo.items;
+    const d = grupo.data;
+    const dia = grupo.dia;
+    const cor = dayColorHex(dia);
+    const linhas = regsD.map(r => {
+      const ok = String(r.completou).toLowerCase() === 'sim';
+      const delBtn = `<button data-ts="${escapeHtml(String(r.timestamp))}" class="btn-del-reg text-zinc-700 hover:text-red-500 mono ml-1" title="remover">✕</button>`;
+      const rir = (r.rir !== '' && r.rir != null)
+        ? `<span class="mono text-zinc-600 whitespace-nowrap">RIR ${escapeHtml(String(r.rir))}</span>` : '';
+      return `
+        <div class="flex items-center gap-2 text-xs py-1.5 border-b border-zinc-900/60 last:border-0">
+          <span class="text-zinc-300 flex-1 truncate">${escapeHtml(r.exercicio)}</span>
+          <span class="mono text-zinc-300 whitespace-nowrap">${escapeHtml(String(r.carga || '—'))}</span>
+          <span class="mono text-zinc-600 whitespace-nowrap">${escapeHtml(String(r.reps || ''))}</span>
+          ${rir}
+          <span class="${ok ? 'text-emerald-500' : 'text-red-500'}">${ok ? '✓' : '✗'}</span>
+          ${delBtn}
+        </div>`;
+    }).join('');
+    const startDate = new Date(grupo.startTime);
+    const horaLocal = isNaN(startDate.getTime()) ? '' :
+      ' · ' + startDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    // v18: duracao da sessao (1o -> ultimo registro), so quando treinada ao vivo
+    let durTxt = '';
+    if (regsD.length >= 2) {
+      const tsList = regsD.map(r => new Date(r.timestamp).getTime()).filter(t => !isNaN(t));
+      if (tsList.length >= 2) {
+        const span = (Math.max.apply(null, tsList) - Math.min.apply(null, tsList)) / 60000;
+        if (span >= 3 && span <= 300) durTxt = ` · ⏱ ${Math.round(span)}min`;
+      }
+    }
+    // Botao REMOVER SESSAO so aparece no trainer view. Apaga todos os
+    // timestamps desta sessao numa unica chamada (acao removerRegistrosBatch).
+    const timestampsSessao = regsD.map(r => String(r.timestamp)).join('|');
+    const delSessaoBtn = isTrainer
+      ? `<button data-tss="${escapeHtml(timestampsSessao)}" data-label="${escapeHtml(fmtDate(d) + horaLocal)}" class="btn-del-sessao mono text-[10px] text-zinc-600 hover:text-red-500 border border-zinc-800 px-2 py-0.5 ml-2" title="remover sessao inteira">REMOVER SESSAO</button>`
+      : '';
+    return `
+      <div class="glass">
+        <div class="flex items-center gap-3 px-3 py-2 border-b border-zinc-800">
+          <span class="display text-2xl leading-none" style="color:${cor}">${dia || '?'}</span>
+          <span class="mono text-xs text-zinc-300">${fmtDate(d)}${horaLocal}${durTxt}</span>
+          <span class="mono text-[10px] text-zinc-600 ml-auto">${regsD.length} exercicios</span>
+          ${delSessaoBtn}
+        </div>
+        <div class="px-3 py-1">${linhas}</div>
+      </div>`;
+  }).join('');
+
+  // Remover SESSAO inteira (trainer): bulk delete num unico round-trip
+  c.querySelectorAll('.btn-del-sessao').forEach(b => {
+    b.addEventListener('click', async () => {
+      const timestamps = String(b.dataset.tss || '').split('|').filter(Boolean);
+      const label = b.dataset.label || '';
+      if (!timestamps.length) return;
+      if (!confirm(`Remover a sessao inteira (${timestamps.length} exercicios) de ${label}?\n\nAcao nao pode ser desfeita.`)) return;
+      showLoading(true);
+      try {
+        const r = await apiPost({
+          action: 'removerRegistrosBatch',
+          key: APP.trainerKey,
+          timestamps,
+        });
+        toast(`Sessao removida · ${r.removidos || timestamps.length} registros apagados`, 'success');
+        if (isTrainer) {
+          loadEditAluno(APP.currentAluno);
+        } else {
+          await loadAlunoData();
+        }
+      } catch (e) {
+        toast(e.message, 'error');
+      } finally { showLoading(false); }
+    });
+  });
+
+  // Remover registro INDIVIDUAL — funciona para trainer (admin) e aluno (so os proprios)
+  c.querySelectorAll('.btn-del-reg').forEach(b => {
+    b.addEventListener('click', async () => {
+      if (!confirm('Remover este registro? Esta acao nao pode ser desfeita.')) return;
+      showLoading(true);
+      try {
+        if (isTrainer) {
+          await apiPost({ action: 'removerRegistro', key: APP.trainerKey, timestamp: b.dataset.ts });
+        } else {
+          await apiPost({
+            action: 'removerRegistroAluno',
+            aluno_id: APP.alunoSession.id,
+            pin: APP.alunoSession.pin,
+            timestamp: b.dataset.ts,
+          });
+        }
+        toast('Registro removido', 'success');
+        if (isTrainer) {
+          loadEditAluno(APP.currentAluno);
+        } else {
+          await loadAlunoData();
+          $('aluno-historico-section').classList.remove('hidden');
+          renderAlunoHistorico();
+        }
+      } catch (e) {
+        toast(e.message, 'error');
+      } finally { showLoading(false); }
+    });
+  });
+}
+
+// ---------- COMPARTILHAR ----------
+
+$('btn-share-aluno').onclick = () => {
+  const id = APP.currentAluno;
+  const aluno = APP.data.alunos.find(a => String(a.id) === String(id));
+  if (!aluno) return;
+  const url = window.location.origin + window.location.pathname + '#aluno/' + id;
+  $('share-url').value = url;
+  const resumoDias = DAYS.map(d => {
+    const exs = (APP.editPlano[d] || []).filter(x => x.exercicio).slice(0, 3);
+    if (!exs.length) return '';
+    return `DIA ${d}\n` + exs.map(x => `· ${x.exercicio} ${x.carga||''} ${x.series||''}x${x.reps||''}`).join('\n') + '\n';
+  }).join('');
+  const msg = `Ola ${aluno.nome},
+
+Seu plano FORJA esta atualizado.
+Acesse: ${url}
+Seu ID: ${aluno.id}
+PIN: (te mando em separado)
+
+Resumo:
+${resumoDias}
+Registre cada sessao no app pra acompanharmos a progressao.`;
+  $('share-msg').value = msg;
+  $('modal-share').classList.remove('hidden');
+};
+
+$('btn-copy-url').onclick = async () => {
+  await navigator.clipboard.writeText($('share-url').value);
+  toast('Link copiado', 'success');
+};
+
+$('btn-share-wa').onclick = () => {
+  const msg = $('share-msg').value;
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+};
+
+$('btn-share-email').onclick = () => {
+  const msg = $('share-msg').value;
+  const aluno = APP.data.alunos.find(a => String(a.id) === String(APP.currentAluno));
+  const subject = 'FORJA · plano de treino · ' + (aluno?.nome || '');
+  window.location.href = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(msg);
+};
+
+// ---------- LOGIN ALUNO ----------
+
+$('btn-aluno-entrar').onclick = async () => {
+  const id = $('aluno-id').value.trim().toLowerCase();
+  const pin = $('aluno-pin').value.trim();
+  if (!id || !pin) { $('aluno-login-status').innerHTML = '<span class="text-red-500">Preencha tudo</span>'; return; }
+  showLoading(true);
+  try {
+    const data = await apiGet({ action: 'getAluno', id, pin });
+    APP.alunoSession = { id, pin };
+    APP.data = data;
+    sessionStorage.setItem('forja-aluno-session', JSON.stringify(APP.alunoSession));
+    navigateTo('#aluno/' + id);
+  } catch (e) {
+    $('aluno-login-status').innerHTML = '<span class="text-red-500">✗ ' + e.message + '</span>';
+  } finally {
+    showLoading(false);
+  }
+};
+
+// ---------- ALUNO DASHBOARD ----------
+
+$('btn-aluno-refresh').onclick = () => loadAlunoData();
+
+async function loadAlunoData() {
+  if (!APP.alunoSession) { navigateTo('#aluno-login'); return; }
+  showLoading(true);
+  try {
+    APP.data = await apiGet({ action: 'getAluno', id: APP.alunoSession.id, pin: APP.alunoSession.pin });
+    renderAlunoDashboard();
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+function renderAlunoDashboard() {
+  const a = APP.data.aluno;
+  $('aluno-avatar').textContent = initials(a.nome);
+  $('aluno-nome').textContent = a.nome || a.id;
+  const last = (APP.data.registros || [])[0];
+  $('aluno-last').textContent = last ? `ULT: ${last.dia} · ${daysAgo(last.timestamp)}` : 'NENHUMA SESSAO REGISTRADA';
+  const meta = $('aluno-meta');
+  let metaHtml = '';
+  if (a.objetivo) metaHtml += `<div><span class="text-zinc-600">OBJETIVO:</span> ${escapeHtml(a.objetivo)}</div>`;
+  if (a.notas) metaHtml += `<div class="mt-1"><span class="text-zinc-600">NOTAS:</span> ${escapeHtml(a.notas)}</div>`;
+  meta.innerHTML = metaHtml;
+
+  // Renderiza tabs dinamicas: apenas os dias que o aluno realmente tem
+  renderAlunoDayTabs();
+  renderAlunoPlano();
+  renderMapaMuscular();
+}
+
+function diasDoAluno() {
+  const set = new Set();
+  (APP.data.plano || []).forEach(p => {
+    const d = String(p.dia || '').toUpperCase();
+    if (DAYS.includes(d)) set.add(d);
+  });
+  const arr = DAYS.filter(d => set.has(d));
+  return arr.length ? arr : ['A']; // fallback: pelo menos mostra A
+}
+
+function renderAlunoDayTabs() {
+  const dias = diasDoAluno();
+  if (!dias.includes(APP.alunoDay)) APP.alunoDay = dias[0];
+  const container = $('aluno-day-tabs');
+  container.innerHTML = dias.map(d =>
+    `<button class="tab-btn ${d === APP.alunoDay ? 'active' : ''}" data-day="${d}" onclick="setAlunoDay('${d}')">${d}</button>`
+  ).join('');
+}
+
+function setAlunoDay(day) {
+  APP.alunoDay = day;
+  setContextDay(day);  // brilho da tela acompanha a cor do dia (A=vermelho, etc)
+  document.querySelectorAll('#view-aluno .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.day === day));
+  renderAlunoPlano();
+}
+
+function renderAlunoPlano() {
+  const day = APP.alunoDay;
+  const plano = (APP.data.plano || []).filter(p => String(p.dia).toUpperCase() === day);
+  const div = $('aluno-plano');
+  if (plano.length === 0) {
+    div.innerHTML = '<div class="mono text-xs text-zinc-500 py-12 text-center glass">Sem exercicios neste dia ainda. Aguarde seu trainer.</div>';
+    return;
+  }
+  const cor = dayColorBg(day);
+  div.innerHTML = plano.map((p, i) => `
+    <div class="glass p-4 relative">
+      <div class="absolute top-0 left-0 w-1 h-full ${cor}"></div>
+      <div class="flex items-baseline justify-between mb-2 pl-2">
+        <div class="flex items-baseline gap-3">
+          <span class="mono text-xs text-zinc-500">${String(i+1).padStart(2,'0')}</span>
+          <span class="text-zinc-100">${escapeHtml(p.exercicio)}</span>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-4 mono text-xs text-zinc-400 pl-2">
+        <div><span class="text-zinc-600">SERIES</span> <span class="text-zinc-100">${escapeHtml(String(p.series||'—'))}</span></div>
+        <div><span class="text-zinc-600">REPS</span> <span class="text-zinc-100">${escapeHtml(String(p.reps||'—'))}</span></div>
+        <div><span class="text-zinc-600">CARGA</span> <span class="text-zinc-100">${escapeHtml(String(p.carga||'—'))}</span></div>
+        <div><span class="text-zinc-600">RIR</span> <span class="text-zinc-100">${escapeHtml(String(p.rir||'—'))}</span></div>
+        ${(() => { const ti = tipoInfo(p.tipo); return ti ? `<div><span class="chip" style="border-color:${ti.cor};color:${ti.cor}">${ti.label}</span> <span class="text-zinc-600">${ti.desc}</span></div>` : ''; })()}
+      </div>
+      ${p.obs ? `<div class="mono text-[10px] text-amber-500/80 mt-2 pl-2">⚠ ${escapeHtml(p.obs)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+$('btn-aluno-registrar').onclick = () => abrirModalRegistrar();
+
+// v23: registrar peso (balanca + kg) -> backend v3 salvarPeso
+$('btn-aluno-peso').onclick = () => abrirModalPeso();
+function abrirModalPeso() {
+  $('peso-input-kg').value = '';
+  $('peso-input-obs').value = '';
+  $('peso-status').textContent = '';
+  renderPesoHistorico();
+  $('modal-peso').classList.remove('hidden');
+}
+function renderPesoHistorico() {
+  const c = $('peso-historico'); if (!c) return;
+  const lista = (APP.data && APP.data.peso) ? APP.data.peso : [];
+  if (!lista.length) { c.innerHTML = '<div class="mono text-[10px] text-zinc-600 text-center">Sem pesagens registradas ainda.</div>'; return; }
+  const linhas = lista.slice(0, 12).map(p => {
+    const d = fmtDate(dataLocalIso(p.timestamp));
+    return `<div class="flex items-center justify-between text-xs py-1.5 border-b border-zinc-900/60">
+      <span class="mono text-zinc-500">${d}</span>
+      <span class="text-zinc-200">${escapeHtml(String(p.peso))}kg</span>
+      <span class="mono text-zinc-600">${escapeHtml(String(p.balanca || ''))}</span></div>`;
+  }).join('');
+  c.innerHTML = `<div class="mono text-[10px] text-zinc-500 tracking-widest mb-2">ULTIMAS PESAGENS</div>${linhas}`;
+}
+$('btn-salvar-peso').onclick = async () => {
+  const kg = String($('peso-input-kg').value || '').trim().replace(',', '.');
+  const st = $('peso-status');
+  if (!kg || isNaN(parseFloat(kg))) { st.innerHTML = '<span class="text-red-500">Peso invalido</span>'; return; }
+  showLoading(true);
+  try {
+    await apiPost({
+      action: 'salvarPeso',
+      aluno_id: APP.alunoSession.id,
+      pin: APP.alunoSession.pin,
+      peso: parseFloat(kg),
+      balanca: $('peso-input-balanca').value || '',
+      obs: $('peso-input-obs').value || '',
+    });
+    toast('Peso registrado - ' + kg + 'kg', 'success');
+    $('modal-peso').classList.add('hidden');
+    await loadAlunoData();
+  } catch (e) {
+    st.innerHTML = '<span class="text-red-500">✗ ' + e.message + '</span>';
+  } finally {
+    showLoading(false);
+  }
+};
+$('btn-aluno-historico').onclick = () => {
+  const s = $('aluno-historico-section');
+  s.classList.toggle('hidden');
+  if (!s.classList.contains('hidden')) renderAlunoHistorico();
+};
+
+// ===== v24: MAPA MUSCULAR (recuperacao por grupo, a partir dos registros) =====
+const MAPA_GRUPOS = ['peito','ombro','triceps','costas','biceps','core','quadriceps','posterior','panturrilha'];
+const MAPA_LABEL = { peito:'Peito', ombro:'Ombro', triceps:'Triceps', costas:'Costas', biceps:'Biceps', core:'Core', quadriceps:'Quadriceps', posterior:'Posterior', panturrilha:'Panturrilha' };
+const MAPA_REC = { recuperando: 1, atrasado: 5 }; // dias: <=1 recuperando, >=5 atrasado, no meio = pronto
+const MAPA_COR = { pronto:'#22c55e', recuperando:'#f59e0b', atrasado:'#ef4444', dim:'#3f3f46' };
+
+function musculosDoExercicio(nome) {
+  const s = String(nome || '').toLowerCase();
+  const g = new Set();
+  const add = (...xs) => xs.forEach(x => g.add(x));
+  if (/invertid|voador inv|face\s*pull|reverse/.test(s)) add('costas','ombro');
+  else if (/supino|crucifixo|voador|peck|chest|peito/.test(s)) { add('peito'); if (/supino|press|chest/.test(s)) add('triceps','ombro'); }
+  if (/desenvolv|militar|overhead|arnold|elevac|lateral|shoulder/.test(s)) add('ombro');
+  if (/triceps|testa|frances|corda|pushdown|mergulho|paralela|coice/.test(s)) add('triceps');
+  if (/abdominal|prancha|pallof|core|obliqu|remador|plank|infra/.test(s)) add('core');
+  if (/puxada|pulldown|pull-?up|pull up|barra fixa/.test(s)) add('costas','biceps');
+  if (/(remada|row|serrote)/.test(s) && !/remador/.test(s)) add('costas','biceps');
+  if (/rosca|curl|biceps|scott|martelo/.test(s)) add('biceps');
+  if (/hack|agacha|squat|leg press|press 45|extensora|cadeira ext|afundo|avanco|bulgaro|passada/.test(s)) add('quadriceps');
+  if (/stiff|terra|flexora|posterior|isqui|hamstring|gluteo|hip thrust|pelvica/.test(s)) add('posterior');
+  if (/(leg press|hack|agacha|squat|afundo|avanco)/.test(s)) add('posterior');
+  if (/panturrilha|gemeos|calf|soleo|gastro/.test(s)) add('panturrilha');
+  return [...g];
+}
+
+function mapaIsoParaDias(iso) {
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return 9999;
+  const hoje = new Date();
+  const h = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  const d = new Date(+m[1], +m[2] - 1, +m[3]);
+  return Math.round((h - d) / 86400000);
+}
+
+function calcularRecuperacao() {
+  const plano = APP.data.plano || [];
+  const regs = APP.data.registros || [];
+  const programados = new Set();
+  plano.forEach(p => musculosDoExercicio(p.exercicio).forEach(x => programados.add(x)));
+  const ultimo = {};
+  regs.forEach(r => {
+    const dias = mapaIsoParaDias(dataLocalIso(r.data_treino || r.timestamp));
+    musculosDoExercicio(r.exercicio).forEach(x => { if (ultimo[x] == null || dias < ultimo[x]) ultimo[x] = dias; });
+  });
+  const status = {};
+  MAPA_GRUPOS.forEach(g => {
+    const d = ultimo[g];
+    if (!programados.has(g) && d == null) { status[g] = { st: 'dim', dias: null }; return; }
+    if (d == null) { status[g] = { st: 'atrasado', dias: null }; return; }
+    const st = d <= MAPA_REC.recuperando ? 'recuperando' : (d >= MAPA_REC.atrasado ? 'atrasado' : 'pronto');
+    status[g] = { st: st, dias: d };
+  });
+  return { status: status, programados: programados };
+}
+
+function mapaSugerirDia(status) {
+  const plano = APP.data.plano || [];
+  const dias = [...new Set(plano.map(p => String(p.dia || '').toUpperCase()).filter(d => DAYS.includes(d)))];
+  let best = null, bestScore = -1e9;
+  dias.forEach(dia => {
+    const grupos = new Set();
+    plano.filter(p => String(p.dia).toUpperCase() === dia).forEach(p => musculosDoExercicio(p.exercicio).forEach(x => grupos.add(x)));
+    let score = 0;
+    grupos.forEach(g => { const st = status[g] && status[g].st; if (st === 'atrasado') score += 3; else if (st === 'pronto') score += 2; else if (st === 'recuperando') score -= 3; });
+    if (score > bestScore) { bestScore = score; best = { dia: dia, grupos: [...grupos] }; }
+  });
+  return best;
+}
+
+function mapaCorpoSVG(status) {
+  const c = g => MAPA_COR[(status[g] && status[g].st) || 'dim'];
+  const S = 'stroke="#0c0c0d" stroke-width="1"';
+  // v25: silhueta cheia (mesma frente/costas) + musculos por cima com contorno.
+  const sil = `
+    <g fill="#27272a" stroke="#3f3f46" stroke-width="0.8">
+      <circle cx="60" cy="20" r="12"/><rect x="55" y="29" width="10" height="7" rx="2"/>
+      <rect x="40" y="44" width="40" height="74" rx="14"/><rect x="44" y="112" width="32" height="22" rx="9"/>
+      <ellipse cx="24" cy="78" rx="9" ry="22"/><ellipse cx="96" cy="78" rx="9" ry="22"/>
+      <ellipse cx="20" cy="120" rx="7.5" ry="20"/><ellipse cx="100" cy="120" rx="7.5" ry="20"/>
+      <ellipse cx="50" cy="166" rx="12.5" ry="31"/><ellipse cx="70" cy="166" rx="12.5" ry="31"/>
+      <ellipse cx="50" cy="214" rx="9" ry="25"/><ellipse cx="70" cy="214" rx="9" ry="25"/>
+    </g>`;
+  const frente = `
+    <ellipse cx="33" cy="53" rx="12" ry="10" fill="${c('ombro')}" ${S}/><ellipse cx="87" cy="53" rx="12" ry="10" fill="${c('ombro')}" ${S}/>
+    <path d="M43 50 h15 a5 5 0 015 5 v9 a5 5 0 01-5 5 h-15 a5 5 0 01-5 -5 v-9 a5 5 0 015 -5z" fill="${c('peito')}" ${S}/>
+    <path d="M62 50 h15 a5 5 0 015 5 v9 a5 5 0 01-5 5 h-15 a5 5 0 01-5 -5 v-9 a5 5 0 015 -5z" fill="${c('peito')}" ${S}/>
+    <ellipse cx="24" cy="77" rx="8" ry="16" fill="${c('biceps')}" ${S}/><ellipse cx="96" cy="77" rx="8" ry="16" fill="${c('biceps')}" ${S}/>
+    <rect x="51" y="78" width="18" height="34" rx="5" fill="${c('core')}" ${S}/>
+    <line x1="60" y1="80" x2="60" y2="110" stroke="#0c0c0d" stroke-width="0.8"/>
+    <line x1="52" y1="90" x2="68" y2="90" stroke="#0c0c0d" stroke-width="0.8"/><line x1="52" y1="100" x2="68" y2="100" stroke="#0c0c0d" stroke-width="0.8"/>
+    <ellipse cx="50" cy="166" rx="11" ry="28" fill="${c('quadriceps')}" ${S}/><ellipse cx="70" cy="166" rx="11" ry="28" fill="${c('quadriceps')}" ${S}/>`;
+  const costas = `
+    <path d="M48 46 L72 46 L66 60 L54 60 Z" fill="${c('costas')}" ${S}/>
+    <path d="M44 60 L58 63 L55 96 L46 84 Z" fill="${c('costas')}" ${S}/><path d="M76 60 L62 63 L65 96 L74 84 Z" fill="${c('costas')}" ${S}/>
+    <line x1="60" y1="58" x2="60" y2="112" stroke="#0c0c0d" stroke-width="0.8"/>
+    <ellipse cx="24" cy="77" rx="8" ry="16" fill="${c('triceps')}" ${S}/><ellipse cx="96" cy="77" rx="8" ry="16" fill="${c('triceps')}" ${S}/>
+    <ellipse cx="53" cy="124" rx="10" ry="11" fill="${c('posterior')}" ${S}/><ellipse cx="67" cy="124" rx="10" ry="11" fill="${c('posterior')}" ${S}/>
+    <ellipse cx="50" cy="168" rx="11" ry="27" fill="${c('posterior')}" ${S}/><ellipse cx="70" cy="168" rx="11" ry="27" fill="${c('posterior')}" ${S}/>
+    <ellipse cx="50" cy="214" rx="8.5" ry="22" fill="${c('panturrilha')}" ${S}/><ellipse cx="70" cy="214" rx="8.5" ry="22" fill="${c('panturrilha')}" ${S}/>`;
+  const lbl = 'text-anchor="middle" fill="#71717a" style="font:8px monospace;letter-spacing:2px"';
+  return `
+  <svg viewBox="0 0 300 252" class="w-full" style="max-width:340px;margin:0 auto;display:block" role="img" aria-label="Mapa muscular de recuperacao, frente e costas">
+    <g transform="translate(0,4)">${sil}${frente}<text x="60" y="250" ${lbl}>FRENTE</text></g>
+    <g transform="translate(170,4)">${sil}${costas}<text x="60" y="250" ${lbl}>COSTAS</text></g>
+  </svg>`;
+}
+
+function renderMapaMuscular() {
+  const cont = document.getElementById('aluno-mapa');
+  if (!cont || !APP.data) return;
+  const regs = APP.data.registros || [];
+  const calc = calcularRecuperacao();
+  const status = calc.status;
+  const sug = mapaSugerirDia(status);
+  const atrasados = MAPA_GRUPOS.filter(g => status[g].st === 'atrasado' && status[g].dias != null).sort((a, b) => status[b].dias - status[a].dias);
+  const nud = atrasados[0];
+  const dot = cor => `<i style="width:8px;height:8px;border-radius:50%;background:${cor};display:inline-block"></i>`;
+  const legenda = `<div class="flex justify-center gap-4 mt-3">
+      <span class="mono text-[9px] text-zinc-400 flex items-center gap-1">${dot(MAPA_COR.pronto)}Pronto</span>
+      <span class="mono text-[9px] text-zinc-400 flex items-center gap-1">${dot(MAPA_COR.recuperando)}Recuperando</span>
+      <span class="mono text-[9px] text-zinc-400 flex items-center gap-1">${dot(MAPA_COR.atrasado)}Atrasado</span></div>`;
+  let painel;
+  if (!regs.length) {
+    painel = `<div class="mt-4 rounded-2xl border border-zinc-700 p-4">
+      <div class="mono text-[10px] text-cyan-400 tracking-widest mb-1">COMECE POR AQUI</div>
+      <div class="display text-2xl">TREINO ${sug ? sug.dia : 'A'}</div>
+      <div class="text-sm text-zinc-400 mt-1">Registre suas sessoes pra eu colorir o mapa e dizer o que treinar.</div></div>`;
+  } else {
+    const foco = sug ? sug.grupos.map(g => MAPA_LABEL[g]).filter(Boolean).slice(0, 3).join(' · ') : '';
+    painel = `<div class="mt-4 rounded-2xl p-4" style="border:1px solid rgba(34,197,94,.35)">
+      <div class="mono text-[10px] tracking-widest mb-1" style="color:${MAPA_COR.pronto}">PRONTO PRA TREINAR</div>
+      <div class="display text-3xl">TREINO ${sug ? sug.dia : '—'}</div>
+      <div class="text-sm text-zinc-400 mt-1">${escapeHtml(foco)} recuperados.</div>
+      ${nud ? `<div class="text-xs mt-2" style="color:${MAPA_COR.atrasado}">⚠ ${escapeHtml(MAPA_LABEL[nud])} atrasado ha ${status[nud].dias} dias — encaixe logo.</div>` : ''}</div>`;
+  }
+  cont.innerHTML = `<div class="glass p-5">
+      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-3">MAPA MUSCULAR · RECUPERACAO</div>
+      ${mapaCorpoSVG(status)}${legenda}${painel}</div>`;
+}
+
+function renderAlunoHistorico() {
+  renderEvolucao(APP.data.registros || [], 'aluno', false);
+}
+
+// ---------- MODAL REGISTRAR ----------
+
+function abrirModalRegistrar() {
+  const day = APP.alunoDay;
+  $('modal-reg-day').textContent = 'DIA ' + day;
+  // Pre-preenche o campo de data com hoje (sobrescritivel se for backdate)
+  const hoje = new Date();
+  $('reg-data-treino').value =
+    `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+  const plano = (APP.data.plano || []).filter(p => String(p.dia).toUpperCase() === day);
+  if (plano.length === 0) {
+    toast('Sem exercicios neste dia. Aguarde seu trainer.', 'error');
+    return;
+  }
+  const form = $('modal-reg-form');
+  form.innerHTML = plano.map((p, i) => `
+    <div class="glass p-4" data-idx="${i}" data-ex="${escapeHtml(p.exercicio)}">
+      <div class="text-sm text-zinc-100 mb-3">${escapeHtml(p.exercicio)}</div>
+      <div class="mono text-[10px] text-zinc-500 mb-3 tracking-wider">
+        ALVO: ${escapeHtml(String(p.series||''))}x${escapeHtml(String(p.reps||''))} · carga sugerida ${escapeHtml(String(p.carga||'—'))} · RIR ${escapeHtml(String(p.rir||'—'))}
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div>
+          <div class="mono text-[10px] text-zinc-500 tracking-widest mb-1">CARGA</div>
+          <input type="text" data-f="carga" value="${escapeHtml(String(p.carga||''))}" class="w-full" />
+        </div>
+        <div>
+          <div class="mono text-[10px] text-zinc-500 tracking-widest mb-1">REPS</div>
+          <input type="text" data-f="reps" value="${escapeHtml(String(p.reps||''))}" class="w-full" />
+        </div>
+        <div>
+          <div class="mono text-[10px] text-zinc-500 tracking-widest mb-1">RIR FINAL</div>
+          <input type="text" data-f="rir" value="${escapeHtml(String(p.rir||''))}" class="w-full" />
+        </div>
+        <div>
+          <div class="mono text-[10px] text-zinc-500 tracking-widest mb-1">FECHOU?</div>
+          <button data-f="completou" data-val="1" type="button" class="w-full py-2 mono text-xs bg-emerald-600 text-white tracking-widest">✓ SIM</button>
+        </div>
+      </div>
+      <div class="mt-2">
+        <div class="mono text-[10px] text-zinc-500 tracking-widest mb-1">OBS</div>
+        <input type="text" data-f="obs" placeholder="opcional" class="w-full" />
+      </div>
+    </div>
+  `).join('');
+  // toggle completou
+  form.querySelectorAll('button[data-f="completou"]').forEach(b => {
+    b.addEventListener('click', () => {
+      const yes = b.dataset.val === '1';
+      b.dataset.val = yes ? '0' : '1';
+      if (b.dataset.val === '1') {
+        b.className = 'w-full py-2 mono text-xs bg-emerald-600 text-white tracking-widest';
+        b.textContent = '✓ SIM';
+      } else {
+        b.className = 'w-full py-2 mono text-xs border border-zinc-700 text-zinc-400 tracking-widest';
+        b.textContent = '✗ FALTOU';
+      }
+    });
+  });
+  $('modal-registrar').classList.remove('hidden');
+}
+
+$('btn-salvar-sessao').onclick = async () => {
+  // trava anti-duplo-clique: se ja esta salvando, ignora cliques extras
+  if (APP.savingSession) return;
+
+  const day = APP.alunoDay;
+  const dataTreino = String($('reg-data-treino').value || '').trim() || hojeIso();
+
+  // v15: trava de duplicata por (dia + data do treino). Se ja existe, oferece
+  // SOBRESCREVER (= editar a sessao) ou cancelar.
+  const existentes = registrosDaSessao(day, dataTreino);
+  const nEx = $('modal-reg-form').querySelectorAll('[data-idx]').length;
+  let sobrescrever = false;
+  if (existentes.length > 0) {
+    if (!confirm(`Ja existe um treino ${day} em ${fmtDate(dataTreino)} (${existentes.length} exercicios).\n\nOK = SOBRESCREVER (apaga a sessao antiga e salva esta).\nCancelar = nao salvar nada.`)) return;
+    sobrescrever = true;
+  } else {
+    // v19: confirmacao sempre (evita salvar sem querer com 1 clique)
+    if (!confirm(`Salvar a sessao ${day} de ${fmtDate(dataTreino)} — ${nEx} exercicio(s)?`)) return;
+  }
+
+  APP.savingSession = true;
+  const btn = $('btn-salvar-sessao');
+  const btnTxtOriginal = btn.innerHTML;
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  btn.innerHTML = 'SALVANDO...';
+
+  const cards = $('modal-reg-form').querySelectorAll('[data-idx]');
+  showLoading(true);
+  try {
+    // monta a sessao inteira primeiro
+    const novos = [];
+    for (const card of cards) {
+      const ex = card.dataset.ex;
+      const inputs = card.querySelectorAll('input');
+      const data = {};
+      inputs.forEach(i => { data[i.dataset.f] = i.value; });
+      const completouBtn = card.querySelector('button[data-f="completou"]');
+      novos.push({
+        exercicio: ex,
+        carga: data.carga || '',
+        reps: data.reps || '',
+        rir: data.rir || '',
+        completou: completouBtn.dataset.val === '1',
+        obs: data.obs || '',
+      });
+    }
+    let ok = 0;
+    // v17: salva a sessao inteira numa UNICA chamada (registroBatch, backend v2).
+    // Sobrescrever vira atomico no servidor (remove a antiga e grava a nova na
+    // mesma escrita). Se o backend ainda for o v1 ("unknown action"), cai no
+    // fluxo v16: 1 POST por exercicio + remocao da antiga depois.
+    try {
+      const res = await apiPost({
+        action: 'registroBatch',
+        aluno_id: APP.alunoSession.id,
+        pin: APP.alunoSession.pin,
+        dia: day,
+        data_treino: dataTreino,
+        sobrescrever,
+        registros: novos,
+      });
+      ok = res.salvos != null ? res.salvos : novos.length;
+    } catch (e) {
+      if (!/unknown action/i.test(String(e && e.message))) throw e;
+      for (const reg of novos) {
+        await apiPost({
+          action: 'registro',
+          aluno_id: APP.alunoSession.id,
+          pin: APP.alunoSession.pin,
+          dia: day,
+          exercicio: reg.exercicio,
+          carga: reg.carga,
+          reps: reg.reps,
+          rir: reg.rir,
+          completou: reg.completou,
+          obs: reg.obs,
+          data_treino: dataTreino,
+        });
+        ok++;
+      }
+      // v15: sobrescrever = apaga a sessao antiga DEPOIS de salvar a nova (sem perda)
+      if (sobrescrever) {
+        for (const r of existentes) {
+          try {
+            await apiPost({ action: 'removerRegistroAluno', aluno_id: APP.alunoSession.id, pin: APP.alunoSession.pin, timestamp: String(r.timestamp) });
+          } catch (e2) { /* se falhar, o registro antigo fica; da pra remover na mao */ }
+        }
+      }
+    }
+    toast(`Sessao ${day} salva em ${fmtDate(dataTreino)} · ${ok} exercicios${sobrescrever ? ' · anterior sobrescrita' : ''}`, 'success');
+    $('modal-registrar').classList.add('hidden');
+    await loadAlunoData();
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    showLoading(false);
+    APP.savingSession = false;
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.innerHTML = btnTxtOriginal;
+  }
+};
+
+// ---------- BUFFER LOCAL DE REGISTROS (rede de seguranca v6) ----------
+// Toda chamada de salvar registro passa por aqui: gravamos local PRIMEIRO,
+// depois tentamos enviar pro servidor. Se a rede falhar, o dado fica
+// guardado no localStorage do dispositivo e re-tenta automaticamente
+// no proximo carregamento. Perda de dado por falha de rede vira impossivel.
+
+function bufferKey() {
+  return 'forja-pending-' + (APP.alunoSession ? APP.alunoSession.id : 'anon');
+}
+
+function loadBuffer() {
+  try { return JSON.parse(localStorage.getItem(bufferKey()) || '[]'); }
+  catch { return []; }
+}
+
+function saveBuffer(buf) {
+  try { localStorage.setItem(bufferKey(), JSON.stringify(buf)); }
+  catch (e) { console.error('Buffer save fail', e); }
+}
+
+// Adiciona um payload ao buffer. Retorna um id local pra rastreio.
+function pushBuffer(reg) {
+  const buf = loadBuffer();
+  const _localId = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  buf.push({ ...reg, _localId });
+  saveBuffer(buf);
+  return _localId;
+}
+
+function removeFromBuffer(localId) {
+  const buf = loadBuffer().filter(r => r._localId !== localId);
+  saveBuffer(buf);
+}
+
+function countBuffer() {
+  return loadBuffer().length;
+}
+
+// Tenta re-enviar tudo que esta pendente. Chamado:
+//   1) no init() apos login (catch-up de sessoes anteriores)
+//   2) ao final do TREINAR AGORA (catch-up imediato)
+//   3) opcionalmente em background quando o aluno volta pra tela
+// v26: envio em segundo plano. O FECHEI agora grava no buffer e avanca NA HORA;
+// quem fala com o servidor e este flush, disparado sem travar a tela. Como
+// varios saves podem dispara-lo junto, ele e re-entrante: se ja ha um flush no
+// ar, os novos chamadores esperam o MESMO flush (nada de enviar 2x). E drena em
+// passadas, recarregando o buffer, pra pegar o que entrou durante o envio.
+let _flushPromise = null;
+async function _flushBufferInner() {
+  if (!APP.alunoSession) return { ok: 0, fail: 0 };
+  let ok = 0, fail = 0;
+  while (true) {
+    const buf = loadBuffer();
+    if (buf.length === 0) break;
+    let enviouAlgum = false, falhou = false;
+    for (const reg of buf) {
+      const { _localId, ...payload } = reg;
+      try {
+        await apiPost(payload);
+        removeFromBuffer(_localId);
+        ok++;
+        enviouAlgum = true;
+      } catch (e) {
+        fail++;
+        falhou = true;
+        break; // rede caiu — para pra nao spammar; re-tenta no proximo gatilho
+      }
+    }
+    if (falhou || !enviouAlgum) break;
+  }
+  return { ok, fail };
+}
+function flushBuffer() {
+  if (_flushPromise) return _flushPromise;
+  _flushPromise = _flushBufferInner().finally(() => { _flushPromise = null; });
+  return _flushPromise;
+}
+
+// v26: atualiza os pontinhos de status cruzando o buffer — 'failed' cujo
+// _localId ja saiu do buffer foi entregue (vira 'saved'). Usado pelo envio em
+// segundo plano do TREINAR.
+function refreshStatusesFromBuffer() {
+  if (!TREINAR.active) return;
+  const noBuffer = new Set(loadBuffer().map(b => b._localId));
+  TREINAR.statuses = TREINAR.statuses.map((s, i) =>
+    (s === 'failed' && TREINAR.localIds[i] && !noBuffer.has(TREINAR.localIds[i])) ? 'saved' : s
+  );
+  atualizarStatusBar();
+}
+
+// v26: dispara o envio em segundo plano e atualiza os pontinhos quando chega.
+async function enviarBufferEmBackground() {
+  try {
+    await flushBuffer();
+    refreshStatusesFromBuffer();
+    // algo pode ter entrado durante o flush anterior — drena de novo
+    if (countBuffer() > 0 && navigator.onLine !== false) {
+      await flushBuffer();
+      refreshStatusesFromBuffer();
+    }
+  } catch (e) { /* mantido no buffer; re-tenta depois */ }
+}
+
+// ---------- TREINAR AGORA (modo guiado mobile-first) ----------
+
+const TREINAR = {
+  active: false,
+  dataTreino: '',  // v15: congelada no 1o save da sessao
+  sobrescrever: [],  // v16: registros da sessao antiga a apagar ao finalizar (trava de duplicata)
+  plano: [],
+  idx: 0,
+  resultados: [],
+  statuses: [],  // por exercicio: 'pending' | 'saved' | 'failed' | 'skipped'
+  localIds: [],  // v16: _localId do buffer por exercicio — permite cruzar status pos-flush sem heuristica
+  salvos: [],    // v17: o que foi registrado nesta sessao, por exercicio ({carga,reps,rir,obs,completou} | null)
+  t0: null,      // v18: inicio da cronometragem (1o exercicio salvo)
+  timerInt: null,
+  restTimer: null,    // v19: countdown de descanso opcional entre exercicios
+  restRemaining: 0,
+  substituto: [],     // v26: nome do substituto por exercicio (so nesta sessao) | null
+  _trocaOpcoes: [],   // v26: opcoes montadas para o modal de troca
+};
+
+// v26: SUBSTITUICAO DE EXERCICIO NA SESSAO ------------------------------------
+// Grupos de exercicios equivalentes. Se o exercicio da vez casar com algum item
+// de um grupo, o botao TROCAR oferece os OUTROS itens do mesmo grupo. A troca
+// vale so na sessao (nao mexe no plano salvo); o registro grava o substituto.
+// PARA EDITAR: e so acrescentar/mudar os grupos abaixo — cada grupo e uma lista
+// de nomes equivalentes. O casamento ignora acento/maiuscula e tolera sufixo
+// (ex.: "Prancha" casa com "Prancha lateral").
+const GRUPOS_EQUIV = [
+  ['Prancha', 'Pallof press', 'Dead bug', 'Abdominal'],
+  ['Face pull', 'Pull-apart'],
+];
+
+// casa dois nomes ja "slugificados": iguais, ou um prefixo do outro por hifen
+// (ex.: "prancha" casa "prancha-lateral"; evita casar no meio de outra palavra).
+function casaNomeEquiv(slugA, slugB) {
+  return slugA === slugB ||
+    slugA.startsWith(slugB + '-') ||
+    slugB.startsWith(slugA + '-');
+}
+
+// dado um nome, devolve os OUTROS nomes do grupo equivalente (ou [] se nao ha).
+function equivalentesDe(nome) {
+  const s = slugify(nome);
+  if (!s) return [];
+  for (const grupo of GRUPOS_EQUIV) {
+    if (grupo.some(m => casaNomeEquiv(s, slugify(m)))) {
+      return grupo.filter(m => !casaNomeEquiv(s, slugify(m)));
+    }
+  }
+  return [];
+}
+
+// nome efetivo do exercicio idx: substituto da sessao, senao o do plano.
+function nomeEfetivo(idx) {
+  const p = TREINAR.plano[idx];
+  const sub = TREINAR.substituto && TREINAR.substituto[idx];
+  return sub || (p ? p.exercicio : '') || '';
+}
+
+function abrirTrocaExercicio() {
+  const idx = TREINAR.idx;
+  const p = TREINAR.plano[idx];
+  if (!p) return;
+  if (TREINAR.salvos[idx]) { toast('Exercicio ja registrado — nao da pra trocar', 'info'); return; }
+  const original = p.exercicio || '';
+  const efetivo = nomeEfetivo(idx);
+  const opcoes = [original, ...equivalentesDe(original)];
+  TREINAR._trocaOpcoes = opcoes;
+  $('trocar-opcoes').innerHTML = opcoes.map((nome, i) => {
+    const atual = slugify(nome) === slugify(efetivo);
+    const tag = slugify(nome) === slugify(original)
+      ? '<span class="mono text-[10px] text-zinc-500 ml-2">(do plano)</span>' : '';
+    const cls = atual
+      ? 'btn w-full text-left py-4 border-cyan-500 text-cyan-300'
+      : 'btn w-full text-left py-4';
+    return `<button type="button" class="${cls}" onclick="trocarExercicioIdx(${i})">${atual ? '✓ ' : ''}${escapeHtml(nome)}${tag}</button>`;
+  }).join('');
+  $('modal-trocar').classList.remove('hidden');
+}
+
+function trocarExercicioIdx(i) {
+  const nome = (TREINAR._trocaOpcoes || [])[i];
+  if (nome == null) return;
+  const idx = TREINAR.idx;
+  const original = (TREINAR.plano[idx] || {}).exercicio || '';
+  TREINAR.substituto[idx] = (slugify(nome) === slugify(original)) ? null : nome;
+  $('modal-trocar').classList.add('hidden');
+  mostrarExercicioAtual();
+  if (TREINAR.substituto[idx]) toast('⇄ Trocado para ' + nome + ' (so nesta sessao)', 'success');
+  else toast('Voltou ao exercicio do plano', 'info');
+}
+
+// v18: cronometro da sessao — comeca no 1o save, atualiza o header a cada 30s
+function atualizarTimerTreinar() {
+  const el = $('treinar-timer');
+  if (!el) return;
+  if (!TREINAR.t0) { el.textContent = ''; return; }
+  const min = Math.floor((Date.now() - TREINAR.t0) / 60000);
+  el.textContent = `⏱ ${min}min`;
+}
+
+// v16: trava visualmente o campo de data depois que ela foi congelada no 1o save.
+// Antes o campo continuava editavel mas mudar nao tinha efeito nenhum (silencioso).
+function setDataTreinarTravada(travada) {
+  const inp = $('treinar-input-data');
+  if (!inp) return;
+  inp.disabled = travada;
+  inp.style.opacity = travada ? '0.45' : '';
+  inp.title = travada ? 'Data fixada no 1o exercicio salvo desta sessao' : '';
+}
+
+function iniciarTreinar() {
+  const day = APP.alunoDay;
+  const plano = (APP.data.plano || []).filter(p => String(p.dia).toUpperCase() === day);
+  if (plano.length === 0) {
+    toast('Sem exercicios neste dia. Aguarde seu trainer.', 'error');
+    return;
+  }
+  TREINAR.active = true;
+  TREINAR.dataTreino = '';
+  TREINAR.sobrescrever = [];
+  setDataTreinarTravada(false);
+  TREINAR.plano = plano;
+  TREINAR.idx = 0;
+  TREINAR.resultados = [];
+  TREINAR.statuses = plano.map(() => 'pending');
+  TREINAR.localIds = plano.map(() => null);
+  TREINAR.salvos = plano.map(() => null);
+  TREINAR.substituto = plano.map(() => null);  // v26: sem trocas no inicio
+  TREINAR.t0 = null;
+  if (TREINAR.timerInt) clearInterval(TREINAR.timerInt);
+  TREINAR.timerInt = setInterval(atualizarTimerTreinar, 30000);
+  atualizarTimerTreinar();
+  if (TREINAR.restTimer) { clearInterval(TREINAR.restTimer); TREINAR.restTimer = null; }
+  $('treinar-rest-overlay').classList.add('hidden');
+  atualizarLabelDescanso();  // v20
+  const badge = $('treinar-day-badge');
+  badge.textContent = day;
+  badge.className = 'display text-3xl leading-none ' + dayColorText(day);
+  // Pre-preenche a data com hoje (local). O aluno pode mudar se for backdate.
+  const hoje = new Date();
+  $('treinar-input-data').value =
+    `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+  $('view-aluno').classList.add('hidden');
+  $('view-treinar').classList.remove('hidden');
+  $('treinar-summary').classList.add('hidden');
+  mostrarExercicioAtual();
+}
+
+function mostrarExercicioAtual() {
+  const p = TREINAR.plano[TREINAR.idx];
+  if (!p) { mostrarSummary(); return; }
+  // v26: mostra o nome efetivo (substituto da sessao, se houver)
+  $('treinar-exercicio-nome').textContent = nomeEfetivo(TREINAR.idx) || '—';
+  // v18: tipo composto/isolado com sugestao de descanso no alvo
+  const tiEx = tipoInfo(p.tipo);
+  $('treinar-alvo').textContent =
+    `ALVO: ${p.series || '?'}x${p.reps || '?'} · carga sugerida ${p.carga || '—'} · RIR ${p.rir != null && p.rir !== '' ? p.rir : '—'}` +
+    (tiEx ? ` · ${tiEx.label} (${tiEx.desc})` : '');
+  // v15: timer removido — tira "Descanso: Xs" do obs, mantem o resto (ex: MONITORAR)
+  const obsLimpa = String(p.obs || '').replace(/descanso\s*:?\s*\d+(?:\s*-\s*\d+)?\s*s\s*\|?\s*/ig, '').replace(/^\s*\|\s*/, '').trim();
+  $('treinar-obs').textContent = obsLimpa ? '⚠ ' + obsLimpa : '';
+  $('treinar-progress-text').textContent = (TREINAR.idx + 1) + ' / ' + TREINAR.plano.length;
+  $('treinar-progress-bar').style.width = ((TREINAR.idx / TREINAR.plano.length) * 100) + '%';
+  // v17: se este exercicio ja foi registrado NESTA sessao, mostra o que foi
+  // salvo (em vez de voltar pro padrao do plano) e bloqueia salvar de novo.
+  const salvo = TREINAR.salvos[TREINAR.idx];
+  $('treinar-input-carga').value = salvo ? (salvo.carga || '') : (p.carga || '');
+  $('treinar-input-reps').value = salvo ? (salvo.reps || '') : (p.reps || '');
+  $('treinar-input-rir').value = salvo ? (salvo.rir != null ? salvo.rir : '') : (p.rir != null ? p.rir : '');
+  $('treinar-input-obs').value = salvo ? (salvo.obs || '') : '';
+  $('treinar-ja-salvo').classList.toggle('hidden', !salvo);
+  ['btn-treinar-fechei', 'btn-treinar-faltei'].forEach(id => {
+    const b = $(id);
+    b.disabled = !!salvo;
+    b.style.opacity = salvo ? '0.35' : '1';
+  });
+  fecheiHoldReset(); // v26.1: zera a barra de "segurar" ao entrar no exercicio
+  // v26: botao TROCAR aparece so se ha equivalentes e o exercicio ainda nao foi salvo
+  const alts = equivalentesDe(p.exercicio);
+  const btnTrocar = $('btn-treinar-trocar');
+  const podeTrocar = alts.length > 0 && !salvo;
+  btnTrocar.classList.toggle('hidden', !podeTrocar);
+  btnTrocar.disabled = !podeTrocar;
+  // indicador de substituicao ativa (mostra o exercicio original do plano)
+  const indEl = $('treinar-substituido');
+  if (TREINAR.substituto[TREINAR.idx]) {
+    indEl.textContent = '⇄ substituindo: ' + (p.exercicio || '');
+    indEl.classList.remove('hidden');
+  } else {
+    indEl.classList.add('hidden');
+  }
+  atualizarStatusBar();
+  window.scrollTo(0, 0);
+}
+
+async function salvarRegistroAtual(completou) {
+  const p = TREINAR.plano[TREINAR.idx];
+  const idx = TREINAR.idx;
+  const nomeReg = nomeEfetivo(idx); // v26: substituto da sessao, se houver
+  // v17: bloqueio de duplo registro do MESMO exercicio na mesma sessao
+  // (cliques repetidos geravam 2-3 linhas iguais no banco).
+  if (TREINAR.salvos[idx]) {
+    toast('Este exercicio ja foi registrado nesta sessao', 'info');
+    return false;
+  }
+  // v15: congela a data no 1o save e reusa em todos os exercicios da sessao
+  if (!TREINAR.dataTreino) {
+    const dataEscolhida = String($('treinar-input-data').value || '').trim() || hojeIso();
+    // v16: trava de duplicata tambem no TREINAR (antes so o LANCAR SESSAO tinha).
+    // A sessao antiga so e apagada AO FINALIZAR o treino, depois dos saves novos —
+    // mesma politica "salva primeiro, apaga depois" do LANCAR SESSAO.
+    const existentes = registrosDaSessao(APP.alunoDay, dataEscolhida);
+    if (existentes.length > 0) {
+      if (!confirm(`Ja existe um treino ${APP.alunoDay} em ${fmtDate(dataEscolhida)} (${existentes.length} exercicios).\n\nOK = SOBRESCREVER (a sessao antiga sera apagada ao finalizar este treino).\nCancelar = nao salvar (troque a DATA DO TREINO se for outro dia).`)) return false;
+      TREINAR.sobrescrever = existentes;
+    }
+    TREINAR.dataTreino = dataEscolhida;
+    setDataTreinarTravada(true);
+  }
+  const dataTreino = TREINAR.dataTreino;
+  const payload = {
+    action: 'registro',
+    aluno_id: APP.alunoSession.id,
+    pin: APP.alunoSession.pin,
+    dia: APP.alunoDay,
+    exercicio: nomeReg,
+    carga: $('treinar-input-carga').value || '',
+    reps: $('treinar-input-reps').value || '',
+    rir: $('treinar-input-rir').value || '',
+    completou,
+    obs: $('treinar-input-obs').value || '',
+    data_treino: dataTreino,  // YYYY-MM-DD ou vazio
+  };
+
+  // PASSO 1 — grava no buffer local IMEDIATAMENTE. Mesmo que o navegador
+  // feche, perca conexao, etc, o dado existe.
+  const localId = pushBuffer(payload);
+  TREINAR.localIds[idx] = localId;
+  // v18: 1o exercicio salvo dispara o cronometro da sessao
+  if (!TREINAR.t0) { TREINAR.t0 = Date.now(); atualizarTimerTreinar(); }
+  // v17: memoriza o que foi registrado — revisitar o exercicio mostra isso
+  // e o re-save fica bloqueado.
+  TREINAR.salvos[idx] = { carga: payload.carga, reps: payload.reps, rir: payload.rir, obs: payload.obs, completou };
+  TREINAR.statuses[idx] = 'failed'; // estado inicial pessimista; vira 'saved' se enviar
+  TREINAR.resultados.push({ exercicio: nomeReg, completou });
+  atualizarStatusBar();
+
+  // v26: PASSO 2 — NAO espera o servidor. O dado ja esta seguro no buffer, entao
+  // retorna na hora e o FECHEI avanca instantaneo. O envio acontece em segundo
+  // plano (fechei/faltei chamam enviarBufferEmBackground apos avancar): o
+  // pontinho fica vermelho ate chegar no servidor e vira verde sozinho. Sem
+  // spinner travando a tela — era isso que deixava o FECHEI lento.
+  return true;
+}
+
+// v20: descanso ENTRE SERIES — disparado MANUALMENTE pelo botao DESCANSAR na
+// tela do exercicio (toca entre uma serie e outra). Ao zerar/PRONTO o overlay
+// fecha e VOLTA pro MESMO exercicio (nao avanca). Padrao 120s; -/+15s persiste.
+function restSecAtual() { return parseInt(localStorage.getItem('forja-rest-sec') || '120', 10) || 120; }
+function atualizarLabelDescanso() {
+  const el = $('treinar-rest-label'); if (el) el.textContent = restSecAtual() + 's';
+}
+function ajustarPadraoDescanso(d) {
+  localStorage.setItem('forja-rest-sec', String(Math.max(15, restSecAtual() + d)));
+  atualizarLabelDescanso();
+}
+function iniciarRest(sec) {
+  TREINAR.restRemaining = sec || restSecAtual();
+  $('treinar-rest-seconds').textContent = TREINAR.restRemaining;
+  $('treinar-rest-overlay').classList.remove('hidden');
+  if (TREINAR.restTimer) clearInterval(TREINAR.restTimer);
+  TREINAR.restTimer = setInterval(tickRest, 1000);
+}
+function tickRest() {
+  TREINAR.restRemaining--;
+  if (TREINAR.restRemaining <= 0) {
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    pararRest();  // v20: so fecha — segue no MESMO exercicio pra proxima serie
+    return;
+  }
+  $('treinar-rest-seconds').textContent = TREINAR.restRemaining;
+}
+function pararRest() {
+  if (TREINAR.restTimer) { clearInterval(TREINAR.restTimer); TREINAR.restTimer = null; }
+  $('treinar-rest-overlay').classList.add('hidden');
+}
+function ajustarRest(d) {  // ajuste so do descanso ATUAL (nao mexe no padrao)
+  TREINAR.restRemaining = Math.max(5, TREINAR.restRemaining + d);
+  $('treinar-rest-seconds').textContent = TREINAR.restRemaining;
+}
+function pularRest() { pararRest(); }  // v20: PRONTO — volta pro mesmo exercicio
+
+// v26: FECHEI de 1 toque. O que deixava lento nao era so o 2o toque — o app
+// ESPERAVA o servidor responder antes de avancar. Agora salva no buffer e avanca
+// na hora; o envio vai em segundo plano. Protecao que resta contra toque
+// acidental: cada exercicio so pode ser salvo UMA vez na sessao (TREINAR.salvos),
+// e ao revisitar mostra o que foi gravado com os botoes travados.
+//
+// PROTECAO ANTI-TOQUE-ACIDENTAL (v26.1): o FECHEI salva por PRESSAO — segurar
+// ~0,5s (fecheiHold*). Um toque solto (bolso, ou o dedo que destravou o celular)
+// nao segura o tempo todo, entao nao salva. Como o custo real (esperar o
+// servidor) ja saiu, segurar meio segundo nao deixa o app lento. Camada extra:
+// ao voltar da tela bloqueada, o botao fica travado ~800ms (_travaPosUnlock). O
+// FALTEI ja tem a pergunta "Marcar como FALTEI?".
+let _travaPosUnlock = false;
+async function fechei() {
+  if (_travaPosUnlock) {
+    toast('Tela recem-desbloqueada — segure de novo pra confirmar', 'info');
+    return;
+  }
+  const ok = await salvarRegistroAtual(true);
+  if (!ok) return;
+  proximoExercicio();            // v26: avanca instantaneo
+  enviarBufferEmBackground();    // v26: envia sem travar a tela
+}
+
+// v26.1: mecanica do "segurar pra fechar".
+const FECHEI_HOLD_MS = 500;
+let _fecheiHoldTimer = null;
+let _fecheiHolding = false;
+function fecheiHoldReset() {
+  clearTimeout(_fecheiHoldTimer);
+  _fecheiHolding = false;
+  const fill = $('fechei-fill');
+  if (fill) { fill.style.transition = 'width 120ms ease-out'; fill.style.width = '0'; }
+}
+function fecheiHoldStart(ev) {
+  const btn = $('btn-treinar-fechei');
+  if (!btn || btn.disabled || _travaPosUnlock || _fecheiHolding) return;
+  if (ev && ev.preventDefault) ev.preventDefault();
+  _fecheiHolding = true;
+  const fill = $('fechei-fill');
+  if (fill) { fill.style.transition = `width ${FECHEI_HOLD_MS}ms linear`; fill.style.width = '100%'; }
+  clearTimeout(_fecheiHoldTimer);
+  _fecheiHoldTimer = setTimeout(() => {
+    _fecheiHolding = false;
+    fecheiHoldReset();
+    if (navigator.vibrate) navigator.vibrate(30); // confirma no tato
+    fechei();
+  }, FECHEI_HOLD_MS);
+}
+function fecheiHoldCancel(avisar) {
+  if (!_fecheiHolding) return;      // ja completou ou nunca comecou
+  fecheiHoldReset();
+  if (avisar) toast('Segure o botao pra fechar', 'info');
+}
+
+async function faltei() {
+  if (!confirm('Marcar este exercicio como FALTEI?')) return;
+  const ok = await salvarRegistroAtual(false);
+  if (!ok) return;
+  proximoExercicio();
+  enviarBufferEmBackground();
+}
+
+function pularExercicio() {
+  if (!confirm('Pular este exercicio sem registrar nada?')) return;
+  TREINAR.statuses[TREINAR.idx] = 'skipped';
+  atualizarStatusBar();
+  proximoExercicio();
+}
+
+// Navegacao livre — pula entre exercicios sem registrar.
+function exercicioAnterior() {
+  if (TREINAR.idx > 0) {
+    TREINAR.idx--;
+    mostrarExercicioAtual();
+  }
+}
+
+function exercicioProximo() {
+  if (TREINAR.idx < TREINAR.plano.length - 1) {
+    TREINAR.idx++;
+    mostrarExercicioAtual();
+  } else {
+    if (confirm('Este e o ultimo exercicio. Finalizar o treino agora?')) {
+      mostrarSummary();
+    }
+  }
+}
+
+function irParaExercicio(i) {
+  if (i >= 0 && i < TREINAR.plano.length) {
+    TREINAR.idx = i;
+    mostrarExercicioAtual();
+  }
+}
+
+// Atualiza os pontinhos coloridos no topo da tela. Cores:
+//   verde = saved (chegou no servidor)
+//   vermelho = failed (esta no buffer local, vai re-tentar)
+//   cinza claro = skipped (aluno pulou de proposito)
+//   cinza escuro = pending (ainda nao chegou nesse exercicio)
+//   ring ciano = atual
+function atualizarStatusBar() {
+  const bar = $('treinar-status-bar');
+  if (!bar) return;
+  bar.innerHTML = TREINAR.plano.map((p, i) => {
+    const status = TREINAR.statuses[i] || 'pending';
+    const colorClass = {
+      pending: 'bg-zinc-800',
+      saved: 'bg-emerald-500',
+      failed: 'bg-red-500',
+      skipped: 'bg-zinc-600',
+    }[status] || 'bg-zinc-800';
+    const isCurrent = i === TREINAR.idx ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-zinc-950' : '';
+    return `<button onclick="irParaExercicio(${i})" class="w-4 h-4 ${colorClass} ${isCurrent}" title="Ex ${i+1}: ${status}"></button>`;
+  }).join('');
+}
+
+function proximoExercicio() {
+  // v26: pula pro proximo exercicio AINDA nao registrado (dando a volta na lista).
+  // Quando nao sobra nenhum 'pending', finaliza sozinho e mostra o resumo — nao
+  // precisa de botao "finalizar". O importante e fechar cada exercicio; feito
+  // isso, a sessao acaba naturalmente. Em ordem normal, cai no idx+1 de sempre.
+  const n = TREINAR.plano.length;
+  for (let passo = 1; passo <= n; passo++) {
+    const j = (TREINAR.idx + passo) % n;
+    if ((TREINAR.statuses[j] || 'pending') === 'pending') {
+      TREINAR.idx = j;
+      mostrarExercicioAtual();
+      return;
+    }
+  }
+  mostrarSummary(); // nada pendente -> resumo automatico
+}
+
+// v16/v26: sobrescrever (trava de duplicata do TREINAR) — apaga a sessao antiga
+// DEPOIS que os registros novos ja foram salvos. Extraido pra rodar TANTO no
+// resumo QUANTO ao sair pelo ◂ SAIR (senao, sair cedo deixaria a sessao antiga
+// duplicada). Idempotente: zera a lista, entao chamar 2x nao repete.
+async function limparSobrescritos() {
+  if (!TREINAR.sobrescrever || TREINAR.sobrescrever.length === 0) return;
+  const antigos = TREINAR.sobrescrever;
+  TREINAR.sobrescrever = [];
+  showLoading(true);
+  let rem = 0;
+  // apaga a sessao antiga numa UNICA chamada (backend v2+); se o backend ainda
+  // for o v1 ("unknown action"), remove 1 a 1 como no v16.
+  try {
+    const res = await apiPost({
+      action: 'removerRegistrosAlunoBatch',
+      aluno_id: APP.alunoSession.id,
+      pin: APP.alunoSession.pin,
+      timestamps: antigos.map(r => String(r.timestamp)),
+    });
+    rem = res.removidos || 0;
+  } catch (e) {
+    if (/unknown action/i.test(String(e && e.message))) {
+      for (const reg of antigos) {
+        try {
+          await apiPost({ action: 'removerRegistroAluno', aluno_id: APP.alunoSession.id, pin: APP.alunoSession.pin, timestamp: String(reg.timestamp) });
+          rem++;
+        } catch (e2) { /* mantem o antigo; removivel na mao */ }
+      }
+    }
+  }
+  showLoading(false);
+  if (rem > 0) toast(`Sessao anterior sobrescrita · ${rem} registro(s) antigo(s) apagado(s)`, 'success');
+  if (rem < antigos.length) toast(`${antigos.length - rem} registro(s) antigo(s) nao apagado(s) — remova pelo historico`, 'error');
+}
+
+async function mostrarSummary() {
+  // Tenta dar flush no buffer antes de mostrar o sumario — assim qualquer
+  // exercicio que estava em "failed" pode virar "saved" se a conexao voltou.
+  const pendingAntes = countBuffer();
+  if (pendingAntes > 0) {
+    showLoading(true);
+    const r = await flushBuffer();
+    showLoading(false);
+    if (r.ok > 0) {
+      toast(`${r.ok} registro(s) sincronizado(s) com o servidor`, 'success');
+      // v16: cruzamento EXATO por _localId — failed cujo localId sumiu do buffer
+      // foi entregue (vira saved); se ainda esta no buffer, continua failed.
+      // (Antes era uma heuristica "ultimos N saved viram failed" que podia
+      // pintar o exercicio errado de vermelho.)
+      const noBuffer = new Set(loadBuffer().map(b => b._localId));
+      TREINAR.statuses = TREINAR.statuses.map((s, i) =>
+        (s === 'failed' && TREINAR.localIds[i] && !noBuffer.has(TREINAR.localIds[i])) ? 'saved' : s
+      );
+      atualizarStatusBar();
+    }
+  }
+
+  await limparSobrescritos();
+
+  const total = TREINAR.resultados.length;
+  const fech = TREINAR.resultados.filter(r => r.completou).length;
+  const falt = total - fech;
+  const failedCount = TREINAR.statuses.filter(s => s === 'failed').length;
+  const skippedCount = TREINAR.statuses.filter(s => s === 'skipped').length;
+
+  let html = `${total} exercicios registrados<br>` +
+    `<span class="text-emerald-400">${fech} fechados</span> · ` +
+    `<span class="text-red-400">${falt} faltei</span>`;
+  // v18: duracao da sessao (1o save -> agora)
+  if (TREINAR.t0) {
+    const durMin = Math.round((Date.now() - TREINAR.t0) / 60000);
+    if (durMin >= 1) html += ` · <span class="text-cyan-400">⏱ ${durMin}min</span>`;
+  }
+  if (skippedCount > 0) html += ` · <span class="text-zinc-500">${skippedCount} pulados</span>`;
+  if (failedCount > 0) {
+    html += `<br><br><span class="text-amber-400 text-xs">⚠ ${failedCount} ainda nao chegou no servidor — guardado no celular, vai reenviar quando voltar a internet.</span>`;
+  }
+  $('treinar-summary-stats').innerHTML = html;
+  $('treinar-progress-bar').style.width = '100%';
+  $('treinar-summary').classList.remove('hidden');
+}
+
+async function finalizarTreinar() {
+  TREINAR.active = false;
+  if (TREINAR.timerInt) { clearInterval(TREINAR.timerInt); TREINAR.timerInt = null; }
+  if (TREINAR.restTimer) { clearInterval(TREINAR.restTimer); TREINAR.restTimer = null; }
+  // v26: garante que uma sessao sobrescrita seja limpa mesmo saindo pelo ◂ SAIR,
+  // e reenvia o que ficou no buffer antes de recarregar os dados.
+  await enviarBufferEmBackground();
+  await limparSobrescritos();
+  $('treinar-rest-overlay').classList.add('hidden');
+  $('treinar-summary').classList.add('hidden');
+  $('view-treinar').classList.add('hidden');
+  $('view-aluno').classList.remove('hidden');
+  await loadAlunoData();
+}
+
+function encerrarTreinar() {
+  if (TREINAR.resultados.length > 0) {
+    if (!confirm('Sair do modo TREINAR AGORA? Os registros ja salvos sao mantidos.')) return;
+  }
+  finalizarTreinar();
+}
+
+$('btn-aluno-treinar').onclick = iniciarTreinar;
+// v26.1: FECHEI por PRESSAO — segurar ~0,5s (nao mais clique simples).
+(function ligarFecheiHold() {
+  const b = $('btn-treinar-fechei');
+  if (!b) return;
+  b.addEventListener('pointerdown', fecheiHoldStart);
+  b.addEventListener('pointerup', () => fecheiHoldCancel(true));   // soltou cedo -> avisa
+  b.addEventListener('pointerleave', () => fecheiHoldCancel(false)); // dedo saiu do botao
+  b.addEventListener('pointercancel', () => fecheiHoldCancel(false));
+  b.addEventListener('contextmenu', (e) => e.preventDefault());     // sem menu no long-press
+})();
+$('btn-treinar-faltei').onclick = faltei;
+
+// v26: arma a trava anti-toque-acidental quando o app volta do segundo plano
+// (ex.: destravar o celular). So vale dentro do TREINAR e por ~800ms.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !TREINAR.active) return;
+  _travaPosUnlock = true;
+  ['btn-treinar-fechei', 'btn-treinar-faltei'].forEach(id => {
+    const b = $(id); if (b) b.disabled = true;
+  });
+  setTimeout(() => {
+    _travaPosUnlock = false;
+    const salvo = TREINAR.salvos[TREINAR.idx];
+    ['btn-treinar-fechei', 'btn-treinar-faltei'].forEach(id => {
+      const b = $(id); if (b) b.disabled = !!salvo; // restaura respeitando "ja salvo"
+    });
+  }, 800);
+});
+
+// ---------- BOOT ----------
+
+window.addEventListener('hashchange', route);
+
+// Tenta re-enviar registros pendentes do buffer local. Roda em background
+// apos o init pra catch-up de sessoes anteriores onde a rede caiu.
+async function tentarSincronizarPendentes() {
+  if (!APP.alunoSession) return;
+  const n = countBuffer();
+  if (n === 0) return;
+  const r = await flushBuffer();
+  if (r.ok > 0) {
+    toast(`✓ ${r.ok} registro(s) pendente(s) sincronizado(s) agora`, 'success');
+  }
+  if (r.fail > 0) {
+    toast(`${r.fail} registro(s) ainda no buffer local — vai tentar de novo depois`, 'info');
+  }
+}
+
+// Anima um numero de 0 ate o valor final (efeito futurista)
+function countUp(el, target, dur = 900) {
+  const end = Number(target);
+  if (!isFinite(end)) { el.textContent = target; return; }
+  const start = performance.now();
+  function step(now) {
+    const p = Math.min(1, (now - start) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(end * eased);
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = end;
+  }
+  requestAnimationFrame(step);
+}
+
+// Injeta os orbs de luz de fundo (uma vez)
+function injectOrbs() {
+  if (document.querySelector('.fx-orbs')) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'fx-orbs';
+  wrap.innerHTML = '<div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>';
+  document.body.prepend(wrap);
+}
+
+// v21: pergunta ao backend (ping) qual versao ele e e mostra no rodape/headers.
+// Se o backend no ar ainda for o v1 (sem o campo), aparece "v1 (antigo)".
+async function mostrarBackendVer() {
+  let txt = '…';
+  try {
+    const r = await apiGet({ action: 'ping' });
+    txt = (r && r.backend) ? r.backend : 'v1 (antigo)';
+  } catch (e) { txt = '—'; }
+  document.querySelectorAll('.forja-backend').forEach(e => { e.textContent = txt; });
+}
+
+(function init() {
+  injectOrbs();
+  document.querySelectorAll('.forja-ver').forEach(e => { e.textContent = FORJA_VERSION; });
+  // Prioridade: URL salva manualmente pelo usuario > URL padrao embutida
+  APP.appsScriptUrl = localStorage.getItem('forja-apps-url') || DEFAULT_APPS_URL || null;
+  const tk = sessionStorage.getItem('forja-trainer-key');
+  if (tk) APP.trainerKey = tk;
+  const as = sessionStorage.getItem('forja-aluno-session');
+  if (as) {
+    try { APP.alunoSession = JSON.parse(as); } catch {}
+  }
+  route();
+  mostrarBackendVer();  // v21: mostra qual backend (v1/v2) esta no ar
+  // Em background, tenta re-enviar qualquer registro pendente do buffer local
+  // (de sessoes anteriores onde a rede caiu).
+  setTimeout(tentarSincronizarPendentes, 1500);
+})();
+
+</script>
+</body>
+</html>
