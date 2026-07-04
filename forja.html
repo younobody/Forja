@@ -316,8 +316,13 @@
 <!-- =========================================== -->
 <!-- TELA: HOME                                  -->
 <!-- =========================================== -->
-<section id="view-home" class="hidden min-h-screen flex items-center justify-center px-6 py-12">
-  <div class="max-w-3xl w-full">
+<section id="view-home" class="hidden min-h-screen flex items-center justify-center px-6 py-12 relative">
+  <!-- v28.3: BACKGROUND DINAMICO - cenarios lado a lado (quebra-cabeca + parede) -->
+  <div id="progress-background" class="absolute inset-0 flex items-center justify-between px-6" style="z-index:0;opacity:0.65;pointer-events:none;">
+    <!-- Sera preenchido dinamicamente por renderizarProgresso() -->
+  </div>
+
+  <div class="max-w-3xl w-full relative" style="z-index:1;">
 
     <!-- v28: MASCOTE - marinheiro forjado flexando, lata de energia brilhando -->
     <div class="mascot-wrap mb-2">
@@ -421,7 +426,8 @@
     <div class="mono text-[10px] text-zinc-600 mt-14 text-center tracking-widest">
       <button onclick="resetConfig()" class="hover:text-zinc-400 transition-colors">▸ RECONFIGURAR URL</button>
     </div>
-  </div>
+  </div><!-- fecha max-w-3xl -->
+  </div><!-- fecha view-home -->
 </section>
 
 <!-- =========================================== -->
@@ -1119,7 +1125,10 @@
 // v28: tela HOME redesenhada — mascote marinheiro forjado flexando bicep com
 //      lata de energia (SVG animado: bob, flex, faiscas, vapor, piscada),
 //      badge "FICA FORTE. FICA FORJA." Puramente visual, sem mudanca de logica.
-const FORJA_VERSION = 'v28';
+// v28.3: cenario DINAMICO na HOME — lado a lado: quebra-cabeca montando +
+//        parede com tijolos sendo construida (cada treino = +1 peça/tijolo).
+//        Mostra progresso semanal (ultimos 7 dias) conforme APP.data.registros.
+const FORJA_VERSION = 'v28.3';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
@@ -1431,6 +1440,76 @@ async function apiPost(body) {
   return json;
 }
 
+// ---------- PROGRESSO VISUAL (v28.3) ----------
+
+function calcularProgressoSemanal() {
+  // Conta treinos registrados desta semana (últimos 7 dias)
+  const hoje = new Date();
+  const uma_semana_atras = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  if (!APP.data || !APP.data.registros) return 0;
+
+  let count = 0;
+  APP.data.registros.forEach(r => {
+    const ts = r.timestamp;
+    let data;
+    if (ts instanceof Date) data = ts;
+    else if (typeof ts === 'string' && ts.match(/^\d{4}-\d{2}-\d{2}T/)) data = new Date(ts);
+    else return;
+
+    if (data >= uma_semana_atras) count++;
+  });
+  return Math.min(count, 14); // cap em 14 (max de treinos visuais por lado)
+}
+
+function renderizarProgresso() {
+  const container = $('progress-background');
+  if (!container) return;
+
+  const num = calcularProgressoSemanal();
+
+  // Esquerda: Quebra-cabeca (4x4 grid = 16 peças max)
+  const puzzleSVG = `<svg width="140" height="140" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+    <rect width="140" height="140" fill="none"/>
+  `;
+
+  let puzzleBody = puzzleSVG.slice(0, -2); // remove </svg>
+  for (let i = 0; i < 16; i++) {
+    const row = Math.floor(i / 4);
+    const col = i % 4;
+    const x = col * 35 + 2;
+    const y = row * 35 + 2;
+    const opacity = i < num ? '1' : '0.15';
+    puzzleBody += `<rect x="${x}" y="${y}" width="31" height="31" fill="#10b981" opacity="${opacity}" stroke="#06b6d4" stroke-width="1"/>`;
+  }
+  puzzleBody += `</svg>`;
+
+  // Direita: Parede (5x3 grid = 15 tijolos max)
+  const wallSVG = `<svg width="140" height="140" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+    <rect width="140" height="140" fill="none"/>
+  `;
+
+  let wallBody = wallSVG.slice(0, -2);
+  let brickCount = 0;
+  for (let row = 0; row < 3; row++) {
+    const offset = (row % 2) * 18; // alterna offset dos tijolos (padrão)
+    for (let col = 0; col < 5; col++) {
+      const x = col * 26 + offset + 2;
+      const y = row * 40 + 2;
+      if (brickCount >= 14) break; // max 14 tijolos vistos
+      const opacity = brickCount < num ? '1' : '0.15';
+      wallBody += `<rect x="${x}" y="${y}" width="22" height="36" fill="#ef4444" opacity="${opacity}" stroke="#a1a1aa" stroke-width="0.5"/>`;
+      brickCount++;
+    }
+  }
+  wallBody += `</svg>`;
+
+  container.innerHTML = `
+    <div class="flex justify-center" style="flex:1;">${puzzleBody}</div>
+    <div class="flex justify-center" style="flex:1;">${wallBody}</div>
+  `;
+}
+
 // ---------- ROUTER ----------
 
 function navigateTo(hash) {
@@ -1448,7 +1527,7 @@ function route() {
   ['view-home','view-config','view-trainer-login','view-trainer','view-edit-aluno','view-aluno-login','view-aluno','view-treinar']
     .forEach(id => $(id).classList.add('hidden'));
 
-  if (h === '#home') { show('view-home'); return; }
+  if (h === '#home') { show('view-home'); setTimeout(() => renderizarProgresso(), 50); return; }
   if (h === '#trainer-login') { show('view-trainer-login'); return; }
   if (h === '#trainer') {
     if (!APP.trainerKey) { show('view-trainer-login'); return; }
