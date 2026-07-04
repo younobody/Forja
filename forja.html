@@ -248,6 +248,31 @@
   }
   .corners::before { top: -1px; left: -1px; border-top: 1px solid; border-left: 1px solid; }
   .corners::after { bottom: -1px; right: -1px; border-bottom: 1px solid; border-right: 1px solid; }
+
+  /* ===== v28: MASCOTE da tela HOME (marinheiro forjado flexando) ===== */
+  .mascot-wrap { position: relative; width: 190px; height: 220px; margin: 0 auto; filter: drop-shadow(0 10px 30px rgba(0,0,0,0.55)); }
+  .mascot-glow { position: absolute; inset: -30px; border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(16,185,129,0.35), rgba(6,182,212,0.16) 55%, transparent 75%);
+    filter: blur(18px); animation: mascotGlowPulse 3.4s ease-in-out infinite; z-index: 0; }
+  @keyframes mascotGlowPulse { 0%,100% { opacity: 0.65; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+  .mascot-svg { position: relative; z-index: 1; animation: mascotBob 3.2s ease-in-out infinite; }
+  @keyframes mascotBob { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-6px) rotate(-1deg); } }
+  #mascot-bicep-group { transform-origin: 150px 118px; animation: mascotFlex 2.1s ease-in-out infinite; }
+  @keyframes mascotFlex { 0%,100% { transform: scale(1) rotate(0deg); } 45% { transform: scale(1.09) rotate(-3deg); } 55% { transform: scale(1.09) rotate(-3deg); } }
+  #mascot-sparkles circle, #mascot-sparkles path { animation: mascotTwinkle 1.6s ease-in-out infinite; transform-origin: center; }
+  #mascot-sparkles circle:nth-child(2), #mascot-sparkles path:nth-child(2) { animation-delay: 0.35s; }
+  #mascot-sparkles circle:nth-child(3), #mascot-sparkles path:nth-child(3) { animation-delay: 0.7s; }
+  @keyframes mascotTwinkle { 0%,100% { opacity: 0.15; transform: scale(0.6); } 50% { opacity: 1; transform: scale(1.15); } }
+  #mascot-steam path { animation: mascotSteam 2.4s ease-in infinite; }
+  #mascot-steam path:nth-child(2) { animation-delay: 0.8s; }
+  @keyframes mascotSteam { 0% { opacity: 0; transform: translateY(0) scale(0.8); } 25% { opacity: 0.8; } 100% { opacity: 0; transform: translateY(-22px) scale(1.3); } }
+  #mascot-eye-wink { animation: mascotWinkBlink 4.5s ease-in-out infinite; transform-origin: center; }
+  @keyframes mascotWinkBlink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.15); } }
+  @media (prefers-reduced-motion: reduce) {
+    .mascot-glow, .mascot-svg, #mascot-bicep-group, #mascot-sparkles circle, #mascot-sparkles path, #mascot-steam path, #mascot-eye-wink { animation: none !important; }
+  }
+  .hero-title-wrap { position: relative; }
+  .hero-badge { display: inline-block; padding: 0.2rem 0.7rem; border: 1px solid var(--accent-c); color: var(--accent-c); border-radius: 999px; letter-spacing: 0.2em; background: rgba(16,185,129,0.08); box-shadow: 0 0 16px rgba(16,185,129,0.25); }
 </style>
 </head>
 <body>
@@ -293,17 +318,98 @@
 <!-- =========================================== -->
 <section id="view-home" class="hidden min-h-screen flex items-center justify-center px-6 py-12">
   <div class="max-w-3xl w-full">
-    <div class="text-center mb-14">
-      <div class="flex items-center justify-center gap-4 mb-3">
-        <svg width="46" height="46" viewBox="0 0 64 64" fill="none" stroke="#06b6d4" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" style="filter:drop-shadow(0 0 10px rgba(6,182,212,0.5))">
-          <path d="M14 26 h30 a8 8 0 0 1 -8 8 h-8 a10 10 0 0 0 14 0"/>
-          <path d="M28 34 v10"/><path d="M20 46 h16"/>
-        </svg>
-        <div class="display text-8xl md:text-9xl leading-none hero-glow">FORJA</div>
-      </div>
-      <div class="mono text-xs text-zinc-500 tracking-[0.4em] mt-2">COACH&nbsp;DASHBOARD&nbsp;·&nbsp;<span class="forja-ver">v?</span>&nbsp;·&nbsp;backend&nbsp;<span class="forja-backend">?</span></div>
+
+    <!-- v28: MASCOTE - marinheiro forjado flexando, lata de energia brilhando -->
+    <div class="mascot-wrap mb-2">
+      <div class="mascot-glow"></div>
+      <svg class="mascot-svg" width="190" height="220" viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
+        <!-- pedestal / plataforma -->
+        <ellipse cx="120" cy="258" rx="58" ry="10" fill="#06b6d4" opacity="0.18"/>
+        <ellipse cx="120" cy="256" rx="40" ry="6" fill="#06b6d4" opacity="0.3"/>
+
+        <!-- pernas / botas -->
+        <rect x="98" y="196" width="18" height="44" rx="6" fill="#3f3f46"/>
+        <rect x="126" y="196" width="18" height="44" rx="6" fill="#3f3f46"/>
+        <path d="M92 238 h30 a6 6 0 0 1 6 6 v4 h-42 v-4 a6 6 0 0 1 6 -6 Z" fill="#18181b" stroke="#000" stroke-opacity="0.2"/>
+        <path d="M120 238 h30 a6 6 0 0 1 6 6 v4 h-42 v-4 a6 6 0 0 1 6 -6 Z" fill="#18181b" stroke="#000" stroke-opacity="0.2"/>
+
+        <!-- torso listrado (camisa marinheiro) -->
+        <path d="M92 140 q-4 40 2 62 h52 q6 -22 2 -62 Z" fill="#e4e4e7"/>
+        <clipPath id="torsoClip"><path d="M92 140 q-4 40 2 62 h52 q6 -22 2 -62 Z"/></clipPath>
+        <g clip-path="url(#torsoClip)">
+          <rect x="86" y="148" width="70" height="9" fill="#06b6d4"/>
+          <rect x="86" y="166" width="70" height="9" fill="#06b6d4"/>
+          <rect x="86" y="184" width="70" height="9" fill="#06b6d4"/>
+        </g>
+        <path d="M92 140 q-4 40 2 62 h52 q6 -22 2 -62 Z" fill="none" stroke="#a1a1aa" stroke-width="1.5" opacity="0.5"/>
+
+        <!-- braco esquerdo segurando a lata -->
+        <g>
+          <path d="M96 148 q-26 4 -30 30 q-2 14 8 16 q10 2 12 -10 q2 -14 18 -20 Z" fill="#f4c095"/>
+          <!-- lata de energia -->
+          <g id="mascot-can">
+            <rect x="52" y="150" width="26" height="36" rx="4" fill="#0a0a0a" stroke="#10b981" stroke-width="2"/>
+            <rect x="52" y="150" width="26" height="10" rx="4" fill="#10b981"/>
+            <path d="M60 146 q5 -8 10 0" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"/>
+            <text x="65" y="172" font-family="'JetBrains Mono', monospace" font-size="7" font-weight="800" fill="#10b981" text-anchor="middle">FORJA</text>
+          </g>
+          <!-- vapor / energia subindo da lata -->
+          <g id="mascot-steam" opacity="0.9">
+            <path d="M58 144 q3 -8 -2 -14" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M70 144 q3 -8 -2 -14" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round"/>
+          </g>
+        </g>
+
+        <!-- braco direito flexando o biceps (grupo animado) -->
+        <g id="mascot-bicep-group">
+          <path d="M150 150 q30 2 34 -22 q3 -18 -12 -22 q-16 -4 -20 12 q-3 12 2 20 q-10 4 -14 16 Z" fill="#f4c095"/>
+          <!-- estrias do musculo -->
+          <path d="M158 118 q10 -6 20 -4" fill="none" stroke="#e0a877" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+          <path d="M156 128 q12 -4 22 0" fill="none" stroke="#e0a877" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+          <!-- punho fechado -->
+          <circle cx="176" cy="108" r="11" fill="#f4c095"/>
+          <path d="M168 104 q8 -4 16 0" fill="none" stroke="#e0a877" stroke-width="1.5" opacity="0.6"/>
+        </g>
+        <!-- faiscas de forca ao redor do biceps -->
+        <g id="mascot-sparkles">
+          <path d="M196 96 l3 -8 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 Z" fill="#fbbf24"/>
+          <circle cx="182" cy="80" r="3" fill="#fbbf24"/>
+          <circle cx="204" cy="118" r="2.5" fill="#06b6d4"/>
+        </g>
+
+        <!-- cabeca -->
+        <circle cx="118" cy="96" r="34" fill="#f4c095"/>
+        <!-- bochecha corada -->
+        <circle cx="100" cy="108" r="6" fill="#f97316" opacity="0.25"/>
+        <circle cx="134" cy="108" r="6" fill="#f97316" opacity="0.25"/>
+        <!-- queixo marcado -->
+        <path d="M104 116 q14 10 28 0" fill="none" stroke="#e0a877" stroke-width="1.5" opacity="0.5"/>
+
+        <!-- bone de marinheiro -->
+        <path d="M84 82 q34 -30 68 0 q2 -22 -34 -24 q-36 2 -34 24 Z" fill="#fafafa"/>
+        <rect x="82" y="80" width="72" height="10" rx="4" fill="#06b6d4"/>
+        <circle cx="118" cy="62" r="7" fill="#fafafa" stroke="#06b6d4" stroke-width="2"/>
+        <path d="M114 62 h8 M118 58 v8" stroke="#06b6d4" stroke-width="1.4"/>
+
+        <!-- olhos: um piscando (winking), outro aberto -->
+        <g id="mascot-eye-wink">
+          <path d="M100 96 q6 -6 12 0" fill="none" stroke="#18181b" stroke-width="3" stroke-linecap="round"/>
+        </g>
+        <circle cx="134" cy="94" r="3.4" fill="#18181b"/>
+
+        <!-- sorriso largo -->
+        <path d="M100 108 q18 16 38 2" fill="none" stroke="#18181b" stroke-width="3" stroke-linecap="round"/>
+      </svg>
     </div>
-    <div class="max-w-xs mx-auto glass p-6">
+
+    <div class="text-center mb-10">
+      <div class="hero-title-wrap flex items-center justify-center gap-4 mb-2">
+        <div class="display text-7xl md:text-8xl leading-none hero-glow">FORJA</div>
+      </div>
+      <div class="hero-badge mono text-[10px] mb-3 inline-block">FICA FORTE. FICA FORJA.</div>
+      <div class="mono text-xs text-zinc-500 tracking-[0.4em] mt-1">COACH&nbsp;DASHBOARD&nbsp;·&nbsp;<span class="forja-ver">v?</span>&nbsp;·&nbsp;backend&nbsp;<span class="forja-backend">?</span></div>
+    </div>
+    <div class="max-w-xs mx-auto glass p-6 corners">
       <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">SEU CODIGO</label>
       <input id="home-pin" type="password" inputmode="numeric" placeholder="••••" autocomplete="current-password" class="w-full text-center text-2xl tracking-[0.3em] mb-4" />
       <button id="btn-home-entrar" class="btn btn-primary w-full">ENTRAR ▸</button>
@@ -1010,7 +1116,10 @@
 // v27: card "ULTIMO TREINO" no TREINAR — mostra carga/reps/rir e a OBS que voce
 //      anotou da ultima vez naquele exercicio (respeita a troca de exercicio da
 //      sessao); toque no card copia os valores pros campos ("repete e ajusta").
-const FORJA_VERSION = 'v27';
+// v28: tela HOME redesenhada — mascote marinheiro forjado flexando bicep com
+//      lata de energia (SVG animado: bob, flex, faiscas, vapor, piscada),
+//      badge "FICA FORTE. FICA FORJA." Puramente visual, sem mudanca de logica.
+const FORJA_VERSION = 'v28';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
