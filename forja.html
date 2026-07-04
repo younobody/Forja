@@ -617,6 +617,14 @@
     <div id="treinar-alvo" class="mono text-xs text-zinc-500 mb-1 tracking-widest">—</div>
     <div id="treinar-obs" class="mono text-[11px] text-amber-500/90 mt-3 mb-4 leading-relaxed"></div>
 
+    <!-- v27: lembrete do ULTIMO TREINO deste exercicio (data + carga/reps/rir + a
+         obs que voce anotou da ultima vez). Toque no card copia os valores pros campos. -->
+    <div id="treinar-ultimo" class="hidden glass mono text-[11px] p-3 mb-4" onclick="copiarUltimoTreino()" style="cursor:pointer;">
+      <div class="text-[9px] text-zinc-500 tracking-widest mb-1"><span id="treinar-ultimo-head">ÚLTIMO TREINO</span> <span class="text-zinc-600">· toque pra copiar</span></div>
+      <div id="treinar-ultimo-nums" class="text-zinc-200"></div>
+      <div id="treinar-ultimo-obs" class="hidden text-amber-400/90 mt-1 leading-relaxed"></div>
+    </div>
+
     <div class="grid grid-cols-3 gap-3 my-6">
       <div>
         <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">CARGA</label>
@@ -999,7 +1007,10 @@
 //      trapezio/gluteo/posterior/panturrilha definidos + contornos);
 //      (2) FECHEI em 2 toques no TREINAR (confirma antes de gravar - nao salva
 //      mais por toque acidental ao destravar o celular).
-const FORJA_VERSION = 'v26';
+// v27: card "ULTIMO TREINO" no TREINAR — mostra carga/reps/rir e a OBS que voce
+//      anotou da ultima vez naquele exercicio (respeita a troca de exercicio da
+//      sessao); toque no card copia os valores pros campos ("repete e ajusta").
+const FORJA_VERSION = 'v27';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
@@ -3036,6 +3047,7 @@ const TREINAR = {
   restRemaining: 0,
   substituto: [],     // v26: nome do substituto por exercicio (so nesta sessao) | null
   _trocaOpcoes: [],   // v26: opcoes montadas para o modal de troca
+  ultimoAtual: null,  // v27: {carga,reps,rir} do ultimo treino do exercicio da vez
 };
 
 // v26: SUBSTITUICAO DE EXERCICIO NA SESSAO ------------------------------------
@@ -3075,6 +3087,30 @@ function nomeEfetivo(idx) {
   const p = TREINAR.plano[idx];
   const sub = TREINAR.substituto && TREINAR.substituto[idx];
   return sub || (p ? p.exercicio : '') || '';
+}
+
+// v27: ultimo registro (mais recente) deste exercicio no historico ja carregado.
+// Base do card "ULTIMO TREINO" no TREINAR — lembra carga/reps/rir e a OBS da
+// ultima vez. Match por slug (tolera acento/caixa/espaco). APP.data.registros
+// ja vem ordenado desc do backend; re-ordeno por data da sessao por seguranca.
+function ultimoRegistroDe(nome) {
+  const alvo = slugify(nome);
+  if (!alvo || !APP.data || !Array.isArray(APP.data.registros)) return null;
+  const matches = APP.data.registros.filter(r => slugify(r.exercicio) === alvo);
+  if (!matches.length) return null;
+  matches.sort((a, b) => String(dataSessao(b) || '').localeCompare(String(dataSessao(a) || '')));
+  return matches[0];
+}
+
+// v27: copia carga/reps/rir do ultimo treino pros campos ("repete e ajusta").
+function copiarUltimoTreino() {
+  const u = TREINAR.ultimoAtual;
+  if (!u) return;
+  if (TREINAR.salvos[TREINAR.idx]) return; // ja registrado nesta sessao — nao mexe
+  if (u.carga) $('treinar-input-carga').value = u.carga;
+  if (u.reps) $('treinar-input-reps').value = u.reps;
+  if (u.rir) $('treinar-input-rir').value = u.rir;
+  toast('Copiado do ultimo treino', 'info');
 }
 
 function abrirTrocaExercicio() {
@@ -3180,6 +3216,30 @@ function mostrarExercicioAtual() {
   // v15: timer removido — tira "Descanso: Xs" do obs, mantem o resto (ex: MONITORAR)
   const obsLimpa = String(p.obs || '').replace(/descanso\s*:?\s*\d+(?:\s*-\s*\d+)?\s*s\s*\|?\s*/ig, '').replace(/^\s*\|\s*/, '').trim();
   $('treinar-obs').textContent = obsLimpa ? '⚠ ' + obsLimpa : '';
+  // v27: card "ULTIMO TREINO" — carga/reps/rir + a obs da ultima vez neste
+  // exercicio (respeita substituicao via nomeEfetivo). Some se nao ha historico.
+  const ult = ultimoRegistroDe(nomeEfetivo(TREINAR.idx));
+  const cardUlt = $('treinar-ultimo');
+  if (ult) {
+    const uCarga = String(ult.carga || '').trim();
+    const uReps = String(ult.reps || '').trim();
+    const uRir = (ult.rir != null && String(ult.rir).trim() !== '') ? String(ult.rir).trim() : '';
+    const partes = [];
+    if (uCarga) partes.push(uCarga);
+    if (uReps) partes.push('×' + uReps);
+    if (uRir) partes.push('RIR ' + uRir);
+    $('treinar-ultimo-head').textContent = 'ÚLTIMO TREINO · ' + fmtDate(dataSessao(ult));
+    $('treinar-ultimo-nums').textContent = partes.join(' · ') || '—';
+    const obsU = String(ult.obs || '').trim();
+    const obsUel = $('treinar-ultimo-obs');
+    obsUel.textContent = obsU ? '“' + obsU + '”' : '';
+    obsUel.classList.toggle('hidden', !obsU);
+    TREINAR.ultimoAtual = { carga: uCarga, reps: uReps, rir: uRir };
+    cardUlt.classList.remove('hidden');
+  } else {
+    TREINAR.ultimoAtual = null;
+    cardUlt.classList.add('hidden');
+  }
   $('treinar-progress-text').textContent = (TREINAR.idx + 1) + ' / ' + TREINAR.plano.length;
   $('treinar-progress-bar').style.width = ((TREINAR.idx / TREINAR.plano.length) * 100) + '%';
   // v17: se este exercicio ja foi registrado NESTA sessao, mostra o que foi
