@@ -1135,7 +1135,13 @@
 //        "04/07" digitado a mao, sem ano/hora) travava o card numa sessao
 //        antiga mesmo com sessoes novas e validas depois dela. daysAgo()
 //        agora compara dia-de-calendario (nao horas absolutas).
-const FORJA_VERSION = 'v28.4';
+// v28.5: cronometro da sessao comeca no toque em "TREINAR AGORA" (nao mais
+//        so depois do 1o exercicio salvo). Aliases de exercicio: aba nova
+//        "Exercicios" na planilha (nome_atual + aliases) - o card ULTIMO
+//        TREINO reconhece o historico antigo mesmo quando o nome/aparelho
+//        muda (ex.: "Cadeira extensora" -> "Cadeira extensora unilateral").
+//        Sem cadastro, tudo funciona identico a antes.
+const FORJA_VERSION = 'v28.5';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
@@ -3326,10 +3332,27 @@ function nomeEfetivo(idx) {
 // Base do card "ULTIMO TREINO" no TREINAR — lembra carga/reps/rir e a OBS da
 // ultima vez. Match por slug (tolera acento/caixa/espaco). APP.data.registros
 // ja vem ordenado desc do backend; re-ordeno por data da sessao por seguranca.
-function ultimoRegistroDe(nome) {
+// v28.5: nomes alternativos do mesmo exercicio (trocou de aparelho/academia,
+// nome mudou) via aba "Exercicios" da planilha (nome_atual + aliases, ";").
+// Sem isso, "Cadeira extensora" -> "Cadeira extensora unilateral" faz o
+// historico "sumir" do card ULTIMO TREINO (a busca era por slug exato).
+// Sem cadastro pro nome, devolve so o proprio slug (comportamento igual ao
+// de antes) - 100% compativel com quem nunca usar a aba Exercicios.
+function slugsEquivalentes(nome) {
   const alvo = slugify(nome);
-  if (!alvo || !APP.data || !Array.isArray(APP.data.registros)) return null;
-  const matches = APP.data.registros.filter(r => slugify(r.exercicio) === alvo);
+  const grupos = (APP.data && Array.isArray(APP.data.exercicios)) ? APP.data.exercicios : [];
+  for (const g of grupos) {
+    const nomes = [g.nome_atual, ...String(g.aliases || '').split(';')]
+      .map(slugify).filter(Boolean);
+    if (nomes.includes(alvo)) return new Set(nomes);
+  }
+  return new Set([alvo]);
+}
+
+function ultimoRegistroDe(nome) {
+  const grupo = slugsEquivalentes(nome);
+  if (!grupo.size || !APP.data || !Array.isArray(APP.data.registros)) return null;
+  const matches = APP.data.registros.filter(r => grupo.has(slugify(r.exercicio)));
   if (!matches.length) return null;
   matches.sort((a, b) => String(dataSessao(b) || '').localeCompare(String(dataSessao(a) || '')));
   return matches[0];
@@ -3416,7 +3439,10 @@ function iniciarTreinar() {
   TREINAR.localIds = plano.map(() => null);
   TREINAR.salvos = plano.map(() => null);
   TREINAR.substituto = plano.map(() => null);  // v26: sem trocas no inicio
-  TREINAR.t0 = null;
+  // v28.4: cronometro comeca no toque em "TREINAR AGORA", nao mais so depois
+  // do 1o exercicio salvo - antes ficava em branco ate o primeiro save, dando
+  // a impressao de que nao estava contando o tempo real do treino.
+  TREINAR.t0 = Date.now();
   if (TREINAR.timerInt) clearInterval(TREINAR.timerInt);
   TREINAR.timerInt = setInterval(atualizarTimerTreinar, 30000);
   atualizarTimerTreinar();
