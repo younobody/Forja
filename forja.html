@@ -1128,7 +1128,14 @@
 // v28.3: cenario DINAMICO na HOME — lado a lado: quebra-cabeca montando +
 //        parede com tijolos sendo construida (cada treino = +1 peça/tijolo).
 //        Mostra progresso semanal (ultimos 7 dias) conforme APP.data.registros.
-const FORJA_VERSION = 'v28.3';
+// v28.4: fix "ULT: X" no dashboard (trainer e aluno) - troca comparacao de
+//        "sessao mais recente" de new Date(r.timestamp) pra dataSessao(r)
+//        (prioriza data_treino, entende dd/mm/yyyy, ignora linha sem data
+//        confiavel). Corrige o caso em que um timestamp corrompido (ex:
+//        "04/07" digitado a mao, sem ano/hora) travava o card numa sessao
+//        antiga mesmo com sessoes novas e validas depois dela. daysAgo()
+//        agora compara dia-de-calendario (nao horas absolutas).
+const FORJA_VERSION = 'v28.4';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
@@ -1227,13 +1234,25 @@ function fmtDateTime(iso) {
   } catch { return '—'; }
 }
 
-function daysAgo(iso) {
+// Aceita timestamp ISO completo OU 'YYYY-MM-DD' (ex: saida de dataSessao()).
+// Compara DIA DE CALENDARIO, nao horas absolutas: antes, um treino feito as
+// 23h "virava" 2d atras so 25h depois (as 0h do dia seguinte), porque o
+// calculo era so (agora - entao)/24h. Agora "ontem" sempre quer dizer o dia
+// de calendario anterior, direto, sem depender do horario do treino nem do
+// horario em que o dashboard e aberto.
+function daysAgo(input) {
   try {
-    const d = new Date(iso);
-    const diff = (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24);
-    if (diff < 1) return 'hoje';
-    if (diff < 2) return 'ontem';
-    return `${Math.floor(diff)}d atras`;
+    const s = String(input == null ? '' : input).trim();
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(s);
+    if (isNaN(d.getTime())) return '—';
+    const hoje = new Date();
+    const dCal = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const hojeCal = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    const diffDias = Math.round((hojeCal - dCal) / (1000 * 60 * 60 * 24));
+    if (diffDias <= 0) return 'hoje';
+    if (diffDias === 1) return 'ontem';
+    return `${diffDias}d atras`;
   } catch { return '—'; }
 }
 
@@ -1251,6 +1270,12 @@ function dataLocalIso(ts) {
     // dia ANTERIOR (jogava registro manual pro card do dia errado).
     const bare = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (bare) return `${bare[1]}-${bare[2]}-${bare[3]}`;
+    // v28.4: "dd/mm" digitado a mao sem ano (ex: "04/07") - new Date() aceita
+    // isso mas INVENTA um ano (ex: 2001), o que da uma data completamente
+    // errada em vez de falhar visivelmente. Rejeita explicitamente aqui;
+    // dataSessao() ja prioriza data_treino (que normalmente tem o ano certo),
+    // entao isso so afeta o caso raro de data_treino tambem estar vazio.
+    if (/^\d{1,2}\/\d{1,2}$/.test(s)) return '';
     const d = new Date(s);
     if (isNaN(d.getTime())) {
       const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -1713,20 +1738,31 @@ async function loadTrainerData() {
 function renderTrainerDashboard() {
   const alunos = APP.data.alunos || [];
   const registros = APP.data.registros || [];
-  const now = Date.now();
-  const sevenDays = 7 * 24 * 60 * 60 * 1000;
-  const recent = registros.filter(r => (now - new Date(r.timestamp).getTime()) <= sevenDays);
+  // v28.4: usa dataSessao() (YYYY-MM-DD) em vez de new Date(r.timestamp) direto -
+  // timestamp corrompido vira NaN e a linha some da contagem de "7d" silenciosamente.
+  const seteDiasAtrasDate = new Date();
+  seteDiasAtrasDate.setDate(seteDiasAtrasDate.getDate() - 7);
+  const seteDiasAtrasIso = `${seteDiasAtrasDate.getFullYear()}-${String(seteDiasAtrasDate.getMonth()+1).padStart(2,'0')}-${String(seteDiasAtrasDate.getDate()).padStart(2,'0')}`;
+  const recent = registros.filter(r => { const d = dataSessao(r); return d && d >= seteDiasAtrasIso; });
   const ativos = new Set(recent.map(r => String(r.aluno_id)));
 
   countUp($('stat-total-alunos'), alunos.length);
   countUp($('stat-sessoes-7d'), recent.length);
   countUp($('stat-ativos-7d'), ativos.size);
 
-  // Para cada aluno, ultima sessao
+  // Para cada aluno, ultima sessao. Usa dataSessao() (prioriza data_treino,
+  // entende "dd/mm/yyyy" e cai pro timestamp so se precisar) em vez de
+  // comparar new Date(r.timestamp) direto: um timestamp corrompido vira
+  // Invalid Date, e QUALQUER comparacao com Invalid Date da sempre false -
+  // isso travava o "mais recente" numa sessao antiga pra sempre assim que
+  // aparecia uma linha ruim no meio do historico (ex.: timestamp digitado
+  // a mao como "04/07", sem hora e sem ano).
   const ultimaPorAluno = {};
   registros.forEach(r => {
     const id = String(r.aluno_id);
-    if (!ultimaPorAluno[id] || new Date(r.timestamp) > new Date(ultimaPorAluno[id].timestamp)) {
+    const d = dataSessao(r);
+    if (!d) return; // sem data confiavel - ignora, nao deixa atrapalhar a comparacao
+    if (!ultimaPorAluno[id] || d > dataSessao(ultimaPorAluno[id])) {
       ultimaPorAluno[id] = r;
     }
   });
@@ -1752,7 +1788,7 @@ function renderTrainerDashboard() {
       </div>
       <div class="mono text-xs text-zinc-400 mb-2 truncate">${escapeHtml(a.objetivo || '—')}</div>
       <div class="mono text-[10px] text-zinc-500 flex justify-between border-t border-zinc-800 pt-2 mt-3">
-        <span>${last ? `ULT: ${last.dia} · ${daysAgo(last.timestamp)}` : 'SEM REGISTROS'}</span>
+        <span>${last ? `ULT: ${last.dia} · ${daysAgo(dataSessao(last))}` : 'SEM REGISTROS'}</span>
         <span class="text-cyan-400">EDITAR ▸</span>
       </div>
     </div>`;
@@ -2681,8 +2717,17 @@ function renderAlunoDashboard() {
   const a = APP.data.aluno;
   $('aluno-avatar').textContent = initials(a.nome);
   $('aluno-nome').textContent = a.nome || a.id;
-  const last = (APP.data.registros || [])[0];
-  $('aluno-last').textContent = last ? `ULT: ${last.dia} · ${daysAgo(last.timestamp)}` : 'NENHUMA SESSAO REGISTRADA';
+  // v28.4: nao confia so no sort do backend (registros[0]) - se algum dia o
+  // getAluno perder o sort, isso pegaria uma linha qualquer. Reduz aqui
+  // mesmo por dataSessao(), igual ao dashboard do trainer.
+  const regsAluno = APP.data.registros || [];
+  let last = null;
+  regsAluno.forEach(r => {
+    const d = dataSessao(r);
+    if (!d) return;
+    if (!last || d > dataSessao(last)) last = r;
+  });
+  $('aluno-last').textContent = last ? `ULT: ${last.dia} · ${daysAgo(dataSessao(last))}` : 'NENHUMA SESSAO REGISTRADA';
   const meta = $('aluno-meta');
   let metaHtml = '';
   if (a.objetivo) metaHtml += `<div><span class="text-zinc-600">OBJETIVO:</span> ${escapeHtml(a.objetivo)}</div>`;
