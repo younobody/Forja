@@ -787,9 +787,29 @@
       <button onclick="exercicioProximo()" class="btn py-3">PROXIMO ▸</button>
     </div>
 
+    <!-- v28.6: exercicio extra fora do plano (fez algo a mais na sessao) -->
+    <button onclick="abrirModalExtra()" class="btn w-full mt-3">+ EXERCICIO EXTRA</button>
+
     <!-- v26: link "FINALIZAR TREINO AGORA" removido — a sessao encerra sozinha
          quando todo exercicio esta fechado; pra sair antes, use ◂ SAIR no topo. -->
   </main>
+
+  <!-- MODAL: EXERCICIO EXTRA (v28.6) — adiciona um exercicio fora do plano do
+       dia na sessao atual. O input aceita digitar livre OU escolher de um
+       autocomplete com exercicios ja conhecidos (datalist = as 2 opcoes numa
+       coisa so). -->
+  <div id="modal-extra-exercicio" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-50 flex items-center justify-center px-6">
+    <div class="max-w-sm w-full glass p-6 corners">
+      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-3">EXERCICIO EXTRA · FORA DO PLANO</div>
+      <input id="extra-exercicio-input" list="lista-exercicios-conhecidos" placeholder="Nome do exercicio..." class="w-full mb-1" autocomplete="off" />
+      <datalist id="lista-exercicios-conhecidos"></datalist>
+      <div class="mono text-[10px] text-zinc-600 mb-4 leading-relaxed">Digite um nome novo ou escolha um ja cadastrado (sugestoes aparecem ao digitar).</div>
+      <div class="flex gap-3">
+        <button onclick="fecharModalExtra()" class="btn flex-1">CANCELAR</button>
+        <button onclick="confirmarExercicioExtra()" class="btn btn-primary flex-1">ADICIONAR</button>
+      </div>
+    </div>
+  </div>
 
   <!-- v19: overlay de descanso opcional entre exercicios -->
   <div id="treinar-rest-overlay" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-40 flex items-center justify-center">
@@ -872,6 +892,55 @@
     </div>
     <div class="mono text-[11px] text-zinc-500 mb-4 leading-relaxed">Escolha um exercicio equivalente. A troca vale so pra este treino — seu plano nao muda. O registro grava o nome do substituto.</div>
     <div id="trocar-opcoes" class="space-y-2"></div>
+  </div>
+</div>
+
+<!-- MODAL: LANCAR EXERCICIO INDIVIDUAL (v28.6) — treinador registra 1 exercicio
+     especifico direto da tela de editar plano, sem precisar do pin do aluno. -->
+<div id="modal-lancar-individual" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-40 overflow-y-auto">
+  <div class="max-w-md mx-auto px-6 py-10">
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
+      <div>
+        <div id="li-exercicio-nome" class="display text-3xl leading-tight">—</div>
+        <div class="mono text-[10px] text-zinc-500 tracking-widest">LANCAR EXECUCAO INDIVIDUAL</div>
+      </div>
+      <button onclick="document.getElementById('modal-lancar-individual').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    <div class="grid grid-cols-3 gap-3 mb-4">
+      <div>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">CARGA</label>
+        <input id="li-carga" type="text" class="w-full" />
+      </div>
+      <div>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">REPS</label>
+        <input id="li-reps" type="text" class="w-full" />
+      </div>
+      <div>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">RIR</label>
+        <input id="li-rir" type="text" class="w-full" />
+      </div>
+    </div>
+    <div class="mb-4">
+      <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">COMPLETOU</label>
+      <select id="li-completou" class="w-full">
+        <option value="sim">SIM</option>
+        <option value="nao">NAO</option>
+      </select>
+    </div>
+    <div class="mb-4">
+      <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">OBS</label>
+      <textarea id="li-obs" rows="2" class="w-full"></textarea>
+    </div>
+    <div class="mb-6">
+      <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DATA DO TREINO</label>
+      <input id="li-data" type="date" class="w-full text-sm" />
+    </div>
+    <div class="flex gap-3">
+      <button onclick="document.getElementById('modal-lancar-individual').classList.add('hidden')" class="btn flex-1">CANCELAR</button>
+      <button id="btn-li-salvar" class="btn btn-success flex-1">SALVAR</button>
+    </div>
   </div>
 </div>
 
@@ -1141,7 +1210,16 @@
 //        TREINO reconhece o historico antigo mesmo quando o nome/aparelho
 //        muda (ex.: "Cadeira extensora" -> "Cadeira extensora unilateral").
 //        Sem cadastro, tudo funciona identico a antes.
-const FORJA_VERSION = 'v28.5';
+// v28.6: (1) botao "lancar individual" (raio) em cada linha do editor de
+//        plano do treinador - abre mini-modal (carga/reps/RIR/completou/obs/
+//        data), pre-preenchido com o prescrito, e salva direto no historico
+//        do aluno via nova acao admin "registroAdmin" (nao precisa do pin do
+//        aluno). (2) botao "+ EXERCICIO EXTRA" no TREINAR AGORA - adiciona um
+//        exercicio fora do plano do dia na sessao atual (input com sugestoes
+//        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
+//        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
+//        igual a qualquer outro exercicio.
+const FORJA_VERSION = 'v28.6';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
@@ -2019,7 +2097,8 @@ function renderPlanoTable() {
       <td>${tipoSel(i, ex.tipo)}</td>
       <td><input type="text" data-i="${i}" data-f="meta" value="${escapeHtml(ex.meta != null ? ex.meta : '')}" placeholder="kg" /></td>
       <td><input type="text" data-i="${i}" data-f="obs" value="${escapeHtml(ex.obs || '')}" /></td>
-      <td class="text-center">
+      <td class="text-center whitespace-nowrap">
+        <button data-act="lancar" data-i="${i}" title="Lancar execucao deste exercicio" class="text-zinc-500 hover:text-emerald-400 px-1">⚡</button>
         <button data-act="up" data-i="${i}" class="text-zinc-500 hover:text-cyan-400 px-1">▲</button>
         <button data-act="down" data-i="${i}" class="text-zinc-500 hover:text-cyan-400 px-1">▼</button>
         <button data-act="del" data-i="${i}" class="text-zinc-500 hover:text-red-500 px-1">✕</button>
@@ -2039,6 +2118,7 @@ function renderPlanoTable() {
       const i = parseInt(btn.dataset.i, 10);
       const act = btn.dataset.act;
       const list = APP.editPlano[APP.editDay];
+      if (act === 'lancar') { abrirLancarIndividual(i); return; }
       if (act === 'del') { list.splice(i, 1); }
       else if (act === 'up' && i > 0) { [list[i-1], list[i]] = [list[i], list[i-1]]; }
       else if (act === 'down' && i < list.length - 1) { [list[i+1], list[i]] = [list[i], list[i+1]]; }
@@ -2046,6 +2126,56 @@ function renderPlanoTable() {
     });
   });
 }
+
+// v28.6: treinador lanca a execucao de 1 exercicio especifico direto da tela
+// de editar plano — sem precisar do pin do aluno (autentica por admin key).
+// Pre-preenche carga/reps/rir com os valores prescritos no plano (referencia).
+let LANCAR_INDIVIDUAL_IDX = null;
+function abrirLancarIndividual(i) {
+  const ex = APP.editPlano[APP.editDay][i];
+  if (!ex || !ex.exercicio) { toast('Preencha o nome do exercicio primeiro', 'error'); return; }
+  LANCAR_INDIVIDUAL_IDX = i;
+  $('li-exercicio-nome').textContent = ex.exercicio;
+  $('li-carga').value = ex.carga || '';
+  $('li-reps').value = ex.reps || '';
+  $('li-rir').value = ex.rir != null ? ex.rir : '';
+  $('li-completou').value = 'sim';
+  $('li-obs').value = '';
+  const hoje = new Date();
+  $('li-data').value = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+  $('modal-lancar-individual').classList.remove('hidden');
+}
+
+$('btn-li-salvar').onclick = async () => {
+  const i = LANCAR_INDIVIDUAL_IDX;
+  const ex = (i != null) ? APP.editPlano[APP.editDay][i] : null;
+  if (!ex) return;
+  const btn = $('btn-li-salvar');
+  btn.disabled = true;
+  showLoading(true);
+  try {
+    await apiPost({
+      action: 'registroAdmin',
+      key: APP.trainerKey,
+      aluno_id: APP.currentAluno,
+      dia: APP.editDay,
+      exercicio: ex.exercicio,
+      carga: $('li-carga').value.trim(),
+      reps: $('li-reps').value.trim(),
+      rir: $('li-rir').value.trim(),
+      completou: $('li-completou').value === 'sim',
+      obs: $('li-obs').value.trim(),
+      data_treino: $('li-data').value || '',
+    });
+    toast('Exercicio lancado no historico', 'success');
+    $('modal-lancar-individual').classList.add('hidden');
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    showLoading(false);
+  }
+};
 
 $('btn-add-exercise').onclick = () => {
   APP.editPlano[APP.editDay].push({ exercicio: '', series: '3', reps: '10', carga: '', rir: '2', tipo: '', meta: '', obs: '' });
@@ -3746,6 +3876,38 @@ function atualizarStatusBar() {
     const isCurrent = i === TREINAR.idx ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-zinc-950' : '';
     return `<button onclick="irParaExercicio(${i})" class="w-4 h-4 ${colorClass} ${isCurrent}" title="Ex ${i+1}: ${status}"></button>`;
   }).join('');
+}
+
+// v28.6: exercicio EXTRA fora do plano do dia, adicionado em tempo real na
+// sessao. Reaproveita 100% a maquina de estado do TREINAR (statuses/
+// localIds/salvos/substituto) - o exercicio extra funciona identico a
+// qualquer outro (fecha, salva, entra no resumo), so nao veio do plano.
+function abrirModalExtra() {
+  const nomes = new Set();
+  (APP.data.plano || []).forEach(p => { if (p.exercicio) nomes.add(p.exercicio); });
+  const dl = $('lista-exercicios-conhecidos');
+  dl.innerHTML = Array.from(nomes).sort().map(n => `<option value="${escapeHtml(n)}">`).join('');
+  $('extra-exercicio-input').value = '';
+  $('modal-extra-exercicio').classList.remove('hidden');
+  setTimeout(() => $('extra-exercicio-input').focus(), 50);
+}
+
+function fecharModalExtra() {
+  $('modal-extra-exercicio').classList.add('hidden');
+}
+
+function confirmarExercicioExtra() {
+  const nome = $('extra-exercicio-input').value.trim();
+  if (!nome) { toast('Digite ou escolha um exercicio', 'error'); return; }
+  TREINAR.plano.push({ dia: APP.alunoDay, ordem: TREINAR.plano.length + 1, exercicio: nome, series: '', reps: '', carga: '', rir: '', obs: '' });
+  TREINAR.statuses.push('pending');
+  TREINAR.localIds.push(null);
+  TREINAR.salvos.push(null);
+  TREINAR.substituto.push(null);
+  TREINAR.idx = TREINAR.plano.length - 1;
+  fecharModalExtra();
+  mostrarExercicioAtual();
+  toast('Exercicio extra adicionado — preencha e feche normalmente', 'info');
 }
 
 function proximoExercicio() {
