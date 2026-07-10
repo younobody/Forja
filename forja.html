@@ -25,7 +25,16 @@
      ('recuperando'), escondendo o painel PRONTO PRA TREINAR e a cor verde no mapa.
      Toda a evolucao/calendario/frequencia ja usava dataSessao() (que trata BR
      corretamente) - so esta funcao estava fora do padrao. Corrigido pra usar
-     dataSessao(r) tambem, igual o resto do app. -->
+     dataSessao(r) tambem, igual o resto do app.
+     v28.9.5 NAO FOI SUFICIENTE: o v28.9.5 corrigiu calcularRecuperacao() pra
+     usar dataSessao(r), mas dataSessao() cai em dataLocalIso(r.timestamp)
+     quando data_treino esta vazio - e o caso real do usuario, que digitou a
+     data direto na coluna TIMESTAMP da planilha (nao em data_treino).
+     dataLocalIso() tinha o MESMO bug de raiz: new Date("09/07/2026") vira
+     7 de setembro (americano). v28.9.6 corrige na raiz: dataLocalIso() agora
+     reconhece "dd/mm/aaaa" explicitamente ANTES de cair no new Date()
+     generico, entao funciona seja a data digitada em data_treino OU em
+     timestamp. -->
 
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -1281,7 +1290,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v28.9.5';
+const FORJA_VERSION = 'v28.9.6';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
@@ -1455,6 +1464,21 @@ function dataLocalIso(ts) {
     // dataSessao() ja prioriza data_treino (que normalmente tem o ano certo),
     // entao isso so afeta o caso raro de data_treino tambem estar vazio.
     if (/^\d{1,2}\/\d{1,2}$/.test(s)) return '';
+    // v28.9.6: "dd/mm/aaaa" digitado a mao (ex: "09/07/2026") - trata
+    // EXPLICITAMENTE como dia/mes/ano aqui, antes do new Date() generico
+    // logo abaixo. new Date("09/07/2026") usa a convencao americana
+    // (mes/dia/ano) e silenciosamente vira 7 de setembro em vez de 9 de
+    // julho - foi exatamente o que aconteceu com sessoes onde a DATA foi
+    // digitada na propria coluna timestamp da planilha (sem data_treino
+    // preenchido), fazendo o mapa muscular/heatmap tratar a sessao como
+    // se fosse no futuro (dias negativos) e sumir o "PRONTO PRA TREINAR".
+    const br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (br) {
+      const dd = parseInt(br[1], 10), mm = parseInt(br[2], 10);
+      if (dd >= 1 && dd <= 31 && mm >= 1 && mm <= 12) {
+        return `${br[3]}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+      }
+    }
     const d = new Date(s);
     if (isNaN(d.getTime())) {
       const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
