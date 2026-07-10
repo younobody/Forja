@@ -1,5 +1,5 @@
 /**
- * FORJA Service Worker - v28.9.4 PWA cache
+ * FORJA Service Worker - v28.9.5 PWA cache
  *
  * Estratégia:
  * - Cache-first: HTML, CSS/JS da página, fontes do Google, Chart.js de CDN
@@ -19,9 +19,12 @@
  * versionado (forja28.9.X.html), que nao existe no servidor. O arquivo
  * real la e sempre "forja.html" (nome fixo). Corrigido - isso causava
  * 404 ao abrir o app pela tela inicial apos instalar.
+ * v28.9.5: BUGFIX no HTML (mapa muscular/recuperacao usava parser de data
+ * errado pra datas BR digitadas a mao) - bump aqui so pra invalidar o
+ * cache antigo do shell.
  */
 
-const CACHE_VERSION = 'forja-v28.9.4';
+const CACHE_VERSION = 'forja-v28.9.5';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',
