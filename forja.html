@@ -1,7 +1,12 @@
-<!-- FORJA v28.9.0 - Fase 2 Robustez + Fase 3 PWA + Fase 4 Performance
+<!-- FORJA v28.9.2 - RECONFIGURAR URL agora exige chave admin
      F2: timeout+erro de rede na API, buffer sincrono/idempotente (local_id), login via listarIds, LANCAR SESSAO com buffer
-     F3: manifest inline + sw.js (cache-first shell, network-only Apps Script), banner de instalacao, offline-first
-     F4: Tailwind pre-compilado (tailwindcss v3.4.19 via CLI) inline no <style>, substitui o CDN cdn.tailwindcss.com -->
+     F3: manifest.json + sw.js (cache-first shell, network-only Apps Script), banner de instalacao, offline-first
+     F4: Tailwind pre-compilado (tailwindcss v3.4.19 via CLI) inline no <style>, substitui o CDN cdn.tailwindcss.com
+     v28.9.1: BUGFIX - manifest.json de volta como arquivo separado (o <script type="application/manifest+json">
+     inline nao e reconhecido pelo Chrome/Android para instalabilidade)
+     v28.9.2: RECONFIGURAR URL (link no rodape da home) agora pede a chave admin antes de resetar
+     a URL do backend salva no navegador. Fluxo normal do aluno (digitar PIN e entrar) nao muda em
+     nada - esse link nunca aparece no caminho dele, so protege contra clique acidental/mal-intencionado. -->
 
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -11,33 +16,7 @@
 <meta name="theme-color" content="#0a0a0a" />
 <title>FORJA — Coach Dashboard</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230a0a0a'/%3E%3Cg fill='none' stroke='%2306b6d4' stroke-width='4' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M14 26 h30 a8 8 0 0 1 -8 8 h-6 l-2 0 a10 10 0 0 0 14 0'/%3E%3Cpath d='M28 34 v10'/%3E%3Cpath d='M20 46 h16'/%3E%3C/g%3E%3C/svg%3E" />
-<script type="application/manifest+json">
-{
-  "name": "FORJA — Coach Dashboard",
-  "short_name": "FORJA",
-  "description": "Seu companion de treino: plano, sessões, evolução, mapa muscular.",
-  "start_url": "./forja28.9.0.html",
-  "scope": "./",
-  "display": "standalone",
-  "orientation": "portrait-primary",
-  "theme_color": "#0a0a0a",
-  "background_color": "#0a0a0a",
-  "icons": [
-    {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%230a0a0a'/%3E%3Cg fill='none' stroke='%2306b6d4' stroke-width='8' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M42 78 h90 a24 24 0 0 1 -24 24 h-18 l-6 0 a30 30 0 0 0 42 0'/%3E%3Cpath d='M84 102 v30'/%3E%3Cpath d='M60 138 h48'/%3E%3C/g%3E%3C/svg%3E",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%230a0a0a'/%3E%3Cg fill='none' stroke='%2306b6d4' stroke-width='8' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M42 78 h90 a24 24 0 0 1 -24 24 h-18 l-6 0 a30 30 0 0 0 42 0'/%3E%3Cpath d='M84 102 v30'/%3E%3Cpath d='M60 138 h48'/%3E%3C/g%3E%3C/svg%3E",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
-    }
-  ]
-}
-</script>
+<link rel="manifest" href="./manifest.json" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1283,7 +1262,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v28.9.0';
+const FORJA_VERSION = 'v28.9.2';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
@@ -1878,7 +1857,21 @@ $('btn-config-save').onclick = () => {
   navigateTo('#home');
 };
 
-function resetConfig() {
+// v28.9.2: exige a chave admin antes de liberar o reset da URL do backend.
+// Uso normal do aluno (digitar PIN e entrar) nao passa por aqui - este link
+// so existe pro trainer, no rodape discreto da home.
+async function resetConfig() {
+  const key = prompt('Chave admin necessaria pra reconfigurar a URL do backend:');
+  if (!key) return;
+  showLoading(true);
+  try {
+    await apiGet({ action: 'getAdmin', key });
+  } catch (e) {
+    showLoading(false);
+    toast('Chave admin invalida', 'error');
+    return;
+  }
+  showLoading(false);
   if (!confirm('Reconfigurar a URL do Apps Script?')) return;
   localStorage.removeItem('forja-apps-url');
   APP.appsScriptUrl = null;
