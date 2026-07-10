@@ -1,5 +1,5 @@
 /**
- * FORJA Service Worker - v28.9.3 PWA cache
+ * FORJA Service Worker - v28.9.4 PWA cache
  *
  * Estratégia:
  * - Cache-first: HTML, CSS/JS da página, fontes do Google, Chart.js de CDN
@@ -15,13 +15,17 @@
  * bump de versao aqui so pra invalidar o cache antigo do shell).
  * v28.9.3: manifest.json ganhou icone 512x512 (Chrome Android e mais
  * rigoroso que o desktop pra liberar o banner de instalacao).
+ * v28.9.4: BUGFIX CRITICO - este arquivo apontava pro nome de arquivo
+ * versionado (forja28.9.X.html), que nao existe no servidor. O arquivo
+ * real la e sempre "forja.html" (nome fixo). Corrigido - isso causava
+ * 404 ao abrir o app pela tela inicial apos instalar.
  */
 
-const CACHE_VERSION = 'forja-v28.9.3';
+const CACHE_VERSION = 'forja-v28.9.4';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',
-  './forja28.9.3.html',
+  './forja.html',
   './manifest.json',
   'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600;800&display=swap',
   'https://fonts.gstatic.com',
@@ -57,7 +61,7 @@ self.addEventListener('fetch', e => {
   // Apps Script (nao cachear nunca — sempre fresco)
   if (url.hostname === 'script.google.com' || url.hostname.includes('script.google')) {
     return e.respondWith(fetch(request).catch(() =>
-      caches.match('./forja28.9.3.html').then(r => r || new Response('Offline', { status: 503 }))
+      caches.match('./forja.html').then(r => r || new Response('Offline', { status: 503 }))
     ));
   }
 
@@ -69,7 +73,7 @@ self.addEventListener('fetch', e => {
       caches.open(SHELL_CACHE).then(cache => cache.put(request, clone));
       return res;
     })).catch(() =>
-      caches.match('./forja28.9.3.html').then(r => r || new Response('Offline', { status: 503 }))
+      caches.match('./forja.html').then(r => r || new Response('Offline', { status: 503 }))
     )
   );
 });
