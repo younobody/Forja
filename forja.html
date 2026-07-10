@@ -4244,38 +4244,4 @@ async function mostrarBackendVer() {
     const r = await apiGet({ action: 'ping' });
     txt = (r && r.backend) ? r.backend : 'v1 (antigo)';
   } catch (e) { txt = '—'; }
-  document.querySelectorAll('.forja-backend').forEach(e => { e.textContent = txt; });
-}
-
-(function init() {
-  injectOrbs();
-  document.querySelectorAll('.forja-ver').forEach(e => { e.textContent = FORJA_VERSION; });
-  // Prioridade: URL salva manualmente pelo usuario > URL padrao embutida
-  APP.appsScriptUrl = localStorage.getItem('forja-apps-url') || DEFAULT_APPS_URL || null;
-  const tk = sessionStorage.getItem('forja-trainer-key');
-  if (tk) APP.trainerKey = tk;
-  const as = sessionStorage.getItem('forja-aluno-session');
-  if (as) {
-    try { APP.alunoSession = JSON.parse(as); } catch {}
-  }
-
-  // Mostrar modal de versao se versao mudou
-  const lastVersion = localStorage.getItem('forja-last-version');
-  if (lastVersion !== FORJA_VERSION) {
-    setTimeout(() => {
-      document.getElementById('version-text').textContent = `Versão ${FORJA_VERSION} carregada com sucesso`;
-      document.getElementById('version-modal').classList.remove('hidden');
-      localStorage.setItem('forja-last-version', FORJA_VERSION);
-    }, 500);
-  }
-
-  route();
-  mostrarBackendVer();  // v21: mostra qual backend (v1/v2) esta no ar
-  // Em background, tenta re-enviar qualquer registro pendente do buffer local
-  // (de sessoes anteriores onde a rede caiu).
-  setTimeout(tentarSincronizarPendentes, 1500);
-})();
-
-</script>
-</body>
-</html>
+  document.querySelectorAll('.forja-back
