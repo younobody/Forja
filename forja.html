@@ -1,8 +1,5 @@
-<!-- FORJA v28.9.4 - BUGFIX CRITICO: manifest/sw apontavam pro nome versionado
-     errado. O arquivo real no servidor SEMPRE se chama forja.html (nome fixo,
-     renomeado antes de cada upload) - nao forja28.9.X.html. manifest.json e
-     sw.js agora referenciam "./forja.html" (nome fixo), nunca mais o nome
-     versionado que so serve pra controle interno deste workspace local.
+<!-- FORJA v28.9.6 - BUGFIX: dataLocalIso() nao reconhecia data BR (dd/mm/aaaa)
+     digitada a mao na coluna timestamp da planilha - ver changelog completo abaixo.
      F2: timeout+erro de rede na API, buffer sincrono/idempotente (local_id), login via listarIds, LANCAR SESSAO com buffer
      F3: manifest.json + sw.js (cache-first shell, network-only Apps Script), banner de instalacao, offline-first
      F4: Tailwind pre-compilado (tailwindcss v3.4.19 via CLI) inline no <style>, substitui o CDN cdn.tailwindcss.com
