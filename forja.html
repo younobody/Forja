@@ -4082,8 +4082,8 @@ async function finalizarTreinar() {
   if (_bufferBatchTimer) { clearTimeout(_bufferBatchTimer); _flushBufferBatch(); }
   // v26: garante que uma sessao sobrescrita seja limpa mesmo saindo pelo ◂ SAIR,
   // e reenvia o que ficou no buffer antes de recarregar os dados.
-  await enviarBufferEmBackground();
-  await limparSobrescritos();
+  // OPTIMIZATION (Phase 3C): Parallelize independent API calls
+  await Promise.all([enviarBufferEmBackground(), limparSobrescritos()]);
   $('treinar-rest-overlay').classList.add('hidden');
   $('treinar-summary').classList.add('hidden');
   $('view-treinar').classList.add('hidden');
