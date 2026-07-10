@@ -3358,18 +3358,40 @@ function saveBuffer(buf) {
   catch (e) { console.error('Buffer save fail', e); }
 }
 
+// OPTIMIZATION (Phase 3B): Buffer write batching to defer localStorage I/O
+// Instead of writing to localStorage on every save, batch writes in 500ms windows
+let _bufferBatchTimer = null;
+let _bufferBatchData = null;
+
+function _flushBufferBatch() {
+  if (_bufferBatchData) {
+    saveBuffer(_bufferBatchData);
+    _bufferBatchData = null;
+  }
+  _bufferBatchTimer = null;
+}
+
+function _scheduleBufferBatch(buf) {
+  _bufferBatchData = buf;
+  if (!_bufferBatchTimer) {
+    _bufferBatchTimer = setTimeout(_flushBufferBatch, 500);
+  }
+}
+
 // Adiciona um payload ao buffer. Retorna um id local pra rastreio.
 function pushBuffer(reg) {
   const buf = loadBuffer();
   const _localId = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
   buf.push({ ...reg, _localId });
-  saveBuffer(buf);
+  // OPTIMIZATION: Defer write (batch in 500ms window instead of immediate I/O)
+  _scheduleBufferBatch(buf);
   return _localId;
 }
 
 function removeFromBuffer(localId) {
   const buf = loadBuffer().filter(r => r._localId !== localId);
-  saveBuffer(buf);
+  // OPTIMIZATION: Defer write (batch removals too)
+  _scheduleBufferBatch(buf);
 }
 
 function countBuffer() {
@@ -4056,6 +4078,8 @@ async function finalizarTreinar() {
   TREINAR.active = false;
   if (TREINAR.timerInt) { clearInterval(TREINAR.timerInt); TREINAR.timerInt = null; }
   if (TREINAR.restTimer) { clearInterval(TREINAR.restTimer); TREINAR.restTimer = null; }
+  // OPTIMIZATION: Flush buffer batch immediately (don't wait 500ms on finalize)
+  if (_bufferBatchTimer) { clearTimeout(_bufferBatchTimer); _flushBufferBatch(); }
   // v26: garante que uma sessao sobrescrita seja limpa mesmo saindo pelo ◂ SAIR,
   // e reenvia o que ficou no buffer antes de recarregar os dados.
   await enviarBufferEmBackground();
