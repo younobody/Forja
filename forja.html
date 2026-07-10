@@ -1233,7 +1233,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v28.7.1';
+const FORJA_VERSION = 'v28.7.2';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
@@ -1401,12 +1401,14 @@ function dataLocalIso(ts) {
     // dia ANTERIOR (jogava registro manual pro card do dia errado).
     const bare = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (bare) return `${bare[1]}-${bare[2]}-${bare[3]}`;
-    // v28.4: "dd/mm" digitado a mao sem ano (ex: "04/07") - new Date() aceita
-    // isso mas INVENTA um ano (ex: 2001), o que da uma data completamente
-    // errada em vez de falhar visivelmente. Rejeita explicitamente aqui;
-    // dataSessao() ja prioriza data_treino (que normalmente tem o ano certo),
-    // entao isso so afeta o caso raro de data_treino tambem estar vazio.
-    if (/^\d{1,2}\/\d{1,2}$/.test(s)) return '';
+    // v28.7.1: "dd/mm" digitado a mao sem ano (ex: "09/07") - usa ano atual
+    const ddmm = s.match(/^(\d{1,2})\/(\d{1,2})$/);
+    if (ddmm) {
+      const ano = new Date().getFullYear();
+      const dd = String(ddmm[1]).padStart(2, '0');
+      const mm = String(ddmm[2]).padStart(2, '0');
+      return `${ano}-${mm}-${dd}`;
+    }
     const d = new Date(s);
     if (isNaN(d.getTime())) {
       const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
