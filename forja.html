@@ -1,4 +1,4 @@
-<!-- FORJA v28.9.2 - RECONFIGURAR URL agora exige chave admin
+<!-- FORJA v28.9.3 - manifest com icone 512x512 (instalabilidade Android)
      F2: timeout+erro de rede na API, buffer sincrono/idempotente (local_id), login via listarIds, LANCAR SESSAO com buffer
      F3: manifest.json + sw.js (cache-first shell, network-only Apps Script), banner de instalacao, offline-first
      F4: Tailwind pre-compilado (tailwindcss v3.4.19 via CLI) inline no <style>, substitui o CDN cdn.tailwindcss.com
@@ -6,7 +6,10 @@
      inline nao e reconhecido pelo Chrome/Android para instalabilidade)
      v28.9.2: RECONFIGURAR URL (link no rodape da home) agora pede a chave admin antes de resetar
      a URL do backend salva no navegador. Fluxo normal do aluno (digitar PIN e entrar) nao muda em
-     nada - esse link nunca aparece no caminho dele, so protege contra clique acidental/mal-intencionado. -->
+     nada - esse link nunca aparece no caminho dele, so protege contra clique acidental/mal-intencionado.
+     v28.9.3: manifest.json ganhou icone 512x512 (any + maskable) alem do 192x192 que ja existia.
+     Chrome Android e mais rigoroso que o desktop pra liberar o banner de instalacao e em alguns
+     casos exige um icone grande (512x512) pra gerar a splash screen do app instalado. -->
 
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -1262,7 +1265,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v28.9.2';
+const FORJA_VERSION = 'v28.9.3';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
