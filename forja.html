@@ -1,4 +1,4 @@
-<!-- FORJA v28.7.0 - Phase 3 Performance Optimization (Chart.js 6.7x, caching 95%+, virtual scrolling) -->
+<!-- FORJA v28.8.0 - Fase 2 Robustez (timeout+erro de rede na API, buffer sincrono e idempotente por local_id, login via listarIds, LANCAR SESSAO com rede de seguranca) -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -1233,7 +1233,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v28.7.1';
+const FORJA_VERSION = 'v28.8.0';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
@@ -1565,35 +1565,84 @@ function renderEvoCalendario(regs, containerId) {
 
 // ---------- API ----------
 
+const API_TIMEOUT_MS = 25000;
+
+// Erro de rede/servidor com uma flag `network` para o chamador distinguir
+// "servidor respondeu com erro de negocio" (json.error) de "nao consegui
+// nem falar com o servidor" (timeout, offline, Apps Script fora do ar,
+// resposta que nao e JSON valido - ex: pagina de erro/login do Google).
+function networkError(msg) {
+  const err = new Error(msg);
+  err.network = true;
+  return err;
+}
+
+async function parseApiResponse(res) {
+  if (!res.ok) {
+    throw networkError('Servidor respondeu ' + res.status + ' - tente novamente em instantes.');
+  }
+  const text = await res.text();
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch (e) {
+    // Apps Script retorna HTML (nao JSON) em erros de quota, redirect de
+    // login ou timeout do proprio Google - isso NAO e "codigo invalido".
+    throw networkError('Resposta invalida do servidor - tente novamente.');
+  }
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
 async function apiGet(params) {
-  if (!APP.appsScriptUrl) throw new Error('URL nao configurada');
+  if (!APP.appsScriptUrl) throw networkError('URL nao configurada');
   const url = new URL(APP.appsScriptUrl);
   Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
   // Cache buster: forca o navegador a ir no servidor a cada chamada.
   // Sem isso, o Chrome/Safari as vezes cacheava a resposta do Apps Script
   // e o SYNC retornava dados antigos mesmo apos novos registros chegarem.
   url.searchParams.set('_t', Date.now().toString());
-  const res = await fetch(url.toString(), {
-    method: 'GET',
-    cache: 'no-store',
-  });
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  try {
+    const res = await fetch(url.toString(), {
+      method: 'GET',
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    return await parseApiResponse(res);
+  } catch (err) {
+    if (err.name === 'AbortError') throw networkError('Sem resposta do servidor (timeout) - verifique sua conexao.');
+    if (err.network) throw err;
+    if (err instanceof TypeError) throw networkError('Sem conexao com o servidor - verifique sua internet.');
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function apiPost(body) {
-  if (!APP.appsScriptUrl) throw new Error('URL nao configurada');
+  if (!APP.appsScriptUrl) throw networkError('URL nao configurada');
   // Apps Script com Content-Type application/json gera erro de CORS de preflight.
   // Usar text/plain (que e simple request) e parsear no servidor com JSON.parse.
-  const res = await fetch(APP.appsScriptUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(body),
-  });
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  try {
+    const res = await fetch(APP.appsScriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    return await parseApiResponse(res);
+  } catch (err) {
+    if (err.name === 'AbortError') throw networkError('Sem resposta do servidor (timeout) - verifique sua conexao.');
+    if (err.network) throw err;
+    if (err instanceof TypeError) throw networkError('Sem conexao com o servidor - verifique sua internet.');
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // ---------- PROGRESSO VISUAL (v28.3) ----------
@@ -1789,27 +1838,47 @@ function resetConfig() {
 // ---------- LOGIN TRAINER ----------
 
 // v20: login SO por codigo. Tenta cada aluno conhecido com o codigo como PIN;
-// se nenhum bater, tenta como chave admin (trainer). O frontend nao pode listar
-// alunos sem a chave admin, entao os ids ficam aqui — adicionar novos alunos
-// nesta lista (ou migrar pra uma acao de backend depois).
-const IDS_CONHECIDOS = ['marcos', 'ricardo'];
+// se nenhum bater, tenta como chave admin (trainer).
+// v28.8: os ids vem da acao "listarIds" do backend (nao precisa mais editar
+// o HTML pra cada aluno novo). Lista fixa abaixo so serve de fallback caso o
+// backend ainda seja uma versao antiga (sem essa acao) ou a rede esteja fora.
+const IDS_CONHECIDOS_FALLBACK = ['marcos', 'ricardo'];
+
+let _idsConhecidosCache = null;
+async function obterIdsConhecidos() {
+  if (_idsConhecidosCache) return _idsConhecidosCache;
+  try {
+    const r = await apiGet({ action: 'listarIds' });
+    if (Array.isArray(r.ids) && r.ids.length > 0) {
+      _idsConhecidosCache = r.ids;
+      return _idsConhecidosCache;
+    }
+  } catch (e) { /* backend antigo ou rede fora - cai no fallback */ }
+  return IDS_CONHECIDOS_FALLBACK;
+}
+
 async function loginCodigo() {
   const codigo = $('home-pin').value.trim();
   const st = $('home-login-status');
   if (!codigo) { st.innerHTML = '<span class="text-red-500">Digite seu codigo</span>'; return; }
   showLoading(true);
   st.textContent = '';
+  const ids = await obterIdsConhecidos();
   // 1) tenta como ALUNO (codigo = PIN), na ordem dos ids conhecidos
-  for (const id of IDS_CONHECIDOS) {
+  for (const id of ids) {
     try {
       const data = await apiGet({ action: 'getAluno', id, pin: codigo });
       APP.alunoSession = { id, pin: codigo };
       APP.data = data;
       sessionStorage.setItem('forja-aluno-session', JSON.stringify(APP.alunoSession));
+      migrarBufferAnonimo();
       showLoading(false);
       navigateTo('#aluno/' + id);
       return;
-    } catch (e) { /* nao e esse aluno — tenta o proximo */ }
+    } catch (e) {
+      if (e.network) { showLoading(false); st.innerHTML = '<span class="text-red-500">✗ ' + e.message + '</span>'; return; }
+      /* pin/aluno invalido para este id — tenta o proximo */
+    }
   }
   // 2) tenta como TRAINER (codigo = chave admin)
   try {
@@ -1822,7 +1891,9 @@ async function loginCodigo() {
     return;
   } catch (e) {
     showLoading(false);
-    st.innerHTML = '<span class="text-red-500">✗ codigo invalido</span>';
+    st.innerHTML = e.network
+      ? '<span class="text-red-500">✗ ' + e.message + '</span>'
+      : '<span class="text-red-500">✗ codigo invalido</span>';
   }
 }
 $('btn-home-entrar').onclick = loginCodigo;
@@ -2926,6 +2997,7 @@ $('btn-aluno-entrar').onclick = async () => {
     APP.alunoSession = { id, pin };
     APP.data = data;
     sessionStorage.setItem('forja-aluno-session', JSON.stringify(APP.alunoSession));
+    migrarBufferAnonimo();
     navigateTo('#aluno/' + id);
   } catch (e) {
     $('aluno-login-status').innerHTML = '<span class="text-red-500">✗ ' + e.message + '</span>';
@@ -3351,18 +3423,35 @@ $('btn-salvar-sessao').onclick = async () => {
     // Sobrescrever vira atomico no servidor (remove a antiga e grava a nova na
     // mesma escrita). Se o backend ainda for o v1 ("unknown action"), cai no
     // fluxo v16: 1 POST por exercicio + remocao da antiga depois.
+    // v28.8: o payload agora passa pelo MESMO buffer local do TREINAR AGORA —
+    // se a rede cair no meio do envio, a sessao inteira fica guardada no
+    // dispositivo (nao se perde o que foi digitado) e o proximo sync/login
+    // reenvia sozinho. O retry de registroBatch e seguro por natureza: o
+    // backend sempre sobrescreve a MESMA sessao (aluno+dia+data), entao
+    // reenviar o mesmo payload nao duplica nada.
+    const batchPayload = {
+      action: 'registroBatch',
+      aluno_id: APP.alunoSession.id,
+      pin: APP.alunoSession.pin,
+      dia: day,
+      data_treino: dataTreino,
+      sobrescrever,
+      registros: novos,
+    };
+    const localId = pushBuffer(batchPayload);
     try {
-      const res = await apiPost({
-        action: 'registroBatch',
-        aluno_id: APP.alunoSession.id,
-        pin: APP.alunoSession.pin,
-        dia: day,
-        data_treino: dataTreino,
-        sobrescrever,
-        registros: novos,
-      });
+      const res = await apiPost({ ...batchPayload, local_id: localId });
+      removeFromBuffer(localId);
       ok = res.salvos != null ? res.salvos : novos.length;
     } catch (e) {
+      if (e && e.network) {
+        // servidor inalcancavel: o payload ja esta seguro no buffer local,
+        // sera reenviado automaticamente (enviarBufferEmBackground / login).
+        toast('Sem conexao — sessao guardada no dispositivo, sera enviada quando a rede voltar.', 'info');
+        $('modal-registrar').classList.add('hidden');
+        return;
+      }
+      removeFromBuffer(localId);
       if (!/unknown action/i.test(String(e && e.message))) throw e;
       for (const reg of novos) {
         await apiPost({
@@ -3423,44 +3512,56 @@ function saveBuffer(buf) {
   catch (e) { console.error('Buffer save fail', e); }
 }
 
-// OPTIMIZATION (Phase 3B): Buffer write batching to defer localStorage I/O
-// Instead of writing to localStorage on every save, batch writes in 500ms windows
-let _bufferBatchTimer = null;
-let _bufferBatchData = null;
+// v28.8: removido o defer de 500ms que existia aqui (batch de escrita no
+// localStorage). Ele criava uma janela real de perda de dado: um fechamento
+// do app/navegador entre o registro em memoria e o flush do timer perdia o
+// registro, contrariando a promessa desta "rede de seguranca". Agora toda
+// gravacao no buffer e sincrona (custo de I/O e desprezivel pro volume de
+// dados aqui — uma sessao de treino, nao milhares de linhas).
 
-function _flushBufferBatch() {
-  if (_bufferBatchData) {
-    saveBuffer(_bufferBatchData);
-    _bufferBatchData = null;
-  }
-  _bufferBatchTimer = null;
-}
-
-function _scheduleBufferBatch(buf) {
-  _bufferBatchData = buf;
-  if (!_bufferBatchTimer) {
-    _bufferBatchTimer = setTimeout(_flushBufferBatch, 500);
-  }
-}
-
-// Adiciona um payload ao buffer. Retorna um id local pra rastreio.
+// Adiciona um payload ao buffer. Retorna um id local pra rastreio — o MESMO
+// id e enviado ao backend como `local_id` (ver _flushBufferInner), que o usa
+// pra nao duplicar o registro se a chamada for reenviada apos perder a
+// resposta de um envio anterior que na verdade teve sucesso.
 function pushBuffer(reg) {
   const buf = loadBuffer();
   const _localId = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
   buf.push({ ...reg, _localId });
-  // OPTIMIZATION: Defer write (batch in 500ms window instead of immediate I/O)
-  _scheduleBufferBatch(buf);
+  saveBuffer(buf);
   return _localId;
 }
 
 function removeFromBuffer(localId) {
   const buf = loadBuffer().filter(r => r._localId !== localId);
-  // OPTIMIZATION: Defer write (batch removals too)
-  _scheduleBufferBatch(buf);
+  saveBuffer(buf);
 }
 
 function countBuffer() {
   return loadBuffer().length;
+}
+
+// v28.8: buffer gravado antes do login (sessao perdida/anonima) ficava preso
+// para sempre em "forja-pending-anon" — _flushBufferInner exige alunoSession
+// e nunca tocava nesses registros. Ao logar, se havia algo pendente sob a
+// chave anonima, move pro buffer do aluno atual (dedupe por _localId) para
+// ser reenviado normalmente.
+function migrarBufferAnonimo() {
+  if (!APP.alunoSession) return;
+  const ANON_KEY = 'forja-pending-anon';
+  let anon;
+  try { anon = JSON.parse(localStorage.getItem(ANON_KEY) || '[]'); }
+  catch { anon = []; }
+  if (!anon.length) return;
+
+  const buf = loadBuffer();
+  const existentes = new Set(buf.map(r => r._localId));
+  let migrados = 0;
+  anon.forEach(r => {
+    if (!existentes.has(r._localId)) { buf.push(r); migrados++; }
+  });
+  saveBuffer(buf);
+  localStorage.removeItem(ANON_KEY);
+  if (migrados > 0) toast(migrados + ' registro(s) pendente(s) recuperado(s)', 'info');
 }
 
 // Tenta re-enviar tudo que esta pendente. Chamado:
@@ -3482,8 +3583,11 @@ async function _flushBufferInner() {
     let enviouAlgum = false, falhou = false;
     for (const reg of buf) {
       const { _localId, ...payload } = reg;
+      // manda o id local como local_id: se essa chamada ja tiver chegado ao
+      // servidor numa tentativa anterior (resposta perdida por queda de
+      // rede), o backend detecta pelo local_id e nao cria duplicata.
       try {
-        await apiPost(payload);
+        await apiPost({ ...payload, local_id: _localId });
         removeFromBuffer(_localId);
         ok++;
         enviouAlgum = true;
