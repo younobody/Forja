@@ -1,19 +1,21 @@
 /**
- * FORJA Service Worker - v28.8 PWA cache
+ * FORJA Service Worker - v28.9 PWA cache
  *
  * Estratégia:
  * - Cache-first: HTML, CSS/JS da página, fontes do Google, Chart.js de CDN
  *   (sobrevive offline; invalida por versão no HTML)
  * - Network-only: chamadas ao Apps Script (sempre fresco, nunca servir data antiga)
  * - Fallback: página offline se o shell estiver cacheado
+ *
+ * v28.9: manifest agora e inline no HTML (nao existe mais manifest.json
+ * separado - ver Fase 4), removido da lista de assets.
  */
 
-const CACHE_VERSION = 'forja-v28.8.0';
+const CACHE_VERSION = 'forja-v28.9.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',
-  './forja28.8.0.html',
-  './manifest.json',
+  './forja28.9.0.html',
   'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600;800&display=swap',
   'https://fonts.gstatic.com',
   'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js'
@@ -48,7 +50,7 @@ self.addEventListener('fetch', e => {
   // Apps Script (nao cachear nunca — sempre fresco)
   if (url.hostname === 'script.google.com' || url.hostname.includes('script.google')) {
     return e.respondWith(fetch(request).catch(() =>
-      caches.match('./forja28.8.0.html').then(r => r || new Response('Offline', { status: 503 }))
+      caches.match('./forja28.9.0.html').then(r => r || new Response('Offline', { status: 503 }))
     ));
   }
 
@@ -60,7 +62,7 @@ self.addEventListener('fetch', e => {
       caches.open(SHELL_CACHE).then(cache => cache.put(request, clone));
       return res;
     })).catch(() =>
-      caches.match('./forja28.8.0.html').then(r => r || new Response('Offline', { status: 503 }))
+      caches.match('./forja28.9.0.html').then(r => r || new Response('Offline', { status: 503 }))
     )
   );
 });
