@@ -689,6 +689,9 @@
       <div class="mono text-[10px] text-zinc-500 tracking-widest mb-3">SESSOES REGISTRADAS</div>
       <div id="evo-historico-aluno" class="space-y-3"></div>
     </div>
+    <!-- NOTAS / RESTRICOES - moved to bottom -->
+    <div id="aluno-notas" class="mt-8 mb-6 p-4 glass rounded border border-zinc-800"></div>
+
     <div class="mt-10 text-center mono text-[10px] text-zinc-700 tracking-widest">
       FORJA · <span class="forja-ver">v?</span> · backend <span class="forja-backend">?</span>
     </div>
@@ -2957,8 +2960,13 @@ function renderAlunoDashboard() {
   const meta = $('aluno-meta');
   let metaHtml = '';
   if (a.objetivo) metaHtml += `<div><span class="text-zinc-600">OBJETIVO:</span> ${escapeHtml(a.objetivo)}</div>`;
-  if (a.notas) metaHtml += `<div class="mt-1"><span class="text-zinc-600">NOTAS:</span> ${escapeHtml(a.notas)}</div>`;
   meta.innerHTML = metaHtml;
+
+  // Renderizar NOTAS no fim da página
+  const notasDiv = $('aluno-notas');
+  if (notasDiv) {
+    notasDiv.innerHTML = a.notas ? `<div class="mono text-xs text-zinc-500"><span class="text-zinc-600">NOTAS:</span> ${escapeHtml(a.notas)}</div>` : '';
+  }
 
   // Renderiza tabs dinamicas: apenas os dias que o aluno realmente tem
   renderAlunoDayTabs();
