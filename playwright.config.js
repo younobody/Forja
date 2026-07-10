@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './__tests__/phase2',
+  testDir: './__tests__',
+  testMatch: '**/*.spec.js',
   fullyParallel: false, // Run tests sequentially to avoid port conflicts
   forbidOnly: process.env.CI === 'true', // Forbid .only in CI
   retries: process.env.CI ? 2 : 0, // Retry on CI
@@ -23,7 +24,10 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        executablePath: '/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/chrome-headless-shell',
+      },
     },
   ],
 });

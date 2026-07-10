@@ -5,19 +5,29 @@
 
 import { createAlunoResponse, createAdminResponse, TEST_ADMIN_KEY, TEST_CREDENTIALS } from './mockData.js';
 
+// Re-export test credentials for convenience
+export { TEST_ADMIN_KEY, TEST_CREDENTIALS };
+
 /**
  * Setup API route interception for a test
  * Mocks all API calls to return fixture data
+ * Supports requestDelay for simulating slow networks
  */
 export async function setupApiMocking(page, options = {}) {
   const {
     mockGetActions = [],
     mockPostActions = [],
     adminKey = TEST_ADMIN_KEY,
+    requestDelay = 0, // Optional delay in ms for slow network simulation
   } = options;
 
   // Intercept all fetch requests to the Apps Script endpoint
   await page.route('**/script.google.com/macros/**', async (route) => {
+    // Apply network delay if specified
+    if (requestDelay > 0) {
+      await new Promise(resolve => setTimeout(resolve, requestDelay));
+    }
+
     const request = route.request();
     const postData = request.postDataJSON ? await request.postDataJSON().catch(() => ({})) : {};
     const queryParams = new URL(request.url()).searchParams;
@@ -62,9 +72,9 @@ export async function setupApiMocking(page, options = {}) {
     if (request.method() === 'POST') {
       const action = postData.action;
 
-      // Save registro
-      if (action === 'registro') {
-        return route.fulfill({ json: { ok: true } });
+      // Save registro (standard workout save)
+      if (action === 'registro' || action === 'salvarRegistro') {
+        return route.fulfill({ json: { ok: true, timestamp: new Date().toISOString() } });
       }
 
       // Save plano
@@ -83,6 +93,11 @@ export async function setupApiMocking(page, options = {}) {
           return route.fulfill({ json: { error: 'Admin key inválida' } });
         }
         return route.fulfill({ json: { ok: true, registrado_em: new Date().toISOString() } });
+      }
+
+      // Import/export actions
+      if (action === 'importAluno') {
+        return route.fulfill({ json: { ok: true } });
       }
 
       // Custom POST handlers
