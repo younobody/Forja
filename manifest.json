@@ -2,7 +2,7 @@
   "name": "FORJA — Coach Dashboard",
   "short_name": "FORJA",
   "description": "Seu companion de treino: plano, sessões, evolução, mapa muscular.",
-  "start_url": "./forja28.9.3.html",
+  "start_url": "./forja.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
