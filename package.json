@@ -1,0 +1,19 @@
+{
+  "name": "forja-coach-dashboard",
+  "version": "28.6.0",
+  "description": "FORJA - Coach Dashboard with comprehensive test coverage",
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:phase1": "node --experimental-vm-modules node_modules/jest/bin/jest.js __tests__/phase1 --coverage",
+    "test:phase1:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js __tests__/phase1 --watch"
+  },
+  "keywords": ["coaching", "dashboard", "fitness"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "@testing-library/jest-dom": "^6.1.5"
+  }
+}
