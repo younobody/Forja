@@ -15,7 +15,17 @@
      Chrome Android e mais rigoroso que o desktop pra liberar o banner de instalacao e em alguns
      casos exige um icone grande (512x512) pra gerar a splash screen do app instalado.
      v28.9.4: BUGFIX - manifest.json e sw.js apontavam pro nome de arquivo versionado
-     (forja28.9.X.html) que nao existe no servidor. Corrigido pra "forja.html" (nome fixo real). -->
+     (forja28.9.X.html) que nao existe no servidor. Corrigido pra "forja.html" (nome fixo real).
+     v28.9.5: BUGFIX - calcularRecuperacao() (mapa muscular / heatmap / "PRONTO PRA
+     TREINAR") usava dataLocalIso(r.data_treino || r.timestamp) direto, ignorando o
+     parser de data BR (dataTreinoLimpa). Uma data digitada a mao tipo "09/07/2026"
+     cai no new Date() nativo do JS, que interpreta como MM/DD (formato americano) =
+     7 de setembro em vez de 9 de julho - data no futuro, o calculo de "dias desde o
+     ultimo treino" ficava negativo e o grupo muscular era marcado como recem-treinado
+     ('recuperando'), escondendo o painel PRONTO PRA TREINAR e a cor verde no mapa.
+     Toda a evolucao/calendario/frequencia ja usava dataSessao() (que trata BR
+     corretamente) - so esta funcao estava fora do padrao. Corrigido pra usar
+     dataSessao(r) tambem, igual o resto do app. -->
 
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -1271,7 +1281,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v28.9.4';
+const FORJA_VERSION = 'v28.9.5';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
@@ -3258,7 +3268,7 @@ function calcularRecuperacao() {
   plano.forEach(p => musculosDoExercicio(p.exercicio).forEach(x => programados.add(x)));
   const ultimo = {};
   regs.forEach(r => {
-    const dias = mapaIsoParaDias(dataLocalIso(r.data_treino || r.timestamp));
+    const dias = mapaIsoParaDias(dataSessao(r));
     musculosDoExercicio(r.exercicio).forEach(x => { if (ultimo[x] == null || dias < ultimo[x]) ultimo[x] = dias; });
   });
   const status = {};
