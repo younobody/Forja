@@ -30,9 +30,12 @@
  * icones novos. Bump aqui pra invalidar o shell antigo. Obs: no PWA ja
  * instalado no Android, theme_color/icone podem exigir reinstalar o app
  * (cache de manifest do Chrome).
+ * v29.1.0: aliases de exercicio na EVOLUCAO (aba "exercicios" da planilha
+ * unifica dropdown/grafico/meta; requer backend v3.6) - bump aqui so pra
+ * invalidar o cache antigo do shell.
  */
 
-const CACHE_VERSION = 'forja-v29.0.0';
+const CACHE_VERSION = 'forja-v29.1.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',
