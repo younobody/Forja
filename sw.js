@@ -1,5 +1,5 @@
 /**
- * FORJA Service Worker - v28.9.6 PWA cache
+ * FORJA Service Worker - v29.0.0 PWA cache
  *
  * Estratégia:
  * - Cache-first: HTML, CSS/JS da página, fontes do Google, Chart.js de CDN
@@ -25,9 +25,14 @@
  * v28.9.6: BUGFIX no HTML (dataLocalIso - raiz do bug de data BR, cobre
  * tambem data digitada na coluna timestamp, nao so data_treino) - bump
  * aqui so pra invalidar o cache antigo do shell.
+ * v29.0.0: REDESIGN VISUAL COMPLETO no HTML (tema claro, accent brasa,
+ * home nova com cena da forja) + manifest com theme/background claros e
+ * icones novos. Bump aqui pra invalidar o shell antigo. Obs: no PWA ja
+ * instalado no Android, theme_color/icone podem exigir reinstalar o app
+ * (cache de manifest do Chrome).
  */
 
-const CACHE_VERSION = 'forja-v28.9.6';
+const CACHE_VERSION = 'forja-v29.0.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',
