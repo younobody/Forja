@@ -1,4 +1,15 @@
-<!-- FORJA v29.0.0 - FASE 5: REDESIGN VISUAL COMPLETO (tema escuro -> claro)
+<!-- FORJA v29.1.0 - ALIASES DE EXERCICIO na EVOLUCAO (unificacao por apelido)
+     A aba "exercicios" da planilha (nome_atual | aliases separados por ";")
+     agora funciona de ponta a ponta: o backend v3.6 envia os grupos no payload
+     (getAluno/getAdmin) e a tela de EVOLUCAO unifica: dropdown agrupa por nome
+     canonico somando as contagens, o grafico junta os pontos de todas as
+     grafias (slugsEquivalentes) e a linha de alvo/meta tambem casa por slug.
+     Bonus: o card ULTIMO TREINO do TREINAR passa a reconhecer aliases de
+     verdade (ja usava slugsEquivalentes, mas APP.data.exercicios chegava
+     vazio porque o backend nao lia a aba). Requer backend v3.6 (que tambem
+     canoniza o nome na hora de SALVAR registro novo e adiciona a acao
+     registroAdmin que faltava pro botao "lancar individual").
+     v29.0.0 - FASE 5: REDESIGN VISUAL COMPLETO (tema escuro -> claro)
      Nova identidade: fundo claro #F6F7F9 + cards brancos (legibilidade sob luz forte
      na academia), accent unico BRASA #EE5622 (CTA/foco/progresso), verde #10935E
      unificado p/ feito-recuperado, dias A-E com matizes escurecidos p/ contraste.
@@ -1268,7 +1279,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v29.0.0';
+const FORJA_VERSION = 'v29.1.0';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
@@ -2542,8 +2553,10 @@ function renderEvoStats(regs, containerId) {
 function setupEvoChart(regs, suffix) {
   const select = $('evo-select-' + suffix);
   if (!select) return;
+  // v29.1: agrupa por nome CANONICO (aba "exercicios" da planilha) — aliases
+  // do mesmo exercicio somam numa unica opcao do dropdown.
   const exCount = {};
-  regs.forEach(r => { if (r.exercicio) exCount[r.exercicio] = (exCount[r.exercicio] || 0) + 1; });
+  regs.forEach(r => { if (r.exercicio) { const nome = nomeCanonico(r.exercicio); exCount[nome] = (exCount[nome] || 0) + 1; } });
   const exercicios = Object.keys(exCount).sort((a, b) => exCount[b] - exCount[a]);
   if (exercicios.length === 0) {
     select.innerHTML = '<option>—</option>';
@@ -2572,8 +2585,12 @@ function drawEvoChart(regs, suffix) {
   const cmp = $('evo-compare-' + suffix);
   const comparar = !!(cmp && cmp.checked && APP.data && APP.data.alunos);
 
+  // v29.1: casa por grupo de slugs equivalentes (aliases), nao por string
+  // exata — o grafico junta os pontos de todas as grafias do exercicio.
+  // O Set e calculado UMA vez aqui, fora do filter.
+  const grupoEx = ex ? slugsEquivalentes(ex) : new Set();
   const ptsDe = (lista) => lista
-    .filter(r => r.exercicio === ex)
+    .filter(r => grupoEx.has(slugify(r.exercicio)))
     .map(r => ({ d: dataSessao(r), y: parseCargaNum(r.carga) }))
     .filter(p => p.y != null)
     .sort((a, b) => a.d.localeCompare(b.d));
@@ -2635,7 +2652,7 @@ function drawEvoChart(regs, suffix) {
     }];
     // v23: linha de ALVO (meta do exercicio no plano), tracejada laranja
     const planoArr = (APP.data && APP.data.plano) || [];
-    const pe = planoArr.find(p => p.exercicio === ex &&
+    const pe = planoArr.find(p => grupoEx.has(slugify(p.exercicio)) &&
       (suffix !== 'trainer' || String(p.aluno_id) === String(APP.currentAluno)));
     const metaNum = pe ? parseCargaNum(pe.meta) : null;
     APP._evoAlvo = APP._evoAlvo || {};
@@ -3710,6 +3727,20 @@ function slugsEquivalentes(nome) {
     if (nomes.includes(alvo)) return new Set(nomes);
   }
   return new Set([alvo]);
+}
+
+// v29.1: nome "oficial" do exercicio — se o nome (por slug) pertencer a um
+// grupo da aba "exercicios", devolve o nome_atual do grupo; senao devolve o
+// proprio nome. Usado pra AGRUPAR o dropdown da evolucao (aliases somam).
+function nomeCanonico(nome) {
+  const alvo = slugify(nome);
+  const grupos = (APP.data && Array.isArray(APP.data.exercicios)) ? APP.data.exercicios : [];
+  for (const g of grupos) {
+    const nomes = [g.nome_atual, ...String(g.aliases || '').split(';')]
+      .map(slugify).filter(Boolean);
+    if (nomes.includes(alvo)) return String(g.nome_atual).trim();
+  }
+  return nome;
 }
 
 function ultimoRegistroDe(nome) {
