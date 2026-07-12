@@ -1,5 +1,16 @@
-<!-- FORJA v28.9.6 - BUGFIX: dataLocalIso() nao reconhecia data BR (dd/mm/aaaa)
-     digitada a mao na coluna timestamp da planilha - ver changelog completo abaixo.
+<!-- FORJA v29.0.0 - FASE 5: REDESIGN VISUAL COMPLETO (tema escuro -> claro)
+     Nova identidade: fundo claro #F6F7F9 + cards brancos (legibilidade sob luz forte
+     na academia), accent unico BRASA #EE5622 (CTA/foco/progresso), verde #10935E
+     unificado p/ feito-recuperado, dias A-E com matizes escurecidos p/ contraste.
+     Morre a estetica cyber-HUD (grade animada, orbs, scanlines, vinheta, glows).
+     Home reformulada: sai o mascote, entra cena da forja (martelo + lingota
+     incandescente, "FORJANDO A SAUDE") em SVG com efeito 3D e faiscas animadas.
+     ZERO mudanca de logica/dados - so aparencia. Estrategia: camada de override
+     CSS pos-Tailwind remapeia as utilitarias de cor; edicoes cirurgicas onde o
+     papel semantico inverte (chips steel, headers, modal de versao, dia D vs accent).
+     PWA: manifest theme/background claros + icones novos; sw.js CACHE_VERSION v29.0.0.
+     Historico anterior (v28.9.6): BUGFIX dataLocalIso() nao reconhecia data BR
+     (dd/mm/aaaa) digitada a mao na coluna timestamp - ver changelog completo abaixo.
      F2: timeout+erro de rede na API, buffer sincrono/idempotente (local_id), login via listarIds, LANCAR SESSAO com buffer
      F3: manifest.json + sw.js (cache-first shell, network-only Apps Script), banner de instalacao, offline-first
      F4: Tailwind pre-compilado (tailwindcss v3.4.19 via CLI) inline no <style>, substitui o CDN cdn.tailwindcss.com
@@ -38,9 +49,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#0a0a0a" />
+<meta name="theme-color" content="#F6F7F9" />
 <title>FORJA — Coach Dashboard</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230a0a0a'/%3E%3Cg fill='none' stroke='%2306b6d4' stroke-width='4' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M14 26 h30 a8 8 0 0 1 -8 8 h-6 l-2 0 a10 10 0 0 0 14 0'/%3E%3Cpath d='M28 34 v10'/%3E%3Cpath d='M20 46 h16'/%3E%3C/g%3E%3C/svg%3E" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23FFFFFF'/%3E%3Cg fill='none' stroke='%23EE5622' stroke-width='4' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M14 26 h30 a8 8 0 0 1 -8 8 h-6 l-2 0 a10 10 0 0 0 14 0'/%3E%3Cpath d='M28 34 v10'/%3E%3Cpath d='M20 46 h16'/%3E%3C/g%3E%3C/svg%3E" />
 <link rel="manifest" href="./manifest.json" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -54,194 +65,134 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root {
-    --bg: #0a0a0a;
-    --bg-soft: #18181b;
-    --bg-card: rgba(20, 20, 24, 0.55);
-    --bg-glass: rgba(24, 24, 30, 0.45);
-    --border: #27272a;
-    --border-hot: #3f3f46;
-    --text: #fafafa;
-    --text-dim: #a1a1aa;
-    --text-faint: #71717a;
-    --accent-a: #ef4444;
-    --accent-b: #f59e0b;
-    --accent-c: #10b981;
-    --accent-d: #06b6d4;
-    --accent-e: #a78bfa;
-    --admin: #06b6d4;
-    --glow: rgba(6, 182, 212, 0.55);
-    --ctx: #06b6d4;            /* cor de contexto da tela (mutavel via JS) */
-    --ctx-soft: rgba(6,182,212,0.14);
+    /* ===== v29 DESIGN SYSTEM CLARO ===== */
+    --bg: #F6F7F9;             /* ground papel branco-frio */
+    --bg-soft: #EFF1F4;
+    --bg-card: #FFFFFF;
+    --border: #E7EAEE;
+    --border-hot: #DCE0E6;
+    --text: #0E1116;
+    --text-dim: #5B6472;
+    --text-faint: #8B93A0;
+    --accent-a: #DC2626;       /* dia A */
+    --accent-b: #C77400;       /* dia B */
+    --accent-c: #10935E;       /* dia C + feito/recuperado */
+    --accent-d: #0E7490;       /* dia D */
+    --accent-e: #7C3AED;       /* dia E */
+    --admin: #B23A12;
+    --acc: #EE5622;            /* accent unico BRASA */
+    --acc-soft: #FDECE5;
+    --acc-ink: #B23A12;        /* brasa p/ texto pequeno (contraste) */
+    --ok-soft: #E4F4EC;
+    --ok-ink: #0B6E46;
+    --steel: #1B2430;
+    /* compat: --ctx era a cor de contexto mutavel via JS (agora fixa = brasa) */
+    --ctx: #EE5622;
+    --ctx-soft: rgba(238,86,34,0.12);
   }
   * { box-sizing: border-box; }
   html, body {
     color: var(--text);
     font-family: 'DM Sans', system-ui, sans-serif;
-    background-color: #0a0a0a;
+    background-color: #F6F7F9;
   }
-  /* BASE VIVA: grafite escuro + GRADE animada + ORBS de luz + vinheta */
+  /* BASE CLARA v29: papel branco-frio + leve luz no topo (sem grade/orbs/vinheta) */
   body {
     margin: 0;
     min-height: 100vh;
     position: relative;
     background:
-      radial-gradient(100% 70% at 50% -10%, var(--ctx-soft) 0%, transparent 50%),
-      linear-gradient(160deg, #0c0c10 0%, #131318 40%, #0e0e13 75%, #0a0a0d 100%);
+      radial-gradient(90% 55% at 50% -10%, #FFFFFF 0%, rgba(255,255,255,0) 60%),
+      #F6F7F9;
     background-attachment: fixed;
     overflow-x: hidden;
-  }
-  /* GRADE tecnica que escorrega lentamente (z atras de tudo) */
-  body::before {
-    content: "";
-    position: fixed; inset: -2px;
-    pointer-events: none; z-index: 0;
-    background-image:
-      linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
-    background-size: 44px 44px;
-    mask-image: radial-gradient(130% 100% at 50% 0%, #000 35%, transparent 80%);
-    -webkit-mask-image: radial-gradient(130% 100% at 50% 0%, #000 35%, transparent 80%);
-    animation: gridDrift 22s linear infinite;
-  }
-  @keyframes gridDrift { from { background-position: 0 0, 0 0; } to { background-position: 44px 44px, 44px 44px; } }
-  /* VINHETA + leve grao por cima da grade */
-  body::after {
-    content: "";
-    position: fixed; inset: 0;
-    pointer-events: none; z-index: 0;
-    background:
-      radial-gradient(130% 110% at 50% 45%, transparent 50%, rgba(0,0,0,0.6) 100%);
-  }
-  /* ORBS de luz flutuantes (containers injetados via JS no body) */
-  .fx-orbs { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-  .orb { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.5; mix-blend-mode: screen; }
-  .orb-1 { width: 420px; height: 420px; background: var(--ctx); top: -120px; left: -80px; animation: float1 18s ease-in-out infinite; }
-  .orb-2 { width: 340px; height: 340px; background: #7c3aed; bottom: -100px; right: -60px; opacity: 0.32; animation: float2 24s ease-in-out infinite; }
-  .orb-3 { width: 260px; height: 260px; background: var(--ctx); top: 40%; right: 12%; opacity: 0.18; animation: float3 30s ease-in-out infinite; }
-  @keyframes float1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(60px,40px)} }
-  @keyframes float2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-50px,-30px)} }
-  @keyframes float3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,20px) scale(1.15)} }
-  /* conteudo acima do fundo */
-  body > *:not(.fx-orbs) { position: relative; z-index: 1; }
-  @media (prefers-reduced-motion: reduce) {
-    body::before, .orb { animation: none !important; }
   }
 
   .display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.02em; }
   .mono { font-family: 'JetBrains Mono', monospace; }
-  .scanlines { background-image: linear-gradient(180deg, transparent 50%, rgba(255,255,255,0.015) 50%); background-size: 100% 4px; }
+  /* v29: .scanlines e .glow-ctx viraram no-op (classes seguem no markup sem efeito) */
   .hidden { display: none !important; }
   .fade-in { animation: fadeIn 0.25s ease-out; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
   .toast { animation: slideIn 0.2s ease-out; }
   @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
 
-  /* GLOW utilitario nos titulos / numeros */
-  .glow-ctx { text-shadow: 0 0 18px var(--ctx-soft), 0 0 40px var(--ctx-soft); }
-  .display.text-cyan-400, .text-cyan-400.display { text-shadow: 0 0 22px rgba(6,182,212,0.45); }
-
-  /* inputs futuristas */
+  /* inputs claros (v29) */
   input, textarea, select {
-    background: rgba(9, 9, 11, 0.75);
-    border: 1px solid var(--border);
+    background: #FFFFFF;
+    border: 1.5px solid var(--border-hot);
     color: var(--text);
     padding: 0.55rem 0.8rem;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.875rem;
     outline: none;
     transition: border-color 0.15s, box-shadow 0.2s, background 0.2s;
-    border-radius: 2px;
+    border-radius: 11px;
   }
+  input::placeholder, textarea::placeholder { color: var(--text-faint); }
   input:focus, textarea:focus, select:focus {
-    border-color: var(--ctx);
-    box-shadow: 0 0 0 1px var(--ctx), 0 0 18px var(--ctx-soft);
-    background: rgba(9, 9, 11, 0.95);
+    border-color: var(--acc);
+    box-shadow: 0 0 0 3px var(--acc-soft);
+    background: #FFFFFF;
   }
   input[type="number"] { -moz-appearance: textfield; }
   input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-  /* BOTOES futuristas: borda fina, sweep de luz no hover */
+  /* BOTOES claros (v29): borda fina, sombra suave, CTA brasa */
   .btn {
     position: relative;
     padding: 0.65rem 1.05rem;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.75rem;
     letter-spacing: 0.12em;
-    border: 1px solid var(--border);
-    background: rgba(255,255,255,0.015);
+    border: 1px solid var(--border-hot);
+    background: #FFFFFF;
     color: var(--text-dim);
     cursor: pointer;
     transition: all 0.18s ease;
     text-transform: uppercase;
-    border-radius: 2px;
-    overflow: hidden;
+    border-radius: 11px;
   }
-  .btn::before {
-    content: "";
-    position: absolute; top: 0; left: -120%;
-    width: 60%; height: 100%;
-    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.12), transparent);
-    transition: left 0.5s ease;
-  }
-  .btn:hover { border-color: var(--text); color: var(--text); box-shadow: 0 0 16px rgba(255,255,255,0.06); }
-  .btn:hover::before { left: 130%; }
-  .btn-primary { background: var(--text); color: #0a0a0a; border-color: var(--text); }
-  .btn-primary:hover { background: #e4e4e7; color: #0a0a0a; box-shadow: 0 0 22px rgba(250,250,250,0.25); }
-  .btn-danger:hover { border-color: var(--accent-a); color: var(--accent-a); box-shadow: 0 0 16px rgba(239,68,68,0.25); }
-  .btn-success { background: var(--accent-c); color: #04140d; border-color: var(--accent-c); }
-  .btn-success:hover { background: #34d399; color: #04140d; box-shadow: 0 0 22px rgba(16,185,129,0.4); }
+  .btn:hover { border-color: var(--text-dim); color: var(--text); box-shadow: 0 2px 10px rgba(14,17,22,0.08); }
+  .btn-primary { background: var(--acc); color: #FFFFFF; border-color: var(--acc); box-shadow: 0 8px 18px -8px rgba(238,86,34,0.6); }
+  .btn-primary:hover { background: #D8481B; border-color: #D8481B; color: #FFFFFF; box-shadow: 0 10px 22px -8px rgba(238,86,34,0.7); }
+  .btn-danger:hover { border-color: var(--accent-a); color: var(--accent-a); box-shadow: 0 2px 10px rgba(220,38,38,0.15); }
+  .btn-success { background: var(--accent-c); color: #FFFFFF; border-color: var(--accent-c); box-shadow: 0 8px 18px -8px rgba(16,147,94,0.5); }
+  .btn-success:hover { background: #0B8A55; border-color: #0B8A55; color: #FFFFFF; box-shadow: 0 10px 22px -8px rgba(16,147,94,0.6); }
 
-  .chip { padding: 0.14rem 0.55rem; font-size: 0.625rem; letter-spacing: 0.1em; border: 1px solid var(--border); border-radius: 2px; background: rgba(255,255,255,0.02); }
+  .chip { padding: 0.14rem 0.55rem; font-size: 0.625rem; letter-spacing: 0.1em; border: 1px solid var(--border); border-radius: 999px; background: var(--bg); }
 
-  /* CARDS de vidro com PROFUNDIDADE: superficie clara, blur visivel,
-     sombra em camadas, highlight no topo, parece flutuar */
+  /* CARDS brancos (v29): borda hairline + sombra suave em 2 camadas */
   .glass {
     position: relative;
-    background: linear-gradient(160deg, rgba(40,40,48,0.62) 0%, rgba(24,24,30,0.5) 100%);
-    backdrop-filter: blur(18px) saturate(140%);
-    -webkit-backdrop-filter: blur(18px) saturate(140%);
-    border: 1px solid rgba(255,255,255,0.09);
-    border-radius: 8px;
+    background: #FFFFFF;
+    border: 1px solid var(--border);
+    border-radius: 16px;
     box-shadow:
-      0 10px 30px -10px rgba(0,0,0,0.7),
-      0 2px 8px rgba(0,0,0,0.4),
-      inset 0 1px 0 rgba(255,255,255,0.08);
-    transition: transform 0.25s cubic-bezier(.2,.8,.2,1), box-shadow 0.25s, border-color 0.25s;
-  }
-  /* linha de luz no topo do card */
-  .glass::after {
-    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-    background: linear-gradient(160deg, rgba(255,255,255,0.06), transparent 35%);
+      0 1px 2px rgba(14,17,22,0.04),
+      0 10px 28px -14px rgba(14,17,22,0.10);
+    transition: box-shadow 0.25s, border-color 0.25s;
   }
   .glass:hover {
-    transform: translateY(-3px);
-    border-color: var(--ctx);
+    border-color: var(--border-hot);
     box-shadow:
-      0 18px 44px -12px rgba(0,0,0,0.8),
-      0 0 26px var(--ctx-soft),
-      inset 0 1px 0 rgba(255,255,255,0.12);
+      0 2px 4px rgba(14,17,22,0.05),
+      0 14px 34px -14px rgba(14,17,22,0.14);
   }
 
-  /* painel com brilho de borda na cor de contexto */
-  .panel-ctx { border-color: var(--ctx); box-shadow: inset 0 0 40px var(--ctx-soft), 0 0 24px var(--ctx-soft); }
+  /* v29: panel-ctx agora e um realce sutil */
+  .panel-ctx { border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft); }
 
-  /* barra de scan animada (para headers): aplica .scanbar num elemento relative */
-  .scanbar { position: relative; overflow: hidden; }
-  .scanbar::after {
-    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, var(--ctx), transparent);
-    animation: scanMove 3.5s linear infinite; opacity: 0.7;
-  }
-  @keyframes scanMove { 0%{transform:translateY(0)} 100%{transform:translateY(140px)} }
+  /* v29: .scanbar virou no-op (classe segue nos headers sem efeito) */
 
   /* entrada com stagger dos cards */
   @keyframes riseIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
   .rise { opacity: 0; animation: riseIn 0.5s cubic-bezier(.2,.8,.2,1) forwards; }
 
-  /* glow pulsante (borda de contexto) */
+  /* pulso sutil de borda (chamadas de atencao) */
   @keyframes borderPulse {
-    0%,100% { box-shadow: 0 0 0 1px var(--ctx), 0 0 12px var(--ctx-soft); }
-    50% { box-shadow: 0 0 0 1px var(--ctx), 0 0 26px var(--ctx-soft); }
+    0%,100% { box-shadow: 0 0 0 1px var(--acc), 0 0 0 3px var(--acc-soft); }
+    50% { box-shadow: 0 0 0 1px var(--acc), 0 0 0 6px var(--acc-soft); }
   }
   .pulse-ctx { animation: borderPulse 3s ease-in-out infinite; }
 
@@ -252,17 +203,12 @@
   table.editable input { width: 100%; }
 
   /* avatars */
-  .avatar { width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 1.125rem; border-radius: 3px; }
+  .avatar { width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 1.125rem; border-radius: 10px; }
 
-  /* tabs */
-  .tab-btn { padding: 0.5rem 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; letter-spacing: 0.1em; border-bottom: 2px solid transparent; color: var(--text-faint); cursor: pointer; text-transform: uppercase; transition: color 0.15s, text-shadow 0.2s; }
-  .tab-btn:hover { color: var(--text-dim); }
-  .tab-btn.active { color: var(--text); }
-  .tab-btn[data-day="A"].active { border-bottom-color: var(--accent-a); text-shadow: 0 0 14px rgba(239,68,68,0.5); }
-  .tab-btn[data-day="B"].active { border-bottom-color: var(--accent-b); text-shadow: 0 0 14px rgba(245,158,11,0.5); }
-  .tab-btn[data-day="C"].active { border-bottom-color: var(--accent-c); text-shadow: 0 0 14px rgba(16,185,129,0.5); }
-  .tab-btn[data-day="D"].active { border-bottom-color: var(--accent-d); text-shadow: 0 0 14px rgba(6,182,212,0.5); }
-  .tab-btn[data-day="E"].active { border-bottom-color: var(--accent-e); text-shadow: 0 0 14px rgba(167,139,250,0.5); }
+  /* tabs (v29: ativa = pill escura solida, sem glow por dia) */
+  .tab-btn { padding: 0.5rem 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; letter-spacing: 0.1em; border-bottom: 2px solid transparent; color: var(--text-faint); cursor: pointer; text-transform: uppercase; transition: color 0.15s, background 0.15s; border-radius: 9px 9px 0 0; }
+  .tab-btn:hover { color: var(--text-dim); background: var(--bg-soft); }
+  .tab-btn.active { color: #FFFFFF; background: var(--text); border-bottom-color: transparent; border-radius: 9px; }
 
   /* sombras */
   .shadow-hot { box-shadow: 0 0 0 1px var(--border-hot); }
@@ -272,48 +218,100 @@
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
   /* loader */
-  .loader { width: 16px; height: 16px; border: 2px solid var(--ctx); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; box-shadow: 0 0 12px var(--ctx-soft); }
+  .loader { width: 16px; height: 16px; border: 2px solid var(--acc); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* pulso sutil pro hero */
-  @keyframes pulseGlow {
-    0%, 100% { text-shadow: 0 0 24px rgba(6,182,212,0.25), 0 0 60px rgba(6,182,212,0.12); }
-    50% { text-shadow: 0 0 36px rgba(6,182,212,0.4), 0 0 90px rgba(6,182,212,0.2); }
-  }
-  .hero-glow { animation: pulseGlow 4s ease-in-out infinite; }
+  /* v29: .hero-glow e .corners viraram no-op (classes seguem no markup sem efeito) */
 
-  /* corner accents (cantos tecnologicos) — aplicar .corners num container relative */
-  .corners::before, .corners::after {
-    content: ""; position: absolute; width: 14px; height: 14px; pointer-events: none;
-    border-color: var(--ctx); opacity: 0.6;
+  /* ===== v29: CENA DA FORJA (home hero) — martelo batendo na lingota ===== */
+  .forge-wrap { position: relative; width: 250px; margin: 0 auto 4px; }
+  .forge-svg { display: block; width: 100%; height: auto;
+    filter: drop-shadow(0 18px 30px rgba(238,86,34,0.20)) drop-shadow(0 10px 20px rgba(14,17,22,0.14)); }
+  #forge-hammer { transform-origin: 199px 38px; animation: forgeStrike 1.9s cubic-bezier(.4,0,.3,1) infinite; }
+  @keyframes forgeStrike {
+    0%, 24% { transform: rotate(40deg); }
+    38%     { transform: rotate(52deg); }
+    46%     { transform: rotate(0deg); }
+    52%     { transform: rotate(7deg); }
+    100%    { transform: rotate(40deg); }
   }
-  .corners::before { top: -1px; left: -1px; border-top: 1px solid; border-left: 1px solid; }
-  .corners::after { bottom: -1px; right: -1px; border-bottom: 1px solid; border-right: 1px solid; }
-
-  /* ===== v28: MASCOTE da tela HOME (marinheiro forjado flexando) ===== */
-  .mascot-wrap { position: relative; width: 190px; height: 220px; margin: 0 auto; filter: drop-shadow(0 10px 30px rgba(0,0,0,0.55)); }
-  .mascot-glow { position: absolute; inset: -30px; border-radius: 50%;
-    background: radial-gradient(closest-side, rgba(16,185,129,0.35), rgba(6,182,212,0.16) 55%, transparent 75%);
-    filter: blur(18px); animation: mascotGlowPulse 3.4s ease-in-out infinite; z-index: 0; }
-  @keyframes mascotGlowPulse { 0%,100% { opacity: 0.65; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
-  .mascot-svg { position: relative; z-index: 1; animation: mascotBob 3.2s ease-in-out infinite; }
-  @keyframes mascotBob { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-6px) rotate(-1deg); } }
-  #mascot-bicep-group { transform-origin: 150px 118px; animation: mascotFlex 2.1s ease-in-out infinite; }
-  @keyframes mascotFlex { 0%,100% { transform: scale(1) rotate(0deg); } 45% { transform: scale(1.09) rotate(-3deg); } 55% { transform: scale(1.09) rotate(-3deg); } }
-  #mascot-sparkles circle, #mascot-sparkles path { animation: mascotTwinkle 1.6s ease-in-out infinite; transform-origin: center; }
-  #mascot-sparkles circle:nth-child(2), #mascot-sparkles path:nth-child(2) { animation-delay: 0.35s; }
-  #mascot-sparkles circle:nth-child(3), #mascot-sparkles path:nth-child(3) { animation-delay: 0.7s; }
-  @keyframes mascotTwinkle { 0%,100% { opacity: 0.15; transform: scale(0.6); } 50% { opacity: 1; transform: scale(1.15); } }
-  #mascot-steam path { animation: mascotSteam 2.4s ease-in infinite; }
-  #mascot-steam path:nth-child(2) { animation-delay: 0.8s; }
-  @keyframes mascotSteam { 0% { opacity: 0; transform: translateY(0) scale(0.8); } 25% { opacity: 0.8; } 100% { opacity: 0; transform: translateY(-22px) scale(1.3); } }
-  #mascot-eye-wink { animation: mascotWinkBlink 4.5s ease-in-out infinite; transform-origin: center; }
-  @keyframes mascotWinkBlink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.15); } }
+  #forge-sparks { transform-origin: 128px 96px; animation: forgeSparks 1.9s ease-out infinite; opacity: 0; }
+  @keyframes forgeSparks {
+    0%, 44% { opacity: 0; transform: scale(0.3); }
+    50%     { opacity: 1; transform: scale(1); }
+    72%     { opacity: 0; transform: scale(1.5); }
+    100%    { opacity: 0; transform: scale(1.5); }
+  }
+  #forge-glow { animation: forgeGlow 1.9s ease-in-out infinite; }
+  @keyframes forgeGlow { 0%, 42%, 100% { opacity: 0.55; } 48% { opacity: 1; } 70% { opacity: 0.7; } }
+  #forge-hot { animation: forgeHot 1.9s ease-in-out infinite; }
+  @keyframes forgeHot { 0%, 42%, 100% { opacity: 0.35; } 48% { opacity: 0.95; } 70% { opacity: 0.5; } }
   @media (prefers-reduced-motion: reduce) {
-    .mascot-glow, .mascot-svg, #mascot-bicep-group, #mascot-sparkles circle, #mascot-sparkles path, #mascot-steam path, #mascot-eye-wink { animation: none !important; }
+    #forge-hammer, #forge-sparks, #forge-glow, #forge-hot { animation: none !important; }
+    #forge-sparks { opacity: 0.9; transform: scale(1); }
   }
   .hero-title-wrap { position: relative; }
-  .hero-badge { display: inline-block; padding: 0.2rem 0.7rem; border: 1px solid var(--accent-c); color: var(--accent-c); border-radius: 999px; letter-spacing: 0.2em; background: rgba(16,185,129,0.08); box-shadow: 0 0 16px rgba(16,185,129,0.25); }
+  .hero-badge { display: inline-block; padding: 0.2rem 0.7rem; border: 1px solid #CDE9DA; color: var(--ok-ink); border-radius: 999px; letter-spacing: 0.2em; background: var(--ok-soft); }
+
+  /* ===================================================================
+     v29 OVERRIDE LAYER — remapeia as utilitarias Tailwind (compiladas
+     no bloco #tailwind-compiled com valores dark) para o tema claro.
+     Mesma especificidade, declarado depois => vence sem !important.
+     NAO sobrescrever: text-white, text-zinc-950, bg-zinc-100 e
+     bg-cyan-500 (papeis mistos — tratados caso a caso no markup/JS).
+     =================================================================== */
+  .text-zinc-100 { color: #0E1116; }
+  .text-zinc-200 { color: #1B2430; }
+  .text-zinc-300 { color: #3A424E; }
+  .text-zinc-400, .text-zinc-500 { color: #5B6472; }
+  .text-zinc-600 { color: #8B93A0; }
+  .text-zinc-700 { color: #B3BAC4; }
+  .hover\:text-zinc-100:hover, .hover\:text-white:hover { color: #0E1116; }
+  .hover\:text-zinc-400:hover { color: #5B6472; }
+  .border-zinc-800, .border-zinc-900\/60 { border-color: #E7EAEE; }
+  .border-zinc-500, .border-zinc-600, .border-zinc-700 { border-color: #DCE0E6; }
+  .hover\:border-zinc-500:hover, .hover\:border-zinc-600:hover { border-color: #C6CBD3; }
+  .bg-zinc-950 { background-color: #F6F7F9; }
+  .bg-zinc-950\/95 { background-color: rgba(246,247,249,0.95); }
+  .bg-zinc-950\/70 { background-color: rgba(246,247,249,0.7); }
+  .bg-black\/80 { background-color: rgba(246,247,249,0.85); }
+  .bg-zinc-900 { background-color: #E7EAEE; }
+  .bg-zinc-900\/30 { background-color: #EFF1F4; }
+  .bg-zinc-900\/60, .hover\:bg-zinc-900\/60:hover { background-color: #EFF1F4; }
+  .bg-zinc-800 { background-color: #DCE0E6; }
+  .bg-zinc-600 { background-color: #8B93A0; }
+  .bg-zinc-400 { background-color: #C6CBD3; }
+  .text-cyan-300, .text-cyan-400, .hover\:text-cyan-400:hover { color: #B23A12; }
+  .border-cyan-500 { border-color: #EE5622; }
+  .border-cyan-600\/50, .border-cyan-600\/70, .border-cyan-700\/50 { border-color: rgba(238,86,34,0.45); }
+  .bg-cyan-500\/10 { background-color: #FDECE5; }
+  .ring-cyan-400 { --tw-ring-color: #EE5622; }
+  .ring-offset-zinc-950 { --tw-ring-offset-color: #F6F7F9; }
+  .text-emerald-400, .text-emerald-500, .hover\:text-emerald-400:hover { color: #0B6E46; }
+  .bg-emerald-500, .bg-emerald-600 { background-color: #10935E; }
+  .bg-emerald-700 { background-color: #0B8A55; }
+  .border-emerald-600, .border-emerald-700 { border-color: #0B8A55; }
+  .text-red-400, .text-red-500, .hover\:text-red-500:hover { color: #DC2626; }
+  .text-red-200 { color: #B42318; }
+  .bg-red-500 { background-color: #DC2626; }
+  .bg-red-900, .bg-red-900\/70 { background-color: #B42318; }
+  .border-red-700 { border-color: #8F1B12; }
+  .text-amber-400, .text-amber-500 { color: #C77400; }
+  .text-amber-400\/90, .text-amber-500\/80, .text-amber-500\/90 { color: rgba(199,116,0,0.95); }
+  .bg-amber-500 { background-color: #C77400; }
+  .text-violet-400 { color: #7C3AED; }
+  .bg-violet-500 { background-color: #7C3AED; }
+  /* ===== helpers novos v29 ===== */
+  .bg-steel { background-color: #1B2430; }
+  .day-tx-a { color: #DC2626; } .day-bg-a { background-color: #DC2626; }
+  .day-tx-b { color: #C77400; } .day-bg-b { background-color: #C77400; }
+  .day-tx-c { color: #0B8A55; } .day-bg-c { background-color: #0B8A55; }
+  .day-tx-d { color: #0E7490; } .day-bg-d { background-color: #0E7490; }
+  .day-tx-e { color: #7C3AED; } .day-bg-e { background-color: #7C3AED; }
+  .toast-info { background: #FFFFFF; border-color: #DCE0E6; color: #3A424E; }
+  .toast-ok { background: #E4F4EC; border-color: #CDE9DA; color: #0B6E46; }
+  .toast-err { background: #FDE8E8; border-color: #F3C6C6; color: #B42318; }
+  .cal-falta { background: #FBEAEA; color: #B42318; }
 </style>
 </head>
 <body>
@@ -337,9 +335,9 @@
 
 <!-- VERSION UPDATE MODAL -->
 <div id="version-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden">
-  <div class="bg-zinc-900 border border-cyan-600/50 rounded p-8 max-w-sm w-full mx-4 text-center">
+  <div class="glass p-8 max-w-sm w-full mx-4 text-center">
     <div class="text-2xl text-cyan-300 mb-4">✓</div>
-    <h2 class="text-lg font-bold text-white mb-2">FORJA Atualizado</h2>
+    <h2 class="text-lg font-bold text-zinc-100 mb-2">FORJA Atualizado</h2>
     <p id="version-text" class="mono text-sm text-zinc-400 mb-4"></p>
     <button onclick="document.getElementById('version-modal').classList.add('hidden')" class="btn btn-success py-2">OK</button>
   </div>
@@ -382,101 +380,84 @@
 <!-- TELA: HOME                                  -->
 <!-- =========================================== -->
 <section id="view-home" class="hidden min-h-screen flex items-center justify-center px-6 py-12 relative">
-  <!-- v28.3: BACKGROUND DINAMICO - cenarios lado a lado (quebra-cabeca + parede) -->
-  <div id="progress-background" class="absolute inset-0 flex items-center justify-between px-6" style="z-index:0;opacity:0.65;pointer-events:none;">
-    <!-- Sera preenchido dinamicamente por renderizarProgresso() -->
-  </div>
-
   <div class="max-w-3xl w-full relative" style="z-index:1;">
 
-    <!-- v28: MASCOTE - marinheiro forjado flexando, lata de energia brilhando -->
-    <div class="mascot-wrap mb-2">
-      <div class="mascot-glow"></div>
-      <svg class="mascot-svg" width="190" height="220" viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
-        <!-- pedestal / plataforma -->
-        <ellipse cx="120" cy="258" rx="58" ry="10" fill="#06b6d4" opacity="0.18"/>
-        <ellipse cx="120" cy="256" rx="40" ry="6" fill="#06b6d4" opacity="0.3"/>
+    <!-- v29: CENA DA FORJA - martelo batendo na lingota incandescente ("forjando a saude") -->
+    <div class="forge-wrap mb-2">
+      <svg class="forge-svg" viewBox="0 0 260 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Martelo forjando uma lingota de ferro incandescente">
+        <defs>
+          <linearGradient id="gSteel" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#5A6675"/><stop offset="0.45" stop-color="#37404D"/><stop offset="1" stop-color="#1B2430"/>
+          </linearGradient>
+          <linearGradient id="gSteelBase" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#2C3542"/><stop offset="1" stop-color="#161C26"/>
+          </linearGradient>
+          <radialGradient id="gIngot" cx="0.38" cy="0.3" r="0.95">
+            <stop offset="0" stop-color="#FFF6C9"/><stop offset="0.3" stop-color="#FFCE5C"/>
+            <stop offset="0.6" stop-color="#F58B3C"/><stop offset="0.85" stop-color="#E04B18"/>
+            <stop offset="1" stop-color="#B23A12"/>
+          </radialGradient>
+          <radialGradient id="gGlowR" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#FFB25E" stop-opacity="0.75"/>
+            <stop offset="0.6" stop-color="#F58B3C" stop-opacity="0.28"/>
+            <stop offset="1" stop-color="#F58B3C" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="gHammerHead" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#778394"/><stop offset="0.5" stop-color="#414B5A"/><stop offset="1" stop-color="#232B36"/>
+          </linearGradient>
+        </defs>
 
-        <!-- pernas / botas -->
-        <rect x="98" y="196" width="18" height="44" rx="6" fill="#3f3f46"/>
-        <rect x="126" y="196" width="18" height="44" rx="6" fill="#3f3f46"/>
-        <path d="M92 238 h30 a6 6 0 0 1 6 6 v4 h-42 v-4 a6 6 0 0 1 6 -6 Z" fill="#18181b" stroke="#000" stroke-opacity="0.2"/>
-        <path d="M120 238 h30 a6 6 0 0 1 6 6 v4 h-42 v-4 a6 6 0 0 1 6 -6 Z" fill="#18181b" stroke="#000" stroke-opacity="0.2"/>
+        <!-- sombra no chao -->
+        <ellipse cx="120" cy="188" rx="86" ry="9" fill="#0E1116" opacity="0.07"/>
 
-        <!-- torso listrado (camisa marinheiro) -->
-        <path d="M92 140 q-4 40 2 62 h52 q6 -22 2 -62 Z" fill="#e4e4e7"/>
-        <clipPath id="torsoClip"><path d="M92 140 q-4 40 2 62 h52 q6 -22 2 -62 Z"/></clipPath>
-        <g clip-path="url(#torsoClip)">
-          <rect x="86" y="148" width="70" height="9" fill="#06b6d4"/>
-          <rect x="86" y="166" width="70" height="9" fill="#06b6d4"/>
-          <rect x="86" y="184" width="70" height="9" fill="#06b6d4"/>
+        <!-- brilho quente ao redor da lingota (pulsa no impacto) -->
+        <ellipse id="forge-glow" cx="128" cy="98" rx="66" ry="34" fill="url(#gGlowR)"/>
+
+        <!-- bigorna: chifre + face + cintura + pe + pedestal -->
+        <path d="M62 104 q-30 1 -43 15 q17 12 43 7 Z" fill="url(#gSteel)"/>
+        <rect x="60" y="100" width="128" height="22" rx="5" fill="url(#gSteel)"/>
+        <rect x="60" y="100" width="128" height="5" rx="2.5" fill="#FFFFFF" opacity="0.28"/>
+        <path d="M100 122 h52 l-7 18 h-38 Z" fill="#232B36"/>
+        <rect x="84" y="140" width="84" height="11" rx="3" fill="url(#gSteelBase)"/>
+        <path d="M92 151 h68 l7 28 h-82 Z" fill="url(#gSteelBase)"/>
+        <rect x="86" y="176" width="80" height="6" rx="2" fill="#10151D"/>
+
+        <!-- lingota incandescente sobre a face -->
+        <rect x="100" y="86" width="56" height="15" rx="4" fill="url(#gIngot)"/>
+        <rect id="forge-hot" x="100" y="86" width="56" height="15" rx="4" fill="#FFF3B0" opacity="0.35"/>
+        <rect x="100" y="86" width="56" height="15" rx="4" fill="none" stroke="#B23A12" stroke-opacity="0.5"/>
+
+        <!-- faiscas do impacto (burst sincronizado com o golpe) -->
+        <g id="forge-sparks">
+          <path d="M98 68 l2.2 -6.5 l2.2 6.5 l6.5 2.2 l-6.5 2.2 l-2.2 6.5 l-2.2 -6.5 l-6.5 -2.2 Z" fill="#FFB020"/>
+          <path d="M150 76 l1.8 -5 l1.8 5 l5 1.8 l-5 1.8 l-1.8 5 l-1.8 -5 l-5 -1.8 Z" fill="#EE5622"/>
+          <circle cx="160" cy="62" r="3" fill="#EE5622"/>
+          <circle cx="90" cy="90" r="2.5" fill="#F59E0B"/>
+          <circle cx="118" cy="58" r="2.2" fill="#FFCE5C"/>
+          <path d="M112 80 L103 66" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
+          <path d="M142 78 L151 64" stroke="#EE5622" stroke-width="2" stroke-linecap="round"/>
+          <path d="M128 76 L128 60" stroke="#FFCE5C" stroke-width="2" stroke-linecap="round"/>
         </g>
-        <path d="M92 140 q-4 40 2 62 h52 q6 -22 2 -62 Z" fill="none" stroke="#a1a1aa" stroke-width="1.5" opacity="0.5"/>
 
-        <!-- braco esquerdo segurando a lata -->
-        <g>
-          <path d="M96 148 q-26 4 -30 30 q-2 14 8 16 q10 2 12 -10 q2 -14 18 -20 Z" fill="#f4c095"/>
-          <!-- lata de energia -->
-          <g id="mascot-can">
-            <rect x="52" y="150" width="26" height="36" rx="4" fill="#0a0a0a" stroke="#10b981" stroke-width="2"/>
-            <rect x="52" y="150" width="26" height="10" rx="4" fill="#10b981"/>
-            <path d="M60 146 q5 -8 10 0" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"/>
-            <text x="65" y="172" font-family="'JetBrains Mono', monospace" font-size="7" font-weight="800" fill="#10b981" text-anchor="middle">FORJA</text>
+        <!-- martelo (desenhado na posicao de contato; a animacao levanta e bate) -->
+        <g id="forge-hammer">
+          <path d="M140 84 L197 36" stroke="#6E4B24" stroke-width="11" stroke-linecap="round"/>
+          <path d="M141 82 L196 36" stroke="#A97B42" stroke-width="6.5" stroke-linecap="round"/>
+          <path d="M187 44 L197 36" stroke="#4C331A" stroke-width="11" stroke-linecap="round"/>
+          <g transform="rotate(50 132 84)">
+            <rect x="108" y="71" width="48" height="26" rx="6" fill="url(#gHammerHead)"/>
+            <rect x="108" y="71" width="48" height="6" rx="3" fill="#FFFFFF" opacity="0.25"/>
+            <rect x="126" y="78" width="12" height="12" rx="3" fill="#161C26" opacity="0.7"/>
           </g>
-          <!-- vapor / energia subindo da lata -->
-          <g id="mascot-steam" opacity="0.9">
-            <path d="M58 144 q3 -8 -2 -14" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round"/>
-            <path d="M70 144 q3 -8 -2 -14" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round"/>
-          </g>
         </g>
-
-        <!-- braco direito flexando o biceps (grupo animado) -->
-        <g id="mascot-bicep-group">
-          <path d="M150 150 q30 2 34 -22 q3 -18 -12 -22 q-16 -4 -20 12 q-3 12 2 20 q-10 4 -14 16 Z" fill="#f4c095"/>
-          <!-- estrias do musculo -->
-          <path d="M158 118 q10 -6 20 -4" fill="none" stroke="#e0a877" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
-          <path d="M156 128 q12 -4 22 0" fill="none" stroke="#e0a877" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
-          <!-- punho fechado -->
-          <circle cx="176" cy="108" r="11" fill="#f4c095"/>
-          <path d="M168 104 q8 -4 16 0" fill="none" stroke="#e0a877" stroke-width="1.5" opacity="0.6"/>
-        </g>
-        <!-- faiscas de forca ao redor do biceps -->
-        <g id="mascot-sparkles">
-          <path d="M196 96 l3 -8 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 Z" fill="#fbbf24"/>
-          <circle cx="182" cy="80" r="3" fill="#fbbf24"/>
-          <circle cx="204" cy="118" r="2.5" fill="#06b6d4"/>
-        </g>
-
-        <!-- cabeca -->
-        <circle cx="118" cy="96" r="34" fill="#f4c095"/>
-        <!-- bochecha corada -->
-        <circle cx="100" cy="108" r="6" fill="#f97316" opacity="0.25"/>
-        <circle cx="134" cy="108" r="6" fill="#f97316" opacity="0.25"/>
-        <!-- queixo marcado -->
-        <path d="M104 116 q14 10 28 0" fill="none" stroke="#e0a877" stroke-width="1.5" opacity="0.5"/>
-
-        <!-- bone de marinheiro -->
-        <path d="M84 82 q34 -30 68 0 q2 -22 -34 -24 q-36 2 -34 24 Z" fill="#fafafa"/>
-        <rect x="82" y="80" width="72" height="10" rx="4" fill="#06b6d4"/>
-        <circle cx="118" cy="62" r="7" fill="#fafafa" stroke="#06b6d4" stroke-width="2"/>
-        <path d="M114 62 h8 M118 58 v8" stroke="#06b6d4" stroke-width="1.4"/>
-
-        <!-- olhos: um piscando (winking), outro aberto -->
-        <g id="mascot-eye-wink">
-          <path d="M100 96 q6 -6 12 0" fill="none" stroke="#18181b" stroke-width="3" stroke-linecap="round"/>
-        </g>
-        <circle cx="134" cy="94" r="3.4" fill="#18181b"/>
-
-        <!-- sorriso largo -->
-        <path d="M100 108 q18 16 38 2" fill="none" stroke="#18181b" stroke-width="3" stroke-linecap="round"/>
       </svg>
     </div>
 
     <div class="text-center mb-10">
       <div class="hero-title-wrap flex items-center justify-center gap-4 mb-2">
-        <div class="display text-7xl md:text-8xl leading-none hero-glow">FORJA</div>
+        <div class="display text-7xl md:text-8xl leading-none">FORJA<span style="color:var(--acc)">.</span></div>
       </div>
-      <div class="hero-badge mono text-[10px] mb-3 inline-block">FICA FORTE. FICA FORJA.</div>
+      <div class="hero-badge mono text-[10px] mb-3 inline-block">FORJANDO A SAUDE · FICA FORTE. FICA FORJA.</div>
       <div class="mono text-xs text-zinc-500 tracking-[0.4em] mt-1">COACH&nbsp;DASHBOARD&nbsp;·&nbsp;<span class="forja-ver">v?</span>&nbsp;·&nbsp;backend&nbsp;<span class="forja-backend">?</span></div>
     </div>
     <div class="max-w-xs mx-auto glass p-6 corners">
@@ -516,10 +497,10 @@
 <!-- TELA: TRAINER DASHBOARD                     -->
 <!-- =========================================== -->
 <section id="view-trainer" class="hidden min-h-screen pb-16">
-  <header class="scanbar px-6 py-4 sticky top-0 z-30" style="background:rgba(10,10,13,0.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--ctx);box-shadow:0 4px 24px var(--ctx-soft)">
+  <header class="scanbar px-6 py-4 sticky top-0 z-30" style="background:rgba(255,255,255,0.86);backdrop-filter:blur(14px);border-bottom:1px solid #E7EAEE;box-shadow:0 2px 12px rgba(14,17,22,0.05)">
     <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 bg-cyan-500 flex items-center justify-center display text-xl text-zinc-950">F</div>
+        <div class="w-9 h-9 bg-steel flex items-center justify-center display text-xl text-white" style="border-radius:10px;">F</div>
         <div>
           <div class="display text-2xl leading-none">FORJA<span class="text-cyan-400">.coach</span></div>
           <div class="mono text-[10px] text-zinc-500 tracking-widest">MODO TRAINER · <span class="forja-ver">v?</span> · backend <span class="forja-backend">?</span></div>
@@ -558,7 +539,7 @@
 <!-- TELA: EDITAR ALUNO (TRAINER)                -->
 <!-- =========================================== -->
 <section id="view-edit-aluno" class="hidden min-h-screen pb-16">
-  <header class="scanbar px-6 py-4 sticky top-0 z-30" style="background:rgba(10,10,13,0.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--ctx);box-shadow:0 4px 24px var(--ctx-soft)">
+  <header class="scanbar px-6 py-4 sticky top-0 z-30" style="background:rgba(255,255,255,0.86);backdrop-filter:blur(14px);border-bottom:1px solid #E7EAEE;box-shadow:0 2px 12px rgba(14,17,22,0.05)">
     <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
       <button onclick="navigateTo('#trainer')" class="mono text-xs text-zinc-400 hover:text-white tracking-widest">◂ ALUNOS</button>
       <div id="edit-aluno-title" class="display text-2xl"></div>
@@ -653,7 +634,7 @@
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div class="mono text-[10px] text-zinc-500 tracking-widest">PROGRESSAO DE CARGA</div>
           <label class="mono text-[10px] text-zinc-500 tracking-widest flex items-center gap-1.5 cursor-pointer ml-auto mr-2">
-            <input type="checkbox" id="evo-compare-trainer" style="accent-color:#06b6d4" /> COMPARAR ALUNOS
+            <input type="checkbox" id="evo-compare-trainer" style="accent-color:#EE5622" /> COMPARAR ALUNOS
           </label>
           <select id="evo-select-trainer" class="text-xs"></select>
         </div>
@@ -698,10 +679,10 @@
 <!-- TELA: ALUNO DASHBOARD                       -->
 <!-- =========================================== -->
 <section id="view-aluno" class="hidden min-h-screen pb-16">
-  <header class="scanbar px-6 py-4 sticky top-0 z-30" style="background:rgba(10,10,13,0.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--ctx);box-shadow:0 4px 24px var(--ctx-soft)">
+  <header class="scanbar px-6 py-4 sticky top-0 z-30" style="background:rgba(255,255,255,0.86);backdrop-filter:blur(14px);border-bottom:1px solid #E7EAEE;box-shadow:0 2px 12px rgba(14,17,22,0.05)">
     <div class="max-w-4xl mx-auto flex items-center justify-between gap-4">
       <div class="flex items-center gap-3">
-        <div id="aluno-avatar" class="avatar bg-zinc-100 text-zinc-950">—</div>
+        <div id="aluno-avatar" class="avatar bg-steel text-white">—</div>
         <div>
           <div id="aluno-nome" class="display text-2xl leading-none">—</div>
           <div id="aluno-last" class="mono text-[10px] text-zinc-500 tracking-widest">—</div>
@@ -1287,7 +1268,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v28.9.6';
+const FORJA_VERSION = 'v29.0.0';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
@@ -1299,12 +1280,14 @@ const DEFAULT_APPS_URL = 'https://script.google.com/macros/s/AKfycbzz9UplVRMcK2w
 
 // Dias suportados pelo sistema
 const DAYS = ['A', 'B', 'C', 'D', 'E'];
-const DAY_COLORS_TEXT = { A: 'text-red-500', B: 'text-amber-500', C: 'text-emerald-500', D: 'text-cyan-400', E: 'text-violet-400' };
-const DAY_COLORS_BG   = { A: 'bg-red-500',   B: 'bg-amber-500',   C: 'bg-emerald-500',   D: 'bg-cyan-500',   E: 'bg-violet-500'   };
-const DAY_COLORS_HEX  = { A: '#ef4444',      B: '#f59e0b',        C: '#10b981',          D: '#06b6d4',       E: '#a78bfa'         };
+// v29: classes proprias .day-* (definidas no CSS) — evita colisao com o override
+// global das utilitarias cyan (o accent brasa remapeia text-cyan-400, que era o dia D)
+const DAY_COLORS_TEXT = { A: 'day-tx-a', B: 'day-tx-b', C: 'day-tx-c', D: 'day-tx-d', E: 'day-tx-e' };
+const DAY_COLORS_BG   = { A: 'day-bg-a', B: 'day-bg-b', C: 'day-bg-c', D: 'day-bg-d', E: 'day-bg-e' };
+const DAY_COLORS_HEX  = { A: '#DC2626',  B: '#C77400',  C: '#0B8A55',  D: '#0E7490',  E: '#7C3AED'  };
 function dayColorText(d) { return DAY_COLORS_TEXT[String(d).toUpperCase()] || 'text-zinc-400'; }
 function dayColorBg(d)   { return DAY_COLORS_BG[String(d).toUpperCase()]   || 'bg-zinc-400'; }
-function dayColorHex(d)  { return DAY_COLORS_HEX[String(d).toUpperCase()]  || '#71717a'; }
+function dayColorHex(d)  { return DAY_COLORS_HEX[String(d).toUpperCase()]  || '#8B93A0'; }
 function emptyPlanoMap() { const o = {}; DAYS.forEach(d => o[d] = []); return o; }
 
 const APP = {
@@ -1363,9 +1346,9 @@ const $ = (id) => document.getElementById(id);
 function toast(msg, kind = 'info') {
   const c = $('toast-container');
   const colors = {
-    info: 'bg-zinc-800 border-zinc-700 text-zinc-100',
-    success: 'bg-emerald-700 border-emerald-600 text-white',
-    error: 'bg-red-900 border-red-700 text-white',
+    info: 'toast-info',
+    success: 'toast-ok',
+    error: 'toast-err',
   };
   const t = document.createElement('div');
   t.className = `toast border px-4 py-2 mono text-xs tracking-wider ${colors[kind]}`;
@@ -1536,8 +1519,8 @@ function registrosDaSessao(dia, dataIso) {
 // v18: classificacao composto/isolado -> sugestao de descanso
 function tipoInfo(t) {
   const s = String(t || '').toLowerCase();
-  if (s.startsWith('c')) return { label: 'COMPOSTO', desc: 'descanso 2-3min', cor: '#06b6d4' };
-  if (s.startsWith('i')) return { label: 'ISOLADO', desc: 'descanso 1-2min', cor: '#a78bfa' };
+  if (s.startsWith('c')) return { label: 'COMPOSTO', desc: 'descanso 2-3min', cor: '#0E7490' };
+  if (s.startsWith('i')) return { label: 'ISOLADO', desc: 'descanso 1-2min', cor: '#7C3AED' };
   return null;
 }
 
@@ -1604,10 +1587,10 @@ function renderEvoCalendario(regs, containerId) {
     if (treinou) {
       cls = 'bg-emerald-600 text-white';
     } else if (passado) {
-      cls = 'bg-red-900/70 text-red-200';
+      cls = 'cal-falta';
       faltas++;
     } else if (ehHoje) {
-      cls = 'text-cyan-300'; sty = 'box-shadow: inset 0 0 0 1px #06b6d4;';
+      cls = 'text-cyan-300'; sty = 'box-shadow: inset 0 0 0 2px #EE5622;';
     } else {
       cls = 'text-zinc-700';
     }
@@ -1737,51 +1720,8 @@ function calcularProgressoSemanal() {
 }
 
 function renderizarProgresso() {
-  const container = $('progress-background');
-  if (!container) return;
-
-  const num = calcularProgressoSemanal();
-
-  // Esquerda: Quebra-cabeca (4x4 grid = 16 peças max)
-  const puzzleSVG = `<svg width="140" height="140" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
-    <rect width="140" height="140" fill="none"/>
-  `;
-
-  let puzzleBody = puzzleSVG.slice(0, -2); // remove </svg>
-  for (let i = 0; i < 16; i++) {
-    const row = Math.floor(i / 4);
-    const col = i % 4;
-    const x = col * 35 + 2;
-    const y = row * 35 + 2;
-    const opacity = i < num ? '1' : '0.15';
-    puzzleBody += `<rect x="${x}" y="${y}" width="31" height="31" fill="#10b981" opacity="${opacity}" stroke="#06b6d4" stroke-width="1"/>`;
-  }
-  puzzleBody += `</svg>`;
-
-  // Direita: Parede (5x3 grid = 15 tijolos max)
-  const wallSVG = `<svg width="140" height="140" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
-    <rect width="140" height="140" fill="none"/>
-  `;
-
-  let wallBody = wallSVG.slice(0, -2);
-  let brickCount = 0;
-  for (let row = 0; row < 3; row++) {
-    const offset = (row % 2) * 18; // alterna offset dos tijolos (padrão)
-    for (let col = 0; col < 5; col++) {
-      const x = col * 26 + offset + 2;
-      const y = row * 40 + 2;
-      if (brickCount >= 14) break; // max 14 tijolos vistos
-      const opacity = brickCount < num ? '1' : '0.15';
-      wallBody += `<rect x="${x}" y="${y}" width="22" height="36" fill="#ef4444" opacity="${opacity}" stroke="#a1a1aa" stroke-width="0.5"/>`;
-      brickCount++;
-    }
-  }
-  wallBody += `</svg>`;
-
-  container.innerHTML = `
-    <div class="flex justify-center" style="flex:1;">${puzzleBody}</div>
-    <div class="flex justify-center" style="flex:1;">${wallBody}</div>
-  `;
+  // v29: background gamificado (quebra-cabeca/parede) removido no redesign claro.
+  // A funcao permanece como no-op porque o router ainda a chama no #home.
 }
 
 // ---------- ROUTER ----------
@@ -1827,35 +1767,10 @@ function route() {
   show('view-home');
 }
 
-// Mapa de cor de contexto por tela (futurista: cada secao tem seu brilho)
-const CTX_COLORS = {
-  'view-home':          { c: '#06b6d4', soft: 'rgba(6,182,212,0.14)' },
-  'view-config':        { c: '#06b6d4', soft: 'rgba(6,182,212,0.12)' },
-  'view-trainer-login': { c: '#06b6d4', soft: 'rgba(6,182,212,0.14)' },
-  'view-trainer':       { c: '#06b6d4', soft: 'rgba(6,182,212,0.12)' },
-  'view-edit-aluno':    { c: '#06b6d4', soft: 'rgba(6,182,212,0.12)' },
-  'view-aluno-login':   { c: '#fafafa', soft: 'rgba(255,255,255,0.10)' },
-  'view-aluno':         { c: '#fafafa', soft: 'rgba(255,255,255,0.08)' },
-  'view-treinar':       { c: '#06b6d4', soft: 'rgba(6,182,212,0.16)' },
-};
-function setContextColor(id) {
-  const cfg = CTX_COLORS[id];
-  if (!cfg) return;
-  const r = document.documentElement;
-  r.style.setProperty('--ctx', cfg.c);
-  r.style.setProperty('--ctx-soft', cfg.soft);
-}
-// No modo aluno, tinge o contexto com a cor do dia ativo (chamavel externamente)
-function setContextDay(day) {
-  const hex = (typeof dayColorHex === 'function') ? dayColorHex(day) : '#06b6d4';
-  const r = document.documentElement;
-  r.style.setProperty('--ctx', hex);
-  // versao soft (mesma cor a ~14%): converte hex -> rgba
-  const h = hex.replace('#','');
-  const bigint = parseInt(h.length===3 ? h.split('').map(x=>x+x).join('') : h, 16);
-  const cr=(bigint>>16)&255, cg=(bigint>>8)&255, cb=bigint&255;
-  r.style.setProperty('--ctx-soft', `rgba(${cr},${cg},${cb},0.14)`);
-}
+// v29: cor de contexto por tela removida — accent fixo BRASA definido no CSS (:root).
+// As funcoes permanecem como no-op porque show() e o modo aluno ainda as chamam.
+function setContextColor(id) { /* no-op v29 */ }
+function setContextDay(day) { /* no-op v29 */ }
 
 function show(id) {
   setContextColor(id);
@@ -2065,7 +1980,7 @@ function renderTrainerDashboard() {
     <div class="border ${ativoCor} p-4 bg-zinc-900/30 hover:bg-zinc-900/60 transition-colors cursor-pointer" onclick="navigateTo('#trainer/edit/${a.id}')">
       <div class="flex items-start justify-between mb-3">
         <div class="flex items-center gap-3">
-          <div class="avatar bg-cyan-500 text-zinc-950">${initials(a.nome)}</div>
+          <div class="avatar bg-steel text-white">${initials(a.nome)}</div>
           <div>
             <div class="display text-2xl leading-none">${escapeHtml(a.nome || a.id)}</div>
             <div class="mono text-[10px] text-zinc-500">@${a.id}</div>
@@ -2663,7 +2578,7 @@ function drawEvoChart(regs, suffix) {
     .filter(p => p.y != null)
     .sort((a, b) => a.d.localeCompare(b.d));
 
-  const PALETA = ['#06b6d4', '#f59e0b', '#10b981', '#ef4444', '#a78bfa', '#f472b6'];
+  const PALETA = ['#EE5622', '#0E7490', '#7C3AED', '#10935E', '#C77400', '#DC2626'];
   let labels, datasets;
 
   if (comparar) {
@@ -2704,13 +2619,13 @@ function drawEvoChart(regs, suffix) {
       if (empty) empty.classList.remove('hidden');
       return;
     }
-    const accent = '#06b6d4';
+    const accent = '#EE5622';
     labels = pts.map(p => fmtDate(p.d));
     datasets = [{
       label: 'carga (kg)',
       data: pts.map(p => p.y),
       borderColor: accent,
-      backgroundColor: 'rgba(6,182,212,0.12)',
+      backgroundColor: 'rgba(238,86,34,0.10)',
       fill: true,
       tension: 0.25,
       pointRadius: 4,
@@ -2729,7 +2644,7 @@ function drawEvoChart(regs, suffix) {
       datasets.push({
         label: 'alvo 1 ano (' + metaNum + 'kg)',
         data: labels.map(() => metaNum),
-        borderColor: '#f59e0b',
+        borderColor: '#C77400',
         backgroundColor: 'transparent',
         fill: false,
         pointRadius: 0,
@@ -2759,13 +2674,13 @@ function drawEvoChart(regs, suffix) {
         maintainAspectRatio: false,
         plugins: {
           legend: (comparar || (APP._evoAlvo && APP._evoAlvo[suffix]))
-            ? { display: true, labels: { color: '#a1a1aa', font: { size: 10, family: 'JetBrains Mono' }, boxWidth: 14 } }
+            ? { display: true, labels: { color: '#5B6472', font: { size: 10, family: 'JetBrains Mono' }, boxWidth: 14 } }
             : { display: false },
           tooltip: { displayColors: comparar }
         },
         scales: {
-          x: { ticks: { color: '#71717a', font: { size: 10, family: 'JetBrains Mono' } }, grid: { color: '#27272a' } },
-          y: { ticks: { color: '#71717a', font: { size: 10, family: 'JetBrains Mono' } }, grid: { color: '#27272a' }, beginAtZero: false }
+          x: { ticks: { color: '#8B93A0', font: { size: 10, family: 'JetBrains Mono' } }, grid: { color: '#E7EAEE' } },
+          y: { ticks: { color: '#8B93A0', font: { size: 10, family: 'JetBrains Mono' } }, grid: { color: '#E7EAEE' }, beginAtZero: false }
         }
       }
     });
@@ -2917,7 +2832,7 @@ function renderEvoHistorico(regs, containerId, isTrainer) {
     }
   });
   const bannerRot = alertasRot.length
-    ? `<div class="glass mb-2" style="border-color:rgba(245,158,11,0.45)"><div class="px-3 py-2 mono text-[11px] text-amber-400">⚠ rotacao: ${alertasRot.join(' · ')}</div></div>`
+    ? `<div class="glass mb-2" style="border-color:rgba(199,116,0,0.45);background:#FBF0DB"><div class="px-3 py-2 mono text-[11px] text-amber-400">⚠ rotacao: ${alertasRot.join(' · ')}</div></div>`
     : '';
 
   // OPTIMIZATION (Phase 3D): Lazy-load sessions - render only first 50, add "Load More"
@@ -3252,7 +3167,7 @@ $('btn-aluno-historico').onclick = () => {
 const MAPA_GRUPOS = ['peito','ombro','triceps','costas','biceps','core','quadriceps','posterior','panturrilha'];
 const MAPA_LABEL = { peito:'Peito', ombro:'Ombro', triceps:'Triceps', costas:'Costas', biceps:'Biceps', core:'Core', quadriceps:'Quadriceps', posterior:'Posterior', panturrilha:'Panturrilha' };
 const MAPA_REC = { recuperando: 1, atrasado: 5 }; // dias: <=1 recuperando, >=5 atrasado, no meio = pronto
-const MAPA_COR = { pronto:'#22c55e', recuperando:'#f59e0b', atrasado:'#ef4444', dim:'#3f3f46' };
+const MAPA_COR = { pronto:'#10935E', recuperando:'#C77400', atrasado:'#DC2626', dim:'#DCE0E6' };
 
 function musculosDoExercicio(nome) {
   const s = String(nome || '').toLowerCase();
@@ -3319,10 +3234,11 @@ function mapaSugerirDia(status) {
 
 function mapaCorpoSVG(status) {
   const c = g => MAPA_COR[(status[g] && status[g].st) || 'dim'];
-  const S = 'stroke="#0c0c0d" stroke-width="1"';
+  const S = 'stroke="#FFFFFF" stroke-width="1"';
   // v25: silhueta cheia (mesma frente/costas) + musculos por cima com contorno.
+  // v29: silhueta clara (cinza-gelo) + separadores brancos p/ tema claro.
   const sil = `
-    <g fill="#27272a" stroke="#3f3f46" stroke-width="0.8">
+    <g fill="#EDF0F3" stroke="#DCE0E6" stroke-width="0.8">
       <circle cx="60" cy="20" r="12"/><rect x="55" y="29" width="10" height="7" rx="2"/>
       <rect x="40" y="44" width="40" height="74" rx="14"/><rect x="44" y="112" width="32" height="22" rx="9"/>
       <ellipse cx="24" cy="78" rx="9" ry="22"/><ellipse cx="96" cy="78" rx="9" ry="22"/>
@@ -3336,18 +3252,18 @@ function mapaCorpoSVG(status) {
     <path d="M62 50 h15 a5 5 0 015 5 v9 a5 5 0 01-5 5 h-15 a5 5 0 01-5 -5 v-9 a5 5 0 015 -5z" fill="${c('peito')}" ${S}/>
     <ellipse cx="24" cy="77" rx="8" ry="16" fill="${c('biceps')}" ${S}/><ellipse cx="96" cy="77" rx="8" ry="16" fill="${c('biceps')}" ${S}/>
     <rect x="51" y="78" width="18" height="34" rx="5" fill="${c('core')}" ${S}/>
-    <line x1="60" y1="80" x2="60" y2="110" stroke="#0c0c0d" stroke-width="0.8"/>
-    <line x1="52" y1="90" x2="68" y2="90" stroke="#0c0c0d" stroke-width="0.8"/><line x1="52" y1="100" x2="68" y2="100" stroke="#0c0c0d" stroke-width="0.8"/>
+    <line x1="60" y1="80" x2="60" y2="110" stroke="#FFFFFF" stroke-width="0.8"/>
+    <line x1="52" y1="90" x2="68" y2="90" stroke="#FFFFFF" stroke-width="0.8"/><line x1="52" y1="100" x2="68" y2="100" stroke="#FFFFFF" stroke-width="0.8"/>
     <ellipse cx="50" cy="166" rx="11" ry="28" fill="${c('quadriceps')}" ${S}/><ellipse cx="70" cy="166" rx="11" ry="28" fill="${c('quadriceps')}" ${S}/>`;
   const costas = `
     <path d="M48 46 L72 46 L66 60 L54 60 Z" fill="${c('costas')}" ${S}/>
     <path d="M44 60 L58 63 L55 96 L46 84 Z" fill="${c('costas')}" ${S}/><path d="M76 60 L62 63 L65 96 L74 84 Z" fill="${c('costas')}" ${S}/>
-    <line x1="60" y1="58" x2="60" y2="112" stroke="#0c0c0d" stroke-width="0.8"/>
+    <line x1="60" y1="58" x2="60" y2="112" stroke="#FFFFFF" stroke-width="0.8"/>
     <ellipse cx="24" cy="77" rx="8" ry="16" fill="${c('triceps')}" ${S}/><ellipse cx="96" cy="77" rx="8" ry="16" fill="${c('triceps')}" ${S}/>
     <ellipse cx="53" cy="124" rx="10" ry="11" fill="${c('posterior')}" ${S}/><ellipse cx="67" cy="124" rx="10" ry="11" fill="${c('posterior')}" ${S}/>
     <ellipse cx="50" cy="168" rx="11" ry="27" fill="${c('posterior')}" ${S}/><ellipse cx="70" cy="168" rx="11" ry="27" fill="${c('posterior')}" ${S}/>
     <ellipse cx="50" cy="214" rx="8.5" ry="22" fill="${c('panturrilha')}" ${S}/><ellipse cx="70" cy="214" rx="8.5" ry="22" fill="${c('panturrilha')}" ${S}/>`;
-  const lbl = 'text-anchor="middle" fill="#71717a" style="font:8px monospace;letter-spacing:2px"';
+  const lbl = 'text-anchor="middle" fill="#8B93A0" style="font:8px monospace;letter-spacing:2px"';
   return `
   <svg viewBox="0 0 300 252" class="w-full" style="max-width:340px;margin:0 auto;display:block" role="img" aria-label="Mapa muscular de recuperacao, frente e costas">
     <g transform="translate(0,4)">${sil}${frente}<text x="60" y="250" ${lbl}>FRENTE</text></g>
@@ -3377,7 +3293,7 @@ function renderMapaMuscular() {
       <div class="text-sm text-zinc-400 mt-1">Registre suas sessoes pra eu colorir o mapa e dizer o que treinar.</div></div>`;
   } else {
     const foco = sug ? sug.grupos.map(g => MAPA_LABEL[g]).filter(Boolean).slice(0, 3).join(' · ') : '';
-    painel = `<div class="mt-4 rounded-2xl p-4" style="border:1px solid rgba(34,197,94,.35)">
+    painel = `<div class="mt-4 rounded-2xl p-4" style="border:1px solid rgba(16,147,94,.35);background:#E4F4EC">
       <div class="mono text-[10px] tracking-widest mb-1" style="color:${MAPA_COR.pronto}">PRONTO PRA TREINAR</div>
       <div class="display text-3xl">TREINO ${sug ? sug.dia : '—'}</div>
       <div class="text-sm text-zinc-400 mt-1">${escapeHtml(foco)} recuperados.</div>
@@ -4414,14 +4330,8 @@ function countUp(el, target, dur = 900) {
   requestAnimationFrame(step);
 }
 
-// Injeta os orbs de luz de fundo (uma vez)
-function injectOrbs() {
-  if (document.querySelector('.fx-orbs')) return;
-  const wrap = document.createElement('div');
-  wrap.className = 'fx-orbs';
-  wrap.innerHTML = '<div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>';
-  document.body.prepend(wrap);
-}
+// v29: orbs de luz removidos no tema claro (funcao mantida como no-op — init() ainda chama)
+function injectOrbs() { /* no-op v29 */ }
 
 // v21: pergunta ao backend (ping) qual versao ele e e mostra no rodape/headers.
 // Se o backend no ar ainda for o v1 (sem o campo), aparece "v1 (antigo)".
