@@ -1,4 +1,16 @@
-<!-- FORJA v29.2.0 - FEED MOTIVACIONAL na tela de login (pre-login)
+<!-- FORJA v29.2.1 - TREINAR: opcao ADICIONAR na trava de sessao existente
+     Ate v29.2.0, reabrir TREINAR num dia que ja tinha sessao lancada hoje so
+     dava 2 opcoes: SOBRESCREVER (apagava os exercicios ja feitos) ou Cancelar.
+     Isso travava o caso comum de "ja fechei o treino, voltei so pra registrar
+     +1-2 exercicios extras" (botao + EXERCICIO EXTRA) - qualquer 1o save
+     virava um aviso de que ia apagar tudo que ja tinha sido feito. Agora ha
+     uma 3a opcao ADICIONAR: nao apaga nada, so marca os exercicios do plano
+     que ja batem com registros existentes (por nome/slug) como "ja salvos"
+     -- reusando a mesma trava de duplicata que ja existia -- e deixa os
+     novos (extras) salvarem normalmente. SOBRESCREVER continua disponivel
+     como segunda opcao pra quem realmente quer refazer a sessao inteira.
+     ZERO mudanca no fluxo de LANCAR SESSAO (modal do trainer) nem no backend.
+     FORJA v29.2.0 - FEED MOTIVACIONAL na tela de login (pre-login)
      Cards de destaque ("Marcos treinou 7 dias seguidos", "campeao do mes
      passado", marca semanal 3+ treinos) aparecem em #view-home, entre o
      hero e o card de PIN - visiveis ANTES de autenticar, pra qualquer
@@ -1356,7 +1368,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v29.2.0';
+const FORJA_VERSION = 'v29.2.1';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
@@ -4054,6 +4066,27 @@ function mostrarExercicioAtual() {
   window.scrollTo(0, 0);
 }
 
+// v29.2.1: usado quando o aluno escolhe ADICIONAR (em vez de SOBRESCREVER) a
+// uma sessao ja existente. Casa cada item de TREINAR.plano com um registro ja
+// salvo no servidor (por slug do nome, tolerando substituicao/alias) e marca
+// como 'saved' — SEM apagar nada. Isso reusa a mesma trava de duplicata que
+// ja existia (TREINAR.salvos[idx]) pra impedir gravar de novo um exercicio
+// que o aluno ja fez hoje, mesmo sem passar pelo SOBRESCREVER. Exercicios do
+// plano que NAO batem com nenhum existente continuam 'pending' normalmente -
+// e assim que o "+ EXERCICIO EXTRA" novo entra sem barreira.
+function marcarExistentesComoSalvos(existentes) {
+  const porSlug = new Map();
+  existentes.forEach(r => { porSlug.set(slugify(r.exercicio), r); });
+  TREINAR.plano.forEach((p, idx) => {
+    if (TREINAR.salvos[idx]) return; // ja registrado nesta propria sessao
+    const r = porSlug.get(slugify(nomeEfetivo(idx))) || porSlug.get(slugify(p.exercicio));
+    if (!r) return;
+    TREINAR.salvos[idx] = { carga: r.carga || '', reps: r.reps || '', rir: r.rir != null ? r.rir : '', obs: r.obs || '', completou: !!r.completou };
+    TREINAR.statuses[idx] = 'saved';
+  });
+  atualizarStatusBar();
+}
+
 async function salvarRegistroAtual(completou) {
   const p = TREINAR.plano[TREINAR.idx];
   const idx = TREINAR.idx;
@@ -4070,10 +4103,19 @@ async function salvarRegistroAtual(completou) {
     // v16: trava de duplicata tambem no TREINAR (antes so o LANCAR SESSAO tinha).
     // A sessao antiga so e apagada AO FINALIZAR o treino, depois dos saves novos —
     // mesma politica "salva primeiro, apaga depois" do LANCAR SESSAO.
+    // v29.2.1: 3 opcoes em vez de SOBRESCREVER/Cancelar. Caso de uso real: o
+    // aluno ja fechou a sessao de hoje e volta so pra registrar 1-2 exercicios
+    // extras (+ EXERCICIO EXTRA) - antes disso era tratado como "vou refazer
+    // o dia inteiro" e avisava que ia APAGAR os que ja tinha feito.
     const existentes = registrosDaSessao(APP.alunoDay, dataEscolhida);
     if (existentes.length > 0) {
-      if (!confirm(`Ja existe um treino ${APP.alunoDay} em ${fmtDate(dataEscolhida)} (${existentes.length} exercicios).\n\nOK = SOBRESCREVER (a sessao antiga sera apagada ao finalizar este treino).\nCancelar = nao salvar (troque a DATA DO TREINO se for outro dia).`)) return false;
-      TREINAR.sobrescrever = existentes;
+      const querAdicionar = confirm(`Ja existe um treino ${APP.alunoDay} em ${fmtDate(dataEscolhida)} (${existentes.length} exercicios).\n\nOK = ADICIONAR estes exercicios novos a sessao existente (nada e apagado).\nCancelar = ver outras opcoes (sobrescrever ou nao salvar).`);
+      if (querAdicionar) {
+        marcarExistentesComoSalvos(existentes);
+      } else {
+        if (!confirm(`SOBRESCREVER a sessao ${APP.alunoDay} de ${fmtDate(dataEscolhida)}?\n\nOs ${existentes.length} exercicios ja registrados serao APAGADOS ao finalizar este treino.\n\nOK = sobrescrever. Cancelar = nao salvar nada (troque a DATA DO TREINO se for outro dia).`)) return false;
+        TREINAR.sobrescrever = existentes;
+      }
     }
     TREINAR.dataTreino = dataEscolhida;
     setDataTreinarTravada(true);
