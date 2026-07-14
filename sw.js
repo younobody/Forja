@@ -1,5 +1,5 @@
 /**
- * FORJA Service Worker - v29.2.0 PWA cache
+ * FORJA Service Worker - v29.2.1 PWA cache
  *
  * Estratégia:
  * - Cache-first: HTML, CSS/JS da página, fontes do Google, Chart.js de CDN
@@ -38,9 +38,29 @@
  * com a action feedMotivacional) - bump aqui so pra invalidar o cache
  * antigo do shell. A chamada da action e ao Apps Script, portanto ja e
  * network-only como as demais (nunca cacheada aqui).
+ * v29.2.1: TREINAR ganhou a opcao ADICIONAR na trava de sessao existente
+ * (mudanca so no HTML) - bump aqui so pra invalidar o cache antigo do shell.
+ * v29.3.0: PERFORMANCE no HTML (login em 1 chamada via action "login" do
+ * backend v3.8 + TTL 30s anti-double-fetch + stale-while-revalidate do
+ * dashboard do aluno em localStorage) - bump aqui so pra invalidar o cache
+ * antigo do shell. As chamadas novas continuam sendo ao Apps Script
+ * (network-only aqui, nada muda neste arquivo alem da versao).
+ * v29.4.0: PERFORMANCE 2 + BUGFIX neste arquivo. (1) O HTML tirou o
+ * Chart.js do <head> e carrega sob demanda na EVOLUCAO - a entrada do
+ * cdnjs em ASSETS CONTINUA aqui de proposito (o precache e o que faz o
+ * load on-demand ser instantaneo e funcionar offline; a URL precisa bater
+ * com CHARTJS_URL no HTML). (2) BUGFIX: os catches do fetch handler
+ * devolviam ./forja.html pra QUALQUER request que falhasse - um script ou
+ * chamada de API offline recebia HTML com status 200 (onerror nao dispara,
+ * erro silencioso). Agora so requests de NAVEGACAO caem pro shell; todo o
+ * resto recebe 503, que o app trata como erro de verdade.
+ * v29.4.1: PERFORMANCE 3 no HTML (ping do rodape atrasado ~2.5s pra nao
+ * competir com o feedMotivacional no boot - medido ao vivo que chamadas
+ * concorrentes ao Apps Script se atravessam) - bump aqui so pra invalidar
+ * o cache antigo do shell. Nada muda neste arquivo alem da versao.
  */
 
-const CACHE_VERSION = 'forja-v29.2.0';
+const CACHE_VERSION = 'forja-v29.4.1';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',
@@ -77,11 +97,16 @@ self.addEventListener('fetch', e => {
   const { request } = e;
   const url = new URL(request.url);
 
+  // v29.4.0: fallback pro shell SO em navegacao. Antes, qualquer request que
+  // falhasse (script, fetch de API) recebia o forja.html com status 200 -
+  // onerror nao disparava e o erro ficava silencioso/indecifravel no app.
+  const offlineFallback = () => (request.mode === 'navigate'
+    ? caches.match('./forja.html').then(r => r || new Response('Offline', { status: 503 }))
+    : Promise.resolve(new Response('Offline', { status: 503 })));
+
   // Apps Script (nao cachear nunca — sempre fresco)
   if (url.hostname === 'script.google.com' || url.hostname.includes('script.google')) {
-    return e.respondWith(fetch(request).catch(() =>
-      caches.match('./forja.html').then(r => r || new Response('Offline', { status: 503 }))
-    ));
+    return e.respondWith(fetch(request).catch(offlineFallback));
   }
 
   // Tudo o resto: cache-first (fontes, CDN, etc)
@@ -91,8 +116,6 @@ self.addEventListener('fetch', e => {
       const clone = res.clone();
       caches.open(SHELL_CACHE).then(cache => cache.put(request, clone));
       return res;
-    })).catch(() =>
-      caches.match('./forja.html').then(r => r || new Response('Offline', { status: 503 }))
-    )
+    })).catch(offlineFallback)
   );
 });
