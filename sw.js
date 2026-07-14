@@ -1,5 +1,5 @@
 /**
- * FORJA Service Worker - v29.0.0 PWA cache
+ * FORJA Service Worker - v29.2.0 PWA cache
  *
  * Estratégia:
  * - Cache-first: HTML, CSS/JS da página, fontes do Google, Chart.js de CDN
@@ -33,9 +33,14 @@
  * v29.1.0: aliases de exercicio na EVOLUCAO (aba "exercicios" da planilha
  * unifica dropdown/grafico/meta; requer backend v3.6) - bump aqui so pra
  * invalidar o cache antigo do shell.
+ * v29.2.0: FEED MOTIVACIONAL na tela de login (cards publicos de quem
+ * treinou - streak, campeao do mes, marca semanal; requer backend v3.7
+ * com a action feedMotivacional) - bump aqui so pra invalidar o cache
+ * antigo do shell. A chamada da action e ao Apps Script, portanto ja e
+ * network-only como as demais (nunca cacheada aqui).
  */
 
-const CACHE_VERSION = 'forja-v29.1.0';
+const CACHE_VERSION = 'forja-v29.2.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',
