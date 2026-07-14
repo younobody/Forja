@@ -1,4 +1,17 @@
-<!-- FORJA v29.4.0 - PERFORMANCE 2: carregamento mais leve (first paint)
+<!-- FORJA v29.4.1 - PERFORMANCE 3: ping do rodape atrasado (ajuste fino)
+     Medido ao vivo no app publicado (v29.4.0): ping (rodape) e
+     feedMotivacional (home) disparam JUNTOS no boot e competem por
+     capacidade do Apps Script - a MESMA chamada levou ~1.5s sozinha e
+     ~5.5s ao lado de outra concorrente (as vezes ate estourar o timeout
+     de 25s, provavel cold-start). O feed e o conteudo visivel da home;
+     o ping e so o texto de versao no rodape - agora ele espera ~2.5s
+     antes de disparar, deixando o feed ir sozinho e (bonus) aproveitar
+     o "aquecimento" que a 1a chamada da sessao parece dar ao container
+     do Apps Script. NAO muda velocidade de login (o usuario normalmente
+     demora mais que isso pra digitar o codigo) - so faz o feed da home
+     pintar mais rapido no primeiro carregamento / cache frio. ZERO
+     mudanca de backend.
+     FORJA v29.4.0 - PERFORMANCE 2: carregamento mais leve (first paint)
      A v29.3.0 atacou as idas ao Apps Script; esta ataca o caminho critico
      de carregamento. Quatro mudancas:
      (a) CHART.JS LAZY: saiu do <head> (bloqueava parse/first paint com
@@ -1424,7 +1437,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v29.4.0';
+const FORJA_VERSION = 'v29.4.1';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
@@ -4908,7 +4921,17 @@ async function mostrarBackendVer() {
   }
 
   route();
-  mostrarBackendVer();  // v21: mostra qual backend (v1/v2) esta no ar
+  // v29.4.1: ping do rodape (cosmetico) atrasado ~2.5s - medido ao vivo que
+  // disparar ping JUNTO com o feedMotivacional do #home (route() acima, se
+  // for a rota inicial) faz as duas chamadas competirem pelo Apps Script,
+  // que sofre contencao real sob chamadas concorrentes (confirmado com
+  // fetch cru: a mesma chamada levou ~1.5s sozinha e ~5.5s ao lado de outra
+  // simultanea). O feed FICA em t=0 de proposito - alem de ser o conteudo
+  // visivel da home (o ping e so texto de rodape), a 1a chamada tambem
+  // parece "esquentar" o container do Apps Script (medido: um pico de
+  // cold-start de 25s na 1a chamada da sessao, e ~2.5s estavel dai em
+  // diante) - atrasar as DUAS jogaria fora esse aquecimento.
+  setTimeout(mostrarBackendVer, 2500);  // v21: mostra qual backend (v1/v2) esta no ar
   // Em background, tenta re-enviar qualquer registro pendente do buffer local
   // (de sessoes anteriores onde a rede caiu).
   setTimeout(tentarSincronizarPendentes, 1500);
