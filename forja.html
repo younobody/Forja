@@ -1,4 +1,27 @@
-<!-- FORJA v29.2.1 - TREINAR: opcao ADICIONAR na trava de sessao existente
+<!-- FORJA v29.3.0 - PERFORMANCE: login em 1 chamada + dashboard instantaneo
+     O app esperava o Apps Script (1.5-4s por round-trip) em serie em varios
+     pontos. Tres correcoes:
+     (a) LOGIN: o fluxo por codigo fazia listarIds + um getAluno POR id
+     conhecido em sequencia + getAdmin no final = 3-5 round-trips. Agora usa
+     a acao "login" do backend v3.8: 1 chamada resolve aluno OU trainer e ja
+     devolve o payload completo. Com backend antigo (< v3.8) cai sozinho no
+     fluxo legado (detecta a resposta "unknown action").
+     (b) DOUBLE-FETCH morto: todo login ja baixava os dados e o router
+     refazia o MESMO fetch ao navegar pro dashboard. Agora ha TTL de 30s
+     (APP.dataLoadedAt): navegar re-renderiza sem rede se o dado e recente
+     (inclui "voltei do TREINAR"). Escritas (salvar registro/peso/aluno) e o
+     botao refresh usam force:true - nunca seguram dado velho pos-save.
+     (c) DASHBOARD DO ALUNO INSTANTANEO: APP.data do aluno agora persiste em
+     localStorage (stale-while-revalidate) - abrir o app pinta a tela na
+     hora com o ultimo dado e atualiza em background, sem spinner. Payload
+     do TRAINER nunca vai pro disco (APP.data.alunos contem PINs - a tela
+     de editar aluno exibe o PIN); trainer ganha SWR so em memoria + TTL.
+     Cache com versao de schema na chave, limpo no logout, e falha de
+     localStorage nunca quebra o fluxo. Refresh em background so
+     re-renderiza se o JSON mudou E a view ainda e a mesma (nao fecha modal
+     nem reseta scroll), e falha silenciosa (sem toast em cima de tela ja
+     pintada). Requer backend v3.8 pro ganho total do login.
+     FORJA v29.2.1 - TREINAR: opcao ADICIONAR na trava de sessao existente
      Ate v29.2.0, reabrir TREINAR num dia que ja tinha sessao lancada hoje so
      dava 2 opcoes: SOBRESCREVER (apagava os exercicios ja feitos) ou Cancelar.
      Isso travava o caso comum de "ja fechei o treino, voltei so pra registrar
@@ -1368,7 +1391,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v29.2.1';
+const FORJA_VERSION = 'v29.3.0';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
@@ -1398,6 +1421,9 @@ const APP = {
   alunoSession: null, // {id, pin}
   // dados cached
   data: null,
+  dataLoadedAt: 0,    // v29.3.0: quando APP.data chegou da rede (TTL anti-refetch)
+  dataIdentity: null, // v29.3.0: de quem e APP.data ('aluno-<id>' | 'trainer')
+  _bgRefresh: false,  // v29.3.0: trava anti-concorrencia do refresh em background
   currentAluno: null, // id do aluno sendo editado
   editPlano: emptyPlanoMap(),
   editDay: 'A',
@@ -1847,6 +1873,62 @@ async function apiPost(body) {
   }
 }
 
+// ---------- CACHE LOCAL DE DADOS (v29.3.0) ----------
+// Objetivo: nao bloquear a UI num round-trip do Apps Script quando ja temos
+// dado bom o suficiente pra pintar a tela.
+// - TTL (dataAindaFresco): dado carregado ha <30s nao e rebuscado ao navegar
+//   (mata o double-fetch pos-login e o "voltei do TREINAR -> spinner").
+// - SWR (stale-while-revalidate): dashboard renderiza ja com o que houver
+//   (memoria ou, no caso do aluno, localStorage) e atualiza em background.
+// - Payload do TRAINER nunca vai pro localStorage: APP.data.alunos contem os
+//   PINs de todos (a tela editar aluno exibe o PIN) - nao persiste em disco
+//   possivelmente compartilhado. Trainer ganha SWR so em memoria.
+// - Escritas e refresh manual chamam load*Data({ force: true }).
+
+const DATA_CACHE_SCHEMA = 'v1'; // bump se o shape de APP.data mudar (descarta cache velho)
+const DATA_FRESH_MS = 30000;
+
+function identidadeAtual() {
+  if (APP.alunoSession && APP.alunoSession.id) return 'aluno-' + APP.alunoSession.id;
+  if (APP.trainerKey) return 'trainer';
+  return null;
+}
+
+function dataCacheKey(identidade) { return 'forja-data-' + DATA_CACHE_SCHEMA + '-' + identidade; }
+
+function marcarDataFresco() {
+  APP.dataLoadedAt = Date.now();
+  APP.dataIdentity = identidadeAtual();
+}
+
+function dataAindaFresco() {
+  return !!APP.data && !!APP.dataLoadedAt &&
+    APP.dataIdentity === identidadeAtual() &&
+    (Date.now() - APP.dataLoadedAt) < DATA_FRESH_MS;
+}
+
+// So persiste dado de ALUNO (ver nota de PIN acima). Falha de localStorage
+// (quota, modo privado) e silenciosa: cache e otimizacao, nunca requisito.
+function salvarDataCache() {
+  const id = identidadeAtual();
+  if (!id || id.indexOf('aluno-') !== 0 || !APP.data) return;
+  try { localStorage.setItem(dataCacheKey(id), JSON.stringify(APP.data)); } catch (e) {}
+}
+
+function lerDataCache() {
+  const id = identidadeAtual();
+  if (!id || id.indexOf('aluno-') !== 0) return null;
+  try { return JSON.parse(localStorage.getItem(dataCacheKey(id)) || 'null'); } catch (e) { return null; }
+}
+
+function limparDataCache() {
+  try {
+    Object.keys(localStorage)
+      .filter(k => k.indexOf('forja-data-') === 0)
+      .forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
+}
+
 // ---------- PROGRESSO VISUAL (v28.3) ----------
 
 function calcularProgressoSemanal() {
@@ -1932,6 +2014,10 @@ function show(id) {
 function logout() {
   APP.trainerKey = null;
   APP.alunoSession = null;
+  APP.data = null;
+  APP.dataLoadedAt = 0;
+  APP.dataIdentity = null;
+  limparDataCache(); // dado de aluno em localStorage nao sobrevive ao logout
   sessionStorage.removeItem('forja-trainer-key');
   sessionStorage.removeItem('forja-aluno-session');
   navigateTo('#home');
@@ -2011,17 +2097,66 @@ async function loginCodigo() {
   if (!codigo) { st.innerHTML = '<span class="text-red-500">Digite seu codigo</span>'; return; }
   showLoading(true);
   st.textContent = '';
+  // v29.3.0: backend v3.8+ resolve aluno OU trainer em 1 round-trip e ja
+  // devolve o payload completo (r.role + dados). Backend antigo responde
+  // {error:'unknown action: login'} -> cai no fluxo legado (N chamadas).
+  try {
+    const r = await apiGet({ action: 'login', codigo });
+    if (r.role === 'trainer') { entrarComoTrainer(codigo, r); return; }
+    entrarComoAluno({ id: r.id, pin: codigo }, r);
+    return;
+  } catch (e) {
+    if (e.network) { showLoading(false); st.innerHTML = '<span class="text-red-500">✗ ' + e.message + '</span>'; return; }
+    if (!/unknown action/i.test(String(e.message))) {
+      showLoading(false);
+      st.innerHTML = '<span class="text-red-500">✗ codigo invalido</span>';
+      return;
+    }
+    /* backend < v3.8 - segue pro fluxo legado abaixo */
+  }
+  await loginCodigoLegado(codigo, st);
+}
+
+// Centraliza o pos-login: seta sessao/dados, marca frescor (evita o router
+// refazer o fetch que acabou de acontecer - double-fetch morto em v29.3.0)
+// e persiste o cache local. A tela de login define a identidade INTEIRA:
+// limpa a credencial do outro papel pra o cache por identidade nunca
+// misturar aluno x trainer.
+function entrarComoAluno(sessao, data) {
+  APP.trainerKey = null;
+  sessionStorage.removeItem('forja-trainer-key');
+  APP.alunoSession = sessao;
+  APP.data = data;
+  marcarDataFresco();
+  salvarDataCache();
+  invalidateRegistrosCache();
+  sessionStorage.setItem('forja-aluno-session', JSON.stringify(sessao));
+  migrarBufferAnonimo();
+  showLoading(false);
+  navigateTo('#aluno/' + sessao.id);
+}
+
+function entrarComoTrainer(key, data) {
+  APP.alunoSession = null;
+  sessionStorage.removeItem('forja-aluno-session');
+  APP.trainerKey = key;
+  APP.data = data;
+  marcarDataFresco(); // trainer: frescor so em memoria (nada vai pro disco)
+  invalidateRegistrosCache();
+  sessionStorage.setItem('forja-trainer-key', key);
+  showLoading(false);
+  navigateTo('#trainer');
+}
+
+// Fluxo pre-v3.8: listarIds + tenta getAluno id por id + getAdmin no final.
+// Mantido apenas como fallback enquanto o backend novo nao esta no ar.
+async function loginCodigoLegado(codigo, st) {
   const ids = await obterIdsConhecidos();
   // 1) tenta como ALUNO (codigo = PIN), na ordem dos ids conhecidos
   for (const id of ids) {
     try {
       const data = await apiGet({ action: 'getAluno', id, pin: codigo });
-      APP.alunoSession = { id, pin: codigo };
-      APP.data = data;
-      sessionStorage.setItem('forja-aluno-session', JSON.stringify(APP.alunoSession));
-      migrarBufferAnonimo();
-      showLoading(false);
-      navigateTo('#aluno/' + id);
+      entrarComoAluno({ id, pin: codigo }, data);
       return;
     } catch (e) {
       if (e.network) { showLoading(false); st.innerHTML = '<span class="text-red-500">✗ ' + e.message + '</span>'; return; }
@@ -2031,11 +2166,7 @@ async function loginCodigo() {
   // 2) tenta como TRAINER (codigo = chave admin)
   try {
     const data = await apiGet({ action: 'getAdmin', key: codigo });
-    APP.trainerKey = codigo;
-    APP.data = data;
-    sessionStorage.setItem('forja-trainer-key', codigo);
-    showLoading(false);
-    navigateTo('#trainer');
+    entrarComoTrainer(codigo, data);
     return;
   } catch (e) {
     showLoading(false);
@@ -2055,28 +2186,36 @@ $('btn-trainer-entrar').onclick = async () => {
   if (!key) { $('trainer-login-status').innerHTML = '<span class="text-red-500">Chave vazia</span>'; return; }
   showLoading(true);
   try {
-    APP.trainerKey = key;
     const data = await apiGet({ action: 'getAdmin', key });
-    APP.data = data;
-    sessionStorage.setItem('forja-trainer-key', key);
-    navigateTo('#trainer');
+    entrarComoTrainer(key, data);
   } catch (e) {
     APP.trainerKey = null;
     $('trainer-login-status').innerHTML = '<span class="text-red-500">✗ ' + e.message + '</span>';
-  } finally {
     showLoading(false);
   }
 };
 
 // ---------- TRAINER DASHBOARD ----------
 
-$('btn-trainer-refresh').onclick = () => loadTrainerData();
+$('btn-trainer-refresh').onclick = () => loadTrainerData({ force: true });
 $('btn-trainer-novo').onclick = () => $('modal-novo').classList.remove('hidden');
 
-async function loadTrainerData() {
+async function loadTrainerData(opts) {
+  const force = !!(opts && opts.force);
+  if (!force) {
+    // Dado com <30s (ex.: acabou de logar): so re-renderiza, sem rede.
+    if (dataAindaFresco()) { renderTrainerDashboard(); return; }
+    // SWR em memoria: pinta o que ja tem e atualiza em background.
+    if (APP.data && APP.dataIdentity === 'trainer') {
+      renderTrainerDashboard();
+      refreshTrainerEmBackground();
+      return;
+    }
+  }
   showLoading(true);
   try {
     APP.data = await apiGet({ action: 'getAdmin', key: APP.trainerKey });
+    marcarDataFresco();
     invalidateRegistrosCache(); // OPTIMIZATION: Clear cache on fresh data
     renderTrainerDashboard();
   } catch (e) {
@@ -2084,6 +2223,26 @@ async function loadTrainerData() {
   } finally {
     showLoading(false);
   }
+}
+
+// Refresh silencioso pos-render do SWR: sem spinner, sem toast de erro
+// (a tela ja esta pintada com o dado anterior). So re-renderiza se o JSON
+// mudou E o usuario ainda esta no dashboard (nao fecha modal/reseta scroll).
+async function refreshTrainerEmBackground() {
+  if (APP._bgRefresh) return;
+  APP._bgRefresh = true;
+  try {
+    const data = await apiGet({ action: 'getAdmin', key: APP.trainerKey });
+    if (identidadeAtual() !== 'trainer') return; // logout no meio do voo
+    const mudou = JSON.stringify(data) !== JSON.stringify(APP.data);
+    APP.data = data;
+    marcarDataFresco();
+    if (mudou) {
+      invalidateRegistrosCache();
+      if (!$('view-trainer').classList.contains('hidden')) renderTrainerDashboard();
+    }
+  } catch (e) { /* silencioso */ }
+  finally { APP._bgRefresh = false; }
 }
 
 function renderTrainerDashboard() {
@@ -2172,7 +2331,7 @@ $('btn-criar-aluno').onclick = async () => {
     toast('Aluno criado', 'success');
     $('modal-novo').classList.add('hidden');
     ['novo-id','novo-nome','novo-pin','novo-objetivo','novo-notas'].forEach(k => $(k).value = '');
-    await loadTrainerData();
+    await loadTrainerData({ force: true });
     navigateTo('#trainer/edit/' + id);
   } catch (e) {
     toast(e.message, 'error');
@@ -2271,7 +2430,7 @@ $('btn-import-confirmar').onclick = async () => {
     $('import-json').value = '';
     $('import-pin').value = '';
     $('import-file').value = '';
-    await loadTrainerData();
+    await loadTrainerData({ force: true });
     navigateTo('#trainer/edit/' + p.aluno.id);
   } catch (e) {
     $('import-status').innerHTML = `<span class="text-red-500">✗ ${e.message}</span>`;
@@ -3022,7 +3181,7 @@ function _attachEvoHistoricoListeners(c, containerId, isTrainer) {
         if (isTrainer) {
           loadEditAluno(APP.currentAluno);
         } else {
-          await loadAlunoData();
+          await loadAlunoData({ force: true });
         }
       } catch (e) {
         toast(e.message, 'error');
@@ -3050,7 +3209,7 @@ function _attachEvoHistoricoListeners(c, containerId, isTrainer) {
         if (isTrainer) {
           loadEditAluno(APP.currentAluno);
         } else {
-          await loadAlunoData();
+          await loadAlunoData({ force: true });
           $('aluno-historico-section').classList.remove('hidden');
           renderAlunoHistorico();
         }
@@ -3148,27 +3307,45 @@ $('btn-aluno-entrar').onclick = async () => {
   showLoading(true);
   try {
     const data = await apiGet({ action: 'getAluno', id, pin });
-    APP.alunoSession = { id, pin };
-    APP.data = data;
-    sessionStorage.setItem('forja-aluno-session', JSON.stringify(APP.alunoSession));
-    migrarBufferAnonimo();
-    navigateTo('#aluno/' + id);
+    entrarComoAluno({ id, pin }, data);
   } catch (e) {
     $('aluno-login-status').innerHTML = '<span class="text-red-500">✗ ' + e.message + '</span>';
-  } finally {
     showLoading(false);
   }
 };
 
 // ---------- ALUNO DASHBOARD ----------
 
-$('btn-aluno-refresh').onclick = () => loadAlunoData();
+$('btn-aluno-refresh').onclick = () => loadAlunoData({ force: true });
 
-async function loadAlunoData() {
+async function loadAlunoData(opts) {
+  const force = !!(opts && opts.force);
   if (!APP.alunoSession) { navigateTo('#aluno-login'); return; }
+  if (!force) {
+    // Dado com <30s (acabou de logar / voltou do TREINAR): sem rede.
+    if (dataAindaFresco()) { renderAlunoDashboard(); return; }
+    // SWR: memoria > localStorage. Pinta ja e atualiza em background.
+    const identidade = identidadeAtual();
+    if (!(APP.data && APP.dataIdentity === identidade)) {
+      const cached = lerDataCache();
+      if (cached) {
+        APP.data = cached;
+        APP.dataIdentity = identidade;
+        APP.dataLoadedAt = 0; // cache de disco: pinta, mas nao conta como fresco
+        invalidateRegistrosCache();
+      }
+    }
+    if (APP.data && APP.dataIdentity === identidade) {
+      renderAlunoDashboard();
+      refreshAlunoEmBackground();
+      return;
+    }
+  }
   showLoading(true);
   try {
     APP.data = await apiGet({ action: 'getAluno', id: APP.alunoSession.id, pin: APP.alunoSession.pin });
+    marcarDataFresco();
+    salvarDataCache();
     invalidateRegistrosCache(); // OPTIMIZATION: Clear cache on fresh data
     renderAlunoDashboard();
   } catch (e) {
@@ -3176,6 +3353,26 @@ async function loadAlunoData() {
   } finally {
     showLoading(false);
   }
+}
+
+// Ver comentario em refreshTrainerEmBackground - mesma logica, papel aluno.
+async function refreshAlunoEmBackground() {
+  if (APP._bgRefresh) return;
+  APP._bgRefresh = true;
+  const identidade = identidadeAtual();
+  try {
+    const data = await apiGet({ action: 'getAluno', id: APP.alunoSession.id, pin: APP.alunoSession.pin });
+    if (identidadeAtual() !== identidade) return; // logout/troca no meio do voo
+    const mudou = JSON.stringify(data) !== JSON.stringify(APP.data);
+    APP.data = data;
+    marcarDataFresco();
+    salvarDataCache();
+    if (mudou) {
+      invalidateRegistrosCache();
+      if (!$('view-aluno').classList.contains('hidden')) renderAlunoDashboard();
+    }
+  } catch (e) { /* silencioso */ }
+  finally { APP._bgRefresh = false; }
 }
 
 function renderAlunoDashboard() {
@@ -3306,7 +3503,7 @@ $('btn-salvar-peso').onclick = async () => {
     });
     toast('Peso registrado - ' + kg + 'kg', 'success');
     $('modal-peso').classList.add('hidden');
-    await loadAlunoData();
+    await loadAlunoData({ force: true });
   } catch (e) {
     st.innerHTML = '<span class="text-red-500">✗ ' + e.message + '</span>';
   } finally {
@@ -3635,7 +3832,7 @@ $('btn-salvar-sessao').onclick = async () => {
     }
     toast(`Sessao ${day} salva em ${fmtDate(dataTreino)} · ${ok} exercicios${sobrescrever ? ' · anterior sobrescrita' : ''}`, 'success');
     $('modal-registrar').classList.add('hidden');
-    await loadAlunoData();
+    await loadAlunoData({ force: true });
   } catch (e) {
     toast(e.message, 'error');
   } finally {
@@ -4456,7 +4653,7 @@ async function finalizarTreinar() {
   $('treinar-summary').classList.add('hidden');
   $('view-treinar').classList.add('hidden');
   $('view-aluno').classList.remove('hidden');
-  await loadAlunoData();
+  await loadAlunoData({ force: true });
 }
 
 function encerrarTreinar() {
