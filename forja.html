@@ -1,4 +1,12 @@
-<!-- FORJA v29.1.0 - ALIASES DE EXERCICIO na EVOLUCAO (unificacao por apelido)
+<!-- FORJA v29.2.0 - FEED MOTIVACIONAL na tela de login (pre-login)
+     Cards de destaque ("Marcos treinou 7 dias seguidos", "campeao do mes
+     passado", marca semanal 3+ treinos) aparecem em #view-home, entre o
+     hero e o card de PIN - visiveis ANTES de autenticar, pra qualquer
+     visitante. Busca assincrona (action=feedMotivacional, endpoint publico,
+     sem PIN/key) que nunca bloqueia login: se falhar ou vier vazio, a tela
+     de login segue normal, sem o card. Requer backend v3.7 (novo endpoint
+     feedMotivacional + coluna visivel_publico na aba alunos p/ opt-out).
+     v29.1.0 - ALIASES DE EXERCICIO na EVOLUCAO (unificacao por apelido)
      A aba "exercicios" da planilha (nome_atual | aliases separados por ";")
      agora funciona de ponta a ponta: o backend v3.6 envia os grupos no payload
      (getAluno/getAdmin) e a tela de EVOLUCAO unifica: dropdown agrupa por nome
@@ -265,6 +273,70 @@
   .hero-badge { display: inline-block; padding: 0.2rem 0.7rem; border: 1px solid #CDE9DA; color: var(--ok-ink); border-radius: 999px; letter-spacing: 0.2em; background: var(--ok-soft); }
 
   /* ===================================================================
+     v29.2.0: FEED MOTIVACIONAL (tela de login, pre-auth)
+     3 tiers de destaque - quanto maior a frequencia, maior e mais quente
+     o card. sm = branco discreto, md = verde "feito", lg = campeao em
+     brasa (com pulso de calor, casa com a cena da forja logo acima).
+     Selo "TA PAGO" rotacionado aparece em quem treinou HOJE.
+     =================================================================== */
+  .feed-card {
+    position: relative;
+    display: inline-flex; align-items: center; gap: .55rem;
+    background: #FFFFFF;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: .45rem .85rem;
+    box-shadow: 0 1px 2px rgba(14,17,22,.05);
+  }
+  .fc-emoji { line-height: 1; font-size: 1rem; }
+  .fc-body { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.12; text-align: left; }
+  .fc-nome { font-family: 'Bebas Neue', sans-serif; letter-spacing: .05em; color: var(--text); font-size: 1.05rem; }
+  .fc-frase { font-family: 'JetBrains Mono', monospace; font-size: .58rem; letter-spacing: .06em; text-transform: uppercase; color: var(--text-dim); }
+
+  /* tier SM - treinou ontem/hoje ou destaque leve: card branco discreto */
+  .feed-card--sm .fc-nome { font-size: .95rem; }
+
+  /* tier MD - streak 3+ ou 4+ na semana: verde "feito", presenca media */
+  .feed-card--md {
+    border-color: #BFE3CF;
+    background: linear-gradient(160deg, #FFFFFF 30%, var(--ok-soft));
+    box-shadow: 0 3px 10px -3px rgba(16,147,94,.28);
+    padding: .55rem 1rem;
+  }
+  .feed-card--md .fc-emoji { font-size: 1.25rem; }
+  .feed-card--md .fc-nome { font-size: 1.25rem; }
+  .feed-card--md .fc-frase { color: var(--ok-ink); }
+
+  /* tier LG - campeao do mes: brasa, o card mais quente da tela */
+  .feed-card--lg {
+    border: 1px solid var(--acc);
+    background: linear-gradient(160deg, #FFFFFF 25%, var(--acc-soft));
+    border-radius: 16px;
+    padding: .7rem 1.25rem;
+    animation: fc-ember 2.6s ease-in-out infinite;
+  }
+  .feed-card--lg .fc-emoji { font-size: 1.7rem; }
+  .feed-card--lg .fc-nome { font-size: 1.6rem; }
+  .feed-card--lg .fc-frase { font-size: .62rem; color: var(--acc-ink); font-weight: 600; }
+  @keyframes fc-ember {
+    0%, 100% { box-shadow: 0 6px 18px -6px rgba(238,86,34,.40); }
+    50%      { box-shadow: 0 6px 26px -4px rgba(238,86,34,.62); }
+  }
+
+  /* selo "TA PAGO" - so em quem treinou HOJE */
+  .fc-stamp {
+    position: absolute; top: -9px; right: -8px;
+    transform: rotate(7deg);
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
+    font-size: .5rem; letter-spacing: .1em;
+    color: var(--ok-ink); background: #FFFFFF;
+    border: 1.5px solid currentColor; border-radius: 5px;
+    padding: .08rem .3rem;
+    box-shadow: 0 1px 3px rgba(14,17,22,.14);
+  }
+  .feed-card--lg .fc-stamp { color: var(--acc-ink); }
+
+  /* ===================================================================
      v29 OVERRIDE LAYER — remapeia as utilitarias Tailwind (compiladas
      no bloco #tailwind-compiled com valores dark) para o tema claro.
      Mesma especificidade, declarado depois => vence sem !important.
@@ -470,6 +542,11 @@
       </div>
       <div class="hero-badge mono text-[10px] mb-3 inline-block">FORJANDO A SAUDE · FICA FORTE. FICA FORJA.</div>
       <div class="mono text-xs text-zinc-500 tracking-[0.4em] mt-1">COACH&nbsp;DASHBOARD&nbsp;·&nbsp;<span class="forja-ver">v?</span>&nbsp;·&nbsp;backend&nbsp;<span class="forja-backend">?</span></div>
+    </div>
+    <!-- v29.2.0: feed motivacional publico (pre-login) - fica escondido ate o fetch trazer pelo menos 1 destaque -->
+    <div id="feed-motivacional" class="hidden mb-6">
+      <div class="mono text-[10px] tracking-widest text-zinc-500 text-center mb-2">QUEM TÁ TREINANDO</div>
+      <div id="feed-motivacional-cards" class="flex flex-wrap justify-center gap-2"></div>
     </div>
     <div class="max-w-xs mx-auto glass p-6 corners">
       <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">SEU CODIGO</label>
@@ -1279,7 +1356,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v29.1.0';
+const FORJA_VERSION = 'v29.2.0';
 
 // URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
 // vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
@@ -1433,6 +1510,56 @@ function daysAgo(input) {
     if (diffDias === 1) return 'ontem';
     return `${diffDias}d atras`;
   } catch { return '—'; }
+}
+
+// ===== v29.2.0: FEED MOTIVACIONAL (tela de login, pre-auth) =====
+// Busca so uma vez por sessao do app (nao refaz a cada volta pra #home).
+// Cosmetico: qualquer falha (rede, backend antigo sem a action, feed vazio)
+// deve deixar a tela de login exatamente como estava, sem travar nada.
+let _feedMotivacionalCarregado = false;
+
+async function carregarFeedMotivacional() {
+  if (_feedMotivacionalCarregado) return;
+  _feedMotivacionalCarregado = true;
+  try {
+    const r = await apiGet({ action: 'feedMotivacional' });
+    if (!r || !Array.isArray(r.feed) || r.feed.length === 0) return;
+    renderFeedMotivacional(r.feed);
+  } catch (e) { /* silencioso - nunca deve travar a tela de login */ }
+}
+
+function tierDoCardMotivacional(item) {
+  if (item.campeaoMes) return 'lg';
+  if (item.streak >= 3 || item.treinos7d >= 4) return 'md';
+  return 'sm';
+}
+
+// Emoji + frase (sem o nome - o nome vai em destaque proprio no card)
+function partesDoCardMotivacional(item) {
+  if (item.campeaoMes) return { emoji: '🏆', frase: `campeão do mês passado · ${item.treinosMesPassado} treinos` };
+  if (item.streak >= 2) return { emoji: '🔥', frase: `${item.streak} dias seguidos` };
+  if (item.treinos7d >= 3) return { emoji: '💪', frase: `${item.treinos7d} treinos essa semana` };
+  return { emoji: '✅', frase: `treinou ${daysAgo(item.ultimoTreino)}` };
+}
+
+function renderFeedMotivacional(feed) {
+  const wrap = $('feed-motivacional');
+  const cards = $('feed-motivacional-cards');
+  if (!wrap || !cards) return;
+  cards.innerHTML = feed.map(item => {
+    const tier = tierDoCardMotivacional(item);
+    const p = partesDoCardMotivacional(item);
+    const treinouHoje = daysAgo(item.ultimoTreino) === 'hoje';
+    return `<div class="feed-card feed-card--${tier}">` +
+      `<span class="fc-emoji">${p.emoji}</span>` +
+      `<span class="fc-body">` +
+        `<span class="fc-nome">${escapeHtml(item.nome)}</span>` +
+        `<span class="fc-frase">${escapeHtml(p.frase)}</span>` +
+      `</span>` +
+      (treinouHoje ? `<span class="fc-stamp">TÁ PAGO</span>` : '') +
+    `</div>`;
+  }).join('');
+  wrap.classList.remove('hidden');
 }
 
 // Retorna YYYY-MM-DD da data LOCAL do timestamp. Robusto a:
@@ -1752,7 +1879,7 @@ function route() {
   ['view-home','view-config','view-trainer-login','view-trainer','view-edit-aluno','view-aluno-login','view-aluno','view-treinar']
     .forEach(id => $(id).classList.add('hidden'));
 
-  if (h === '#home') { show('view-home'); setTimeout(() => renderizarProgresso(), 50); return; }
+  if (h === '#home') { show('view-home'); setTimeout(() => renderizarProgresso(), 50); carregarFeedMotivacional(); return; }
   if (h === '#trainer-login') { show('view-trainer-login'); return; }
   if (h === '#trainer') {
     if (!APP.trainerKey) { show('view-trainer-login'); return; }
