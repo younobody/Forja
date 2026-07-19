@@ -1,4 +1,22 @@
-<!-- FORJA v29.4.1 - PERFORMANCE 3: ping do rodape atrasado (ajuste fino)
+<!-- FORJA v29.5.0 - BACKEND MIGRADO PARA SUPABASE (Postgres, sa-east-1)
+     O Google Apps Script + planilha sai de cena: o backend agora e o projeto
+     Supabase "FORJA" (regiao Sao Paulo). A API inteira (login, getAluno,
+     getAdmin, registro, registroBatch, feed etc.) foi replicada 1:1 como
+     funcoes SECURITY DEFINER no Postgres, expostas em DUAS RPCs (api_get e
+     api_post via PostgREST). Mesmos shapes de resposta, mesmos erros
+     ({error:...} com HTTP 200, "unknown action: X" preservado para os
+     fallbacks legados), mesma autenticacao por PIN/chave (validada DENTRO
+     do banco; a anon key sozinha nao le nada - RLS deny-all em todas as
+     tabelas). Idempotencia do buffer offline por local_id agora e um unique
+     index no banco (retry devolve duplicado:true igual antes). Latencia cai
+     de 1.5-5s (Apps Script) para dezenas de ms. Mudancas de codigo SO no
+     bloco de config (SUPABASE_URL/SUPABASE_ANON_KEY no lugar de
+     DEFAULT_APPS_URL) e na camada ---------- API ---------- (apiGet/apiPost
+     agora POSTam nas RPCs); o resto do app nao mudou. A tela CONFIG de URL
+     ficou vestigial (URL e constante no codigo). Timeout de API caiu de 25s
+     para 15s (Supabase nao tem cold start de minutos como o GAS). Rollback:
+     repor o forja.html da v29.4.1 (o Apps Script antigo segue no ar).
+     FORJA v29.4.1 - PERFORMANCE 3: ping do rodape atrasado (ajuste fino)
      Medido ao vivo no app publicado (v29.4.0): ping (rodape) e
      feedMotivacional (home) disparam JUNTOS no boot e competem por
      capacidade do Apps Script - a MESMA chamada levou ~1.5s sozinha e
@@ -149,8 +167,8 @@
      script.googleusercontent.com; a parte variavel fica na query string).
      crossorigin e obrigatorio: apiGet usa fetch CORS anonimo, sem o
      atributo o socket preconectado vai pro pool errado e nao e reusado. -->
-<link rel="preconnect" href="https://script.google.com" crossorigin>
-<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<!-- v29.5.0: preconnect trocado pro host do Supabase (backend novo) -->
+<link rel="preconnect" href="https://aupfamquyihqagzwmpkb.supabase.co" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
 <!-- Tailwind CSS pre-compilado (Fase 4 - performance): substitui o CDN
      cdn.tailwindcss.com que compilava no navegador a cada load (FOUC +
@@ -1437,15 +1455,16 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v29.4.1';
+const FORJA_VERSION = 'v29.5.0';
 
-// URL padrao do Apps Script Web App. Qualquer aluno que abrir o site
-// vai direto pra tela ALUNO sem precisar configurar nada. Se voce trocar
-// a implantacao (URL nova), atualize aqui e republique o forja.html.
-// A seguranca continua sendo ADMIN_KEY (trainer) e PIN (aluno) — a URL
-// sozinha nao da acesso a nada, e equivale a saber o endereco de um predio
+// v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
+// PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
+// le nem escreve nada — todas as tabelas tem RLS deny-all e o unico acesso
+// e EXECUTE nas RPCs api_get/api_post, que validam PIN (aluno) ou chave
+// (trainer) dentro do banco. Equivale a saber o endereco de um predio
 // trancado.
-const DEFAULT_APPS_URL = 'https://script.google.com/macros/s/AKfycbzz9UplVRMcK2wH-JHwPB-COnunGWFKfF2BvFPPVWeTMFjuKYQmk1YWNZE3GezeQhp95w/exec';
+const SUPABASE_URL = 'https://aupfamquyihqagzwmpkb.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1cGZhbXF1eWlocWFnendtcGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0MTIyODQsImV4cCI6MjA5OTk4ODI4NH0.jLNZ5n2zLrZ-uU5mAUS5hkTsw3lv59jHLBLcnJPGS98';
 
 // Dias suportados pelo sistema
 const DAYS = ['A', 'B', 'C', 'D', 'E'];
@@ -1856,7 +1875,9 @@ function renderEvoCalendario(regs, containerId) {
 
 // ---------- API ----------
 
-const API_TIMEOUT_MS = 25000;
+// v29.5.0: 15s (era 25s na era Apps Script — o Supabase nao tem cold start
+// de minutos; 15s ainda cobre 3G ruim de academia com folga).
+const API_TIMEOUT_MS = 15000;
 
 // Erro de rede/servidor com uma flag `network` para o chamador distinguir
 // "servidor respondeu com erro de negocio" (json.error) de "nao consegui
@@ -1885,20 +1906,24 @@ async function parseApiResponse(res) {
   return json;
 }
 
-async function apiGet(params) {
-  if (!APP.appsScriptUrl) throw networkError('URL nao configurada');
-  const url = new URL(APP.appsScriptUrl);
-  Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
-  // Cache buster: forca o navegador a ir no servidor a cada chamada.
-  // Sem isso, o Chrome/Safari as vezes cacheava a resposta do Apps Script
-  // e o SYNC retornava dados antigos mesmo apos novos registros chegarem.
-  url.searchParams.set('_t', Date.now().toString());
+// v29.5.0: toda chamada vira um POST numa RPC do PostgREST (api_get espelha
+// o doGet antigo, api_post o doPost). O contrato nao mudou: erro de negocio
+// continua chegando como { error: '...' } com HTTP 200 (parseApiResponse
+// lanca Error(json.error)), e 4xx/5xx do PostgREST cai em networkError.
+// O cache buster _t morreu (POST nao e cacheado pelo navegador).
+async function sbRpc(fn, payload) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
   try {
-    const res = await fetch(url.toString(), {
-      method: 'GET',
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
+      method: 'POST',
       cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ payload: payload }),
       signal: controller.signal,
     });
     return await parseApiResponse(res);
@@ -1912,28 +1937,12 @@ async function apiGet(params) {
   }
 }
 
+async function apiGet(params) {
+  return sbRpc('api_get', params);
+}
+
 async function apiPost(body) {
-  if (!APP.appsScriptUrl) throw networkError('URL nao configurada');
-  // Apps Script com Content-Type application/json gera erro de CORS de preflight.
-  // Usar text/plain (que e simple request) e parsear no servidor com JSON.parse.
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
-  try {
-    const res = await fetch(APP.appsScriptUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-    return await parseApiResponse(res);
-  } catch (err) {
-    if (err.name === 'AbortError') throw networkError('Sem resposta do servidor (timeout) - verifique sua conexao.');
-    if (err.network) throw err;
-    if (err instanceof TypeError) throw networkError('Sem conexao com o servidor - verifique sua internet.');
-    throw err;
-  } finally {
-    clearTimeout(timer);
-  }
+  return sbRpc('api_post', body);
 }
 
 // ---------- CHART.JS SOB DEMANDA (v29.4.0) ----------
@@ -4867,7 +4876,10 @@ async function mostrarBackendVer() {
   injectOrbs();
   document.querySelectorAll('.forja-ver').forEach(e => { e.textContent = FORJA_VERSION; });
   // Prioridade: URL salva manualmente pelo usuario > URL padrao embutida
-  APP.appsScriptUrl = localStorage.getItem('forja-apps-url') || DEFAULT_APPS_URL || null;
+  // v29.5.0: a URL do backend virou constante (Supabase). A chave
+  // 'forja-apps-url' do localStorage e IGNORADA de proposito, mas NAO e
+  // apagada: um rollback pro forja.html antigo (v29.4.1) ainda a le.
+  APP.appsScriptUrl = SUPABASE_URL;
   const tk = sessionStorage.getItem('forja-trainer-key');
   if (tk) APP.trainerKey = tk;
   const as = sessionStorage.getItem('forja-aluno-session');
