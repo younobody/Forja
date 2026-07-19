@@ -1,4 +1,25 @@
-<!-- FORJA v29.5.0 - BACKEND MIGRADO PARA SUPABASE (Postgres, sa-east-1)
+<!-- FORJA v29.6.0 - PROGRESSAO DE CARGA (inspirado nas progression rules
+     do wger, github.com/wger-project). O app agora SUGERE a carga da proxima
+     sessao a partir do ultimo registro do exercicio: se o aluno fechou a
+     ultima, sobrou gas (RIR >= 2) e as reps bateram o TOPO da faixa planejada,
+     sugere subir (+2.5kg; +5kg quando a carga ja e >= 60kg); senao sugere
+     manter, dizendo o porque (nao fechou / faltou rep / RIR baixo). Se a
+     carga da ultima ja alcancou a META do plano (alvo 1 ano), celebra em vez
+     de empurrar mais. Cargas nao-numericas ("peso corp.") ou compostas
+     ("15kg D/E", "70kg total", "30kg cada lado") NAO recebem sugestao
+     automatica - so o historico (nao da pra somar 2.5 em "15kg D/E" sem
+     inventar dado). Onde aparece: (1) no TREINAR AGORA, um card novo logo
+     abaixo do ULTIMO TREINO - tocar nele aplica a carga sugerida no campo;
+     (2) no LANCAR SESSAO (modal), cada exercicio ganhou a linha "ULTIMO ..."
+     com botao USAR - antes o modal nao mostrava NADA do historico. Tudo
+     frontend-only em cima de dados que o app ja carrega (APP.data.registros
+     + aliases da tabela exercicios): ZERO mudanca de backend/API.
+     BUGFIX de quebra: o card ULTIMO TREINO (v27) exibia timestamp corrompido
+     legado ("x2026-12-08T03:00...") no lugar das reps e o "toque pra copiar"
+     PROPAGAVA esse lixo pra registros novos - agora valores com cara de data
+     ISO em carga/reps/rir sao omitidos na exibicao e na copia (a sugestao de
+     progressao ja os ignorava por design).
+     FORJA v29.5.0 - BACKEND MIGRADO PARA SUPABASE (Postgres, sa-east-1)
      O Google Apps Script + planilha sai de cena: o backend agora e o projeto
      Supabase "FORJA" (regiao Sao Paulo). A API inteira (login, getAluno,
      getAdmin, registro, registroBatch, feed etc.) foi replicada 1:1 como
@@ -972,6 +993,8 @@
       <div id="treinar-ultimo-nums" class="text-zinc-200"></div>
       <div id="treinar-ultimo-obs" class="hidden text-amber-400/90 mt-1 leading-relaxed"></div>
     </div>
+    <!-- v29.6.0: sugestao de progressao (toque aplica a carga sugerida) -->
+    <div id="treinar-sugestao" class="hidden mono text-[11px] p-3 mb-4 border tracking-wider" style="cursor:pointer;" onclick="aplicarSugestaoTreinar()"></div>
 
     <div class="grid grid-cols-3 gap-3 my-6">
       <div>
@@ -1455,7 +1478,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v29.5.0';
+const FORJA_VERSION = 'v29.6.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -3813,6 +3836,7 @@ function abrirModalRegistrar() {
       <div class="mono text-[10px] text-zinc-500 mb-3 tracking-wider">
         ALVO: ${escapeHtml(String(p.series||''))}x${escapeHtml(String(p.reps||''))} · carga sugerida ${escapeHtml(String(p.carga||'—'))} · RIR ${escapeHtml(String(p.rir||'—'))}
       </div>
+      ${ultimoLinhaModalHtml(p)}
       <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
         <div>
           <div class="mono text-[10px] text-zinc-500 tracking-widest mb-1">CARGA</div>
@@ -3849,6 +3873,16 @@ function abrirModalRegistrar() {
         b.className = 'w-full py-2 mono text-xs border border-zinc-700 text-zinc-400 tracking-widest';
         b.textContent = '✗ FALTOU';
       }
+    });
+  });
+  // v29.6.0: botao USAR aplica a carga sugerida no campo CARGA do proprio card
+  form.querySelectorAll('button[data-sug]').forEach(b => {
+    b.addEventListener('click', () => {
+      const card = b.closest('[data-idx]');
+      const inp = card && card.querySelector('input[data-f="carga"]');
+      if (!inp) return;
+      inp.value = b.dataset.sug;
+      toast('Carga sugerida aplicada: ' + b.dataset.sug, 'success');
     });
   });
   $('modal-registrar').classList.remove('hidden');
@@ -4134,6 +4168,7 @@ const TREINAR = {
   substituto: [],     // v26: nome do substituto por exercicio (so nesta sessao) | null
   _trocaOpcoes: [],   // v26: opcoes montadas para o modal de troca
   ultimoAtual: null,  // v27: {carga,reps,rir} do ultimo treino do exercicio da vez
+  sugestaoAtual: null, // v29.6.0: sugestao de progressao do exercicio da vez
 };
 
 // v26: SUBSTITUICAO DE EXERCICIO NA SESSAO ------------------------------------
@@ -4219,6 +4254,123 @@ function ultimoRegistroDe(nome) {
   return matches[0];
 }
 
+// ===== v29.6.0: PROGRESSAO DE CARGA (inspirado nas progression rules do wger) =====
+// Regra deliberadamente simples, sem a burocracia de regras-por-semana do wger:
+// olha o ULTIMO registro do exercicio (via ultimoRegistroDe, que ja resolve
+// aliases) e decide entre SUBIR, MANTER ou celebrar META atingida. So sugere
+// numero novo quando a carga anterior e "simples" (um numero + kg) - em carga
+// composta ("15kg D/E", "70kg total") somar 2.5 cegamente inventaria dado.
+
+// carga "simples": da pra somar um incremento sem perder informacao.
+// Aceita "40", "40kg", "42,5 kg". Rejeita "15kg D/E", "70kg total", "corp".
+function cargaEhSimples(carga) {
+  return /^\s*\d+(?:[.,]\d+)?\s*(?:kg)?\s*$/i.test(String(carga || ''));
+}
+// menor/maior numero de uma string ("8-10" -> 8/10; "10/9/8" -> 8/10).
+// String com cara de data ISO devolve null: ha registros LEGADOS com timestamp
+// corrompido em coluna de reps (pegadinha real do banco, ver HANDOFF_FASE6) —
+// sem esse guarda, "2026-12-08T03:00" viraria "min 0 reps".
+function _numsDe(s) {
+  const str = String(s == null ? '' : s);
+  if (/\d{4}-\d{2}-\d{2}/.test(str)) return null;
+  const ms = str.match(/\d+(?:[.,]\d+)?/g);
+  return ms ? ms.map(x => parseFloat(x.replace(',', '.'))) : null;
+}
+function numMinDe(s) { const n = _numsDe(s); return n ? Math.min.apply(null, n) : null; }
+function numMaxDe(s) { const n = _numsDe(s); return n ? Math.max.apply(null, n) : null; }
+function fmtCargaKg(n) {
+  return (Math.round(n * 100) / 100).toString().replace('.', ',').replace(/,0+$/, '') + 'kg';
+}
+// registro.completou pode vir boolean ou string - trata os dois.
+function registroFechou(r) {
+  const v = r ? r.completou : null;
+  return !(v === false || v === 0 || String(v).toLowerCase() === 'false');
+}
+
+// Devolve null (sem historico) ou:
+// { ult, tipo: 'meta'|'sobe'|'mantem'|'so-historico', novaCarga: 'Xkg'|null, texto }
+function sugestaoProgressao(nome, planoItem) {
+  const ult = ultimoRegistroDe(nome);
+  if (!ult) return null;
+  const p = planoItem || {};
+  const cargaNum = parseCargaNum(ult.carga);
+  // meta do plano (alvo 1 ano) ja alcancada? celebra, nao empurra mais.
+  const metaNum = parseCargaNum(p.meta);
+  if (cargaNum != null && metaNum != null && cargaNum >= metaNum) {
+    return { ult, tipo: 'meta', novaCarga: null,
+      texto: '🎯 META DO PLANO ATINGIDA (' + String(p.meta) + ') — fala com o trainer sobre o proximo alvo' };
+  }
+  // carga sem numero ("peso corp.") ou composta: mostra so o historico.
+  if (cargaNum == null || !cargaEhSimples(ult.carga)) {
+    return { ult, tipo: 'so-historico', novaCarga: null, texto: '' };
+  }
+  const rir = numMinDe(ult.rir);            // pior serie ("0-1" -> 0)
+  const fezMin = numMinDe(ult.reps);        // pior serie ("10/9/8" -> 8)
+  const alvoTopo = numMaxDe(p.reps);        // topo da faixa do plano ("8-10" -> 10)
+  const fechou = registroFechou(ult);
+  // "bateu as reps": pior serie >= topo da faixa, OU o aluno FECHOU (✓ SIM) e
+  // registrou as reps identicas as do plano (na pratica ele loga a faixa
+  // "15-20" sem editar — fechou + faixa cumprida = cumpriu o planejado, que e
+  // exatamente a condicao de progressao do wger).
+  const bateuReps = (alvoTopo == null || fezMin == null)
+    ? null
+    : (fezMin >= alvoTopo ||
+       (fechou && String(ult.reps || '').trim() === String(p.reps || '').trim()));
+  if (fechou && rir != null && rir >= 2 && bateuReps !== false) {
+    const inc = cargaNum >= 60 ? 5 : 2.5;
+    const nova = fmtCargaKg(cargaNum + inc);
+    return { ult, tipo: 'sobe', novaCarga: nova,
+      texto: '↑ SUGESTAO: ' + nova + ' (sobrou RIR ' + rir + ')' };
+  }
+  let motivo;
+  if (!fechou) motivo = 'nao fechou a ultima';
+  else if (bateuReps === false) motivo = 'feche ' + alvoTopo + ' reps antes de subir';
+  else if (rir == null) motivo = 'registre o RIR pra sugestao automatica';
+  else motivo = 'RIR ' + rir + ' — consolida antes de subir';
+  return { ult, tipo: 'mantem', novaCarga: null,
+    texto: '= SUGESTAO: manter ' + fmtCargaKg(cargaNum) + ' (' + motivo + ')' };
+}
+
+// valor de carga/reps/rir "limpo" pra exibir/copiar: registros LEGADOS tem
+// timestamp corrompido nessas colunas (pegadinha real do banco) — devolver ''
+// evita mostrar "×2026-12-08T03:00:00.000Z" e, pior, COPIAR esse lixo pra um
+// registro novo via "toque pra copiar".
+function valorRegistroLimpo(v) {
+  const s = String(v == null ? '' : v).trim();
+  return /\d{4}-\d{2}-\d{2}T/.test(s) ? '' : s;
+}
+
+// linha compacta "40kg · ×10 · RIR 1" do ultimo registro (ja escapada p/ HTML)
+function resumoUltimoHtml(ult) {
+  const partes = [];
+  const c = valorRegistroLimpo(ult.carga);
+  const rp = valorRegistroLimpo(ult.reps);
+  const rr = valorRegistroLimpo(ult.rir);
+  if (c) partes.push(escapeHtml(c));
+  if (rp) partes.push('×' + escapeHtml(rp));
+  if (rr) partes.push('RIR ' + escapeHtml(rr));
+  return partes.join(' · ') || '—';
+}
+
+// v29.6.0: linha "ULTIMO dd/mm: 40kg · ×10 · RIR 1 · sugestao [USAR]" pros
+// cards do LANCAR SESSAO (o modal nao mostrava nada do historico). Cores via
+// style inline (CSS Tailwind pre-compilado, classe nova nao existe no bundle).
+function ultimoLinhaModalHtml(p) {
+  const sug = sugestaoProgressao(p.exercicio, p);
+  if (!sug) return '';
+  let html = '<div class="mono text-[10px] mb-3 tracking-wider" style="color:#6E7683">ULTIMO ' +
+    escapeHtml(fmtDate(dataSessao(sug.ult)) || '') + ': ' + resumoUltimoHtml(sug.ult);
+  if (sug.texto) {
+    const cor = { sobe: '#10935E', meta: '#C77400' }[sug.tipo] || '#6E7683';
+    html += '<span style="color:' + cor + '"> · ' + escapeHtml(sug.texto) + '</span>';
+  }
+  if (sug.novaCarga) {
+    html += ' <button type="button" data-sug="' + escapeHtml(sug.novaCarga) +
+      '" class="mono text-[10px] tracking-widest px-2 py-1 border ml-1" style="color:#10935E;border-color:rgba(16,147,94,.45);background:rgba(16,147,94,.06)">USAR</button>';
+  }
+  return html + '</div>';
+}
+
 // v27: copia carga/reps/rir do ultimo treino pros campos ("repete e ajusta").
 function copiarUltimoTreino() {
   const u = TREINAR.ultimoAtual;
@@ -4228,6 +4380,15 @@ function copiarUltimoTreino() {
   if (u.reps) $('treinar-input-reps').value = u.reps;
   if (u.rir) $('treinar-input-rir').value = u.rir;
   toast('Copiado do ultimo treino', 'info');
+}
+
+// v29.6.0: toque no card de sugestao aplica a carga sugerida no campo.
+function aplicarSugestaoTreinar() {
+  const s = TREINAR.sugestaoAtual;
+  if (!s || !s.novaCarga) return;
+  if (TREINAR.salvos[TREINAR.idx]) return; // ja registrado — nao mexe
+  $('treinar-input-carga').value = s.novaCarga;
+  toast('Carga sugerida aplicada: ' + s.novaCarga, 'success');
 }
 
 function abrirTrocaExercicio() {
@@ -4341,9 +4502,12 @@ function mostrarExercicioAtual() {
   const ult = ultimoRegistroDe(nomeEfetivo(TREINAR.idx));
   const cardUlt = $('treinar-ultimo');
   if (ult) {
-    const uCarga = String(ult.carga || '').trim();
-    const uReps = String(ult.reps || '').trim();
-    const uRir = (ult.rir != null && String(ult.rir).trim() !== '') ? String(ult.rir).trim() : '';
+    // v29.6.0: valorRegistroLimpo filtra timestamp corrompido legado — antes
+    // o card mostrava "×2026-12-08T03:00..." e o "toque pra copiar" propagava
+    // esse lixo pra dentro de um registro NOVO.
+    const uCarga = valorRegistroLimpo(ult.carga);
+    const uReps = valorRegistroLimpo(ult.reps);
+    const uRir = valorRegistroLimpo(ult.rir);
     const partes = [];
     if (uCarga) partes.push(uCarga);
     if (uReps) partes.push('×' + uReps);
@@ -4359,6 +4523,30 @@ function mostrarExercicioAtual() {
   } else {
     TREINAR.ultimoAtual = null;
     cardUlt.classList.add('hidden');
+  }
+  // v29.6.0: card de sugestao de progressao, abaixo do ULTIMO TREINO. Some se
+  // nao ha historico, se o exercicio ja foi salvo nesta sessao ou se a carga
+  // anterior e composta (tipo 'so-historico', sem texto).
+  const jaSalvoSug = TREINAR.salvos[TREINAR.idx];
+  const sug = (!jaSalvoSug && ult) ? sugestaoProgressao(nomeEfetivo(TREINAR.idx), p) : null;
+  TREINAR.sugestaoAtual = sug;
+  const elSug = $('treinar-sugestao');
+  if (sug && sug.texto) {
+    elSug.textContent = sug.texto + (sug.novaCarga ? ' · toque pra aplicar' : '');
+    // cores do design system (mesmas do mapa muscular) via style inline —
+    // o CSS do app e Tailwind PRE-compilado, classe nova nao existe no bundle.
+    const corSug = {
+      sobe:   { c: '#10935E', b: 'rgba(16,147,94,.45)',  bg: 'rgba(16,147,94,.06)' },
+      meta:   { c: '#C77400', b: 'rgba(199,116,0,.45)',  bg: 'rgba(199,116,0,.07)' },
+      mantem: { c: '#6E7683', b: 'rgba(110,118,131,.35)', bg: 'transparent' },
+    }[sug.tipo] || { c: '#6E7683', b: 'rgba(110,118,131,.35)', bg: 'transparent' };
+    elSug.style.color = corSug.c;
+    elSug.style.borderColor = corSug.b;
+    elSug.style.background = corSug.bg;
+    elSug.style.cursor = sug.novaCarga ? 'pointer' : 'default';
+    elSug.classList.remove('hidden');
+  } else {
+    elSug.classList.add('hidden');
   }
   $('treinar-progress-text').textContent = (TREINAR.idx + 1) + ' / ' + TREINAR.plano.length;
   $('treinar-progress-bar').style.width = ((TREINAR.idx / TREINAR.plano.length) * 100) + '%';

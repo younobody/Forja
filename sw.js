@@ -64,9 +64,13 @@
  * passam pelo cache. Nota: a API nova e toda via POST, que o Cache API
  * nem aceita (cache.put de POST lanca TypeError); a regra evita o request
  * de sequer entrar no ramo cache-first.
+ * v29.6.0: PROGRESSAO DE CARGA no HTML (sugestao automatica de carga no
+ * TREINAR AGORA e no LANCAR SESSAO, a partir do ultimo registro - inspirado
+ * nas progression rules do wger). Frontend-only; bump aqui so pra invalidar
+ * o cache antigo do shell.
  */
 
-const CACHE_VERSION = 'forja-v29.5.0';
+const CACHE_VERSION = 'forja-v29.6.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',
