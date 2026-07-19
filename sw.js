@@ -58,9 +58,15 @@
  * competir com o feedMotivacional no boot - medido ao vivo que chamadas
  * concorrentes ao Apps Script se atravessam) - bump aqui so pra invalidar
  * o cache antigo do shell. Nada muda neste arquivo alem da versao.
+ * v29.5.0: BACKEND MIGRADO PARA SUPABASE. A regra network-only de API
+ * agora cobre o host *.supabase.co (alem do script.google.com antigo,
+ * mantido por seguranca durante a transicao) - chamadas de API nunca
+ * passam pelo cache. Nota: a API nova e toda via POST, que o Cache API
+ * nem aceita (cache.put de POST lanca TypeError); a regra evita o request
+ * de sequer entrar no ramo cache-first.
  */
 
-const CACHE_VERSION = 'forja-v29.4.1';
+const CACHE_VERSION = 'forja-v29.5.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',
@@ -104,8 +110,10 @@ self.addEventListener('fetch', e => {
     ? caches.match('./forja.html').then(r => r || new Response('Offline', { status: 503 }))
     : Promise.resolve(new Response('Offline', { status: 503 })));
 
-  // Apps Script (nao cachear nunca — sempre fresco)
-  if (url.hostname === 'script.google.com' || url.hostname.includes('script.google')) {
+  // API (nao cachear nunca — sempre fresco). v29.5.0: Supabase; o host do
+  // Apps Script fica na regra por seguranca durante a transicao.
+  if (url.hostname.endsWith('.supabase.co') ||
+      url.hostname === 'script.google.com' || url.hostname.includes('script.google')) {
     return e.respondWith(fetch(request).catch(offlineFallback));
   }
 
