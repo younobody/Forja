@@ -68,9 +68,15 @@
  * TREINAR AGORA e no LANCAR SESSAO, a partir do ultimo registro - inspirado
  * nas progression rules do wger). Frontend-only; bump aqui so pra invalidar
  * o cache antigo do shell.
+ * v29.7.0: BANCO DE EXERCICIOS RICO no HTML (ficha do exercicio com
+ * musculos/instrucoes/imagem do wger.de + mapa muscular data-driven; requer
+ * as migrations forja_exercicios_ricos_* no Supabase, ja aplicadas). As
+ * imagens de wger.de caem no ramo cache-first generico deste arquivo — apos
+ * a 1a visualizacao ficam disponiveis offline, de graca. Bump pra invalidar
+ * o shell antigo.
  */
 
-const CACHE_VERSION = 'forja-v29.6.0';
+const CACHE_VERSION = 'forja-v29.7.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',

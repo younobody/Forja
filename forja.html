@@ -1,4 +1,23 @@
-<!-- FORJA v29.6.0 - PROGRESSAO DE CARGA (inspirado nas progression rules
+<!-- FORJA v29.7.0 - BANCO DE EXERCICIOS RICO (dados do wger.de, CC-BY-SA)
+     A tabela "exercicios" do Supabase foi ampliada (migrations
+     forja_exercicios_ricos_schema/payload) e agora traz, por exercicio:
+     musculos primarios/secundarios (nos 9 grupos do mapa muscular),
+     equipamento, instrucoes de execucao em PT-BR e imagem do wger.de
+     (55 exercicios curados; 39 com imagem; so URLs — nada de storage).
+     No app: (1) FICHA DO EXERCICIO — modal novo (modal-exinfo) com musculos,
+     equipamento, instrucoes e imagem; abre tocando no nome do exercicio no
+     PLANO do dashboard ou no TREINAR AGORA (indicador ⓘ); atribuicao
+     "dados/imagem: wger.de" quando a fonte e o wger. (2) MAPA MUSCULAR agora
+     e DATA-DRIVEN: musculosDoExercicio() consulta primeiro os dados do banco
+     (via aliases, funcao exInfoDe) e so cai no regex de palavras-chave antigo
+     se o exercicio nao estiver cadastrado. (3) BUGFIX na progressao v29.6.0:
+     registro.completou vem do banco como 'sim'/'nao' — registroFechou()
+     tratava 'nao'/'não' como FECHOU e podia sugerir subir carga depois de um
+     treino nao fechado; corrigido. Payload: exercicios ganhou campos novos
+     (aditivo; front antigo ignora). ALIASES novos tambem unificam variantes
+     na EVOLUCAO (ex: Facepull=Face pull, Remada baixa=Remada baixa V,
+     Rosca martelo=Rosca alternada martelo, Leg press=Leg press 45°).
+     FORJA v29.6.0 - PROGRESSAO DE CARGA (inspirado nas progression rules
      do wger, github.com/wger-project). O app agora SUGERE a carga da proxima
      sessao a partir do ultimo registro do exercicio: se o aluno fechou a
      ultima, sobrou gas (RIR >= 2) e as reps bateram o TOPO da faixa planejada,
@@ -1154,6 +1173,27 @@
   </div>
 </div>
 
+<!-- v29.7.0: FICHA DO EXERCICIO (musculos, equipamento, instrucoes, imagem) -->
+<div id="modal-exinfo" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-40 overflow-y-auto">
+  <div class="max-w-md mx-auto px-6 py-10">
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
+      <div>
+        <div class="display text-4xl">FICHA</div>
+        <div id="exinfo-nome" class="mono text-[10px] text-zinc-500 tracking-widest"></div>
+      </div>
+      <button onclick="document.getElementById('modal-exinfo').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    <div id="exinfo-musculos" class="flex flex-wrap gap-2 mb-4"></div>
+    <div id="exinfo-instrucoes" class="text-sm text-zinc-300 leading-relaxed mb-4"></div>
+    <img id="exinfo-img" class="hidden w-full mb-4" alt="ilustracao do exercicio" loading="lazy"
+         style="max-height:260px;object-fit:contain;background:#fff;border-radius:4px;"
+         onerror="this.classList.add('hidden')" />
+    <div id="exinfo-fonte" class="hidden mono text-[9px] text-zinc-600 tracking-widest">DADOS/IMAGEM: WGER.DE (CC-BY-SA)</div>
+  </div>
+</div>
+
 <!-- MODAL: LANCAR EXERCICIO INDIVIDUAL (v28.6) — treinador registra 1 exercicio
      especifico direto da tela de editar plano, sem precisar do pin do aluno. -->
 <div id="modal-lancar-individual" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-40 overflow-y-auto">
@@ -1478,7 +1518,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v29.6.0';
+const FORJA_VERSION = 'v29.7.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -3602,7 +3642,9 @@ function renderAlunoPlano() {
       <div class="flex items-baseline justify-between mb-2 pl-2">
         <div class="flex items-baseline gap-3">
           <span class="mono text-xs text-zinc-500">${String(i+1).padStart(2,'0')}</span>
-          <span class="text-zinc-100">${escapeHtml(p.exercicio)}</span>
+          ${exInfoDe(p.exercicio)
+            ? `<span class="text-zinc-100" style="cursor:pointer" data-exinfo="${escapeHtml(p.exercicio)}">${escapeHtml(p.exercicio)} <span class="mono text-[10px] text-zinc-500">ⓘ</span></span>`
+            : `<span class="text-zinc-100">${escapeHtml(p.exercicio)}</span>`}
         </div>
       </div>
       <div class="flex flex-wrap gap-4 mono text-xs text-zinc-400 pl-2">
@@ -3615,6 +3657,10 @@ function renderAlunoPlano() {
       ${p.obs ? `<div class="mono text-[10px] text-amber-500/80 mt-2 pl-2">⚠ ${escapeHtml(p.obs)}</div>` : ''}
     </div>
   `).join('');
+  // v29.7.0: tocar no nome (ⓘ) abre a ficha do exercicio
+  div.querySelectorAll('[data-exinfo]').forEach(el => {
+    el.addEventListener('click', () => abrirExInfo(el.dataset.exinfo));
+  });
 }
 
 $('btn-aluno-registrar').onclick = () => abrirModalRegistrar();
@@ -3676,7 +3722,58 @@ const MAPA_LABEL = { peito:'Peito', ombro:'Ombro', triceps:'Triceps', costas:'Co
 const MAPA_REC = { recuperando: 1, atrasado: 5 }; // dias: <=1 recuperando, >=5 atrasado, no meio = pronto
 const MAPA_COR = { pronto:'#10935E', recuperando:'#C77400', atrasado:'#DC2626', dim:'#DCE0E6' };
 
+// v29.7.0: ficha do exercicio vinda do banco (tabela exercicios enriquecida
+// com dados curados + wger.de). Lookup por slug em nome_atual E aliases —
+// mesma logica de casamento do slugsEquivalentes. Devolve a linha ou null.
+function exInfoDe(nome) {
+  const alvo = slugify(nome);
+  if (!alvo) return null;
+  const grupos = (APP.data && Array.isArray(APP.data.exercicios)) ? APP.data.exercicios : [];
+  for (const g of grupos) {
+    const nomes = [g.nome_atual, ...String(g.aliases || '').split(';')]
+      .map(slugify).filter(Boolean);
+    if (nomes.includes(alvo)) return g;
+  }
+  return null;
+}
+
+// v29.7.0: DATA-DRIVEN — primeiro tenta os musculos cadastrados no banco
+// (primarios + secundarios, ja nos 9 grupos do mapa); o regex de palavras-
+// chave virou fallback pra exercicio ainda nao cadastrado.
 function musculosDoExercicio(nome) {
+  const info = exInfoDe(nome);
+  if (info) {
+    const lista = (String(info.musculos_primarios || '') + ';' + String(info.musculos_secundarios || ''))
+      .split(';').map(x => x.trim().toLowerCase()).filter(x => MAPA_GRUPOS.includes(x));
+    if (lista.length) return [...new Set(lista)];
+    if (String(info.equipamento || '') !== '') return []; // cadastrado sem musculo (cardio): nao chutar via regex
+  }
+  return musculosPorRegex(nome);
+}
+
+// v29.7.0: abre a FICHA DO EXERCICIO (modal-exinfo). Cores via style inline
+// (Tailwind pre-compilado). Atribuicao wger.de aparece so quando a fonte e o wger.
+function abrirExInfo(nome) {
+  const info = exInfoDe(nome);
+  if (!info) { toast('Sem ficha cadastrada pra este exercicio ainda', 'info'); return; }
+  $('exinfo-nome').textContent = String(info.nome_atual || nome).trim().toUpperCase();
+  const chip = (txt, cor) =>
+    `<span class="mono text-[10px] tracking-widest px-2 py-1 border" style="color:${cor};border-color:${cor}66">${escapeHtml(txt)}</span>`;
+  const prim = String(info.musculos_primarios || '').split(';').map(x => x.trim()).filter(Boolean);
+  const sec  = String(info.musculos_secundarios || '').split(';').map(x => x.trim()).filter(Boolean);
+  const chips = prim.map(m => chip((MAPA_LABEL[m] || m).toUpperCase(), '#C77400'))
+    .concat(sec.map(m => chip((MAPA_LABEL[m] || m).toUpperCase(), '#6E7683')));
+  if (info.equipamento) chips.push(chip(String(info.equipamento).toUpperCase(), '#10935E'));
+  $('exinfo-musculos').innerHTML = chips.join('');
+  $('exinfo-instrucoes').textContent = String(info.instrucoes || '');
+  const img = $('exinfo-img');
+  if (info.imagem_url) { img.classList.remove('hidden'); img.src = info.imagem_url; }
+  else { img.classList.add('hidden'); img.removeAttribute('src'); }
+  $('exinfo-fonte').classList.toggle('hidden', !(info.wger_id || info.imagem_url));
+  $('modal-exinfo').classList.remove('hidden');
+}
+
+function musculosPorRegex(nome) {
   const s = String(nome || '').toLowerCase();
   const g = new Set();
   const add = (...xs) => xs.forEach(x => g.add(x));
@@ -4282,9 +4379,13 @@ function fmtCargaKg(n) {
   return (Math.round(n * 100) / 100).toString().replace('.', ',').replace(/,0+$/, '') + 'kg';
 }
 // registro.completou pode vir boolean ou string - trata os dois.
+// v29.7.0 BUGFIX: no banco o valor real e 'sim'/'nao' (as vezes 'não', com
+// espaco, vazio) - a v29.6.0 so testava 'false' e tratava 'nao' como FECHOU.
 function registroFechou(r) {
   const v = r ? r.completou : null;
-  return !(v === false || v === 0 || String(v).toLowerCase() === 'false');
+  if (v === false || v === 0) return false;
+  const s = String(v == null ? '' : v).trim().toLowerCase().replace('ã', 'a');
+  return !(s === 'false' || s === 'nao' || s === 'no' || s === '0');
 }
 
 // Devolve null (sem historico) ou:
@@ -4488,7 +4589,19 @@ function mostrarExercicioAtual() {
   const p = TREINAR.plano[TREINAR.idx];
   if (!p) { mostrarSummary(); return; }
   // v26: mostra o nome efetivo (substituto da sessao, se houver)
-  $('treinar-exercicio-nome').textContent = nomeEfetivo(TREINAR.idx) || '—';
+  // v29.7.0: se o exercicio tem ficha, o nome vira tocavel (ⓘ) e abre a ficha
+  const nomeElTr = $('treinar-exercicio-nome');
+  const nomeTr = nomeEfetivo(TREINAR.idx) || '—';
+  const infoTr = exInfoDe(nomeTr);
+  if (infoTr) {
+    nomeElTr.innerHTML = escapeHtml(nomeTr) + ' <span class="mono text-zinc-500" style="font-size:0.4em;vertical-align:middle">ⓘ</span>';
+    nomeElTr.style.cursor = 'pointer';
+    nomeElTr.onclick = () => abrirExInfo(nomeTr);
+  } else {
+    nomeElTr.textContent = nomeTr;
+    nomeElTr.style.cursor = '';
+    nomeElTr.onclick = null;
+  }
   // v18: tipo composto/isolado com sugestao de descanso no alvo
   const tiEx = tipoInfo(p.tipo);
   $('treinar-alvo').textContent =
