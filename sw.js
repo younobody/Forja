@@ -74,9 +74,13 @@
  * imagens de wger.de caem no ramo cache-first generico deste arquivo — apos
  * a 1a visualizacao ficam disponiveis offline, de graca. Bump pra invalidar
  * o shell antigo.
+ * v29.8.0: CARDIO como modalidade a parte no HTML (botao/modal de cardio,
+ * cardio excluido das metricas de forca, dias azuis no calendario; requer a
+ * migration forja_feed_exclui_cardio no Supabase, ja aplicada). Frontend +
+ * feed; bump pra invalidar o shell antigo.
  */
 
-const CACHE_VERSION = 'forja-v29.7.0';
+const CACHE_VERSION = 'forja-v29.8.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',
