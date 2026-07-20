@@ -1,0 +1,9 @@
+Imagens de exercicios nesta pasta: derivadas do banco de exercicios do wger
+(https://wger.de), licenciadas sob Creative Commons Attribution-ShareAlike 4.0
+(CC-BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/).
+
+Modificacoes: redimensionamento (max. 640px) e conversao para WebP, com fundo
+branco aplicado sobre transparencia. Atribuicao tambem exibida dentro do app
+FORJA, no modal FICHA DO EXERCICIO ("DADOS/IMAGEM: WGER.DE (CC-BY-SA)").
+
+Baixadas em 2026-07-19 da API publica https://wger.de/api/v2/exerciseinfo/.
