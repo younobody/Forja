@@ -1,4 +1,26 @@
-<!-- FORJA v29.7.0 - BANCO DE EXERCICIOS RICO (dados do wger.de, CC-BY-SA)
+<!-- FORJA v29.8.0 - CARDIO COMO MODALIDADE A PARTE
+     Antes, registrar SO um exercicio extra (ex: um pedal de bike) dentro de
+     "Treinar A" marcava o dia A como FEITO — inflava "ULT: A", o calendario
+     de frequencia e a contagem "sessoes por dia", mesmo sem fechar nenhum
+     exercicio do plano A. Agora cardio e uma MODALIDADE separada da forca:
+     - Botao "CARDIO" novo no painel do aluno -> modal (tipo pedal/esteira/
+       remo/corrida/outro + distancia/tempo/obs + data). Grava um registro com
+       modalidade=<tipo> e dia='' (nao pertence a A/B/C). O campo modalidade JA
+       existia no banco e no f_registro — zero mudanca de schema; o front so
+       nao usava.
+     - ehCardio(r) = modalidade nao-vazia. Cardio e EXCLUIDO de tudo que e
+       forca: "ULT: X" (ultima sessao de forca), sessoes por dia, grafico de
+       progressao, historico de sessoes, e o MAPA MUSCULAR (calcularRecuperacao
+       — importante: "Remo" tem musculos secundarios cadastrados e falsearia a
+       recuperacao). O FEED motivacional publico tambem passa a contar so forca
+       (migration forja_feed_exclui_cardio: streak/treinos7d/campeao ignoram
+       modalidade<>'').
+     - Cardio NAO some: ganha espaco proprio. No calendario de frequencia os
+       dias de cardio aparecem em AZUL (dia de forca continua verde; cardio nao
+       conta como falta). Na Evolucao ha um card CARDIO (contagem no periodo +
+       ultimo tipo/data). No topo do painel, uma linha "CARDIO: <tipo> · ha X".
+     O registro de pedal de 19/07 que tinha disparado o bug foi apagado do banco.
+     FORJA v29.7.0 - BANCO DE EXERCICIOS RICO (dados do wger.de, CC-BY-SA)
      A tabela "exercicios" do Supabase foi ampliada (migrations
      forja_exercicios_ricos_schema/payload) e agora traz, por exercicio:
      musculos primarios/secundarios (nos 9 grupos do mapa muscular),
@@ -936,6 +958,7 @@
       <button id="btn-aluno-registrar" class="btn py-4">LANCAR SESSAO</button>
       <button id="btn-aluno-historico" class="btn py-4">EVOLUCAO</button>
       <button id="btn-aluno-peso" class="btn py-4">⚖ PESO</button>
+      <button id="btn-aluno-cardio" class="btn py-4 sm:col-span-3">🚴 CARDIO (pedal / esteira / remo)</button>
     </div>
     <!-- Historico / Evolucao (collapse) -->
     <div id="aluno-historico-section" class="hidden glass p-5">
@@ -1153,6 +1176,47 @@
       <div id="peso-status" class="mono text-xs text-center"></div>
     </div>
     <div id="peso-historico" class="mt-6"></div>
+  </div>
+</div>
+
+<!-- v29.8.0 MODAL: CARDIO — atividade de condicionamento (pedal/esteira/remo/
+     corrida). Grava registro com modalidade=<tipo> e dia='' — NAO conta como
+     dia de forca A/B/C. -->
+<div id="modal-cardio" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-40 overflow-y-auto">
+  <div class="max-w-md mx-auto px-6 py-10">
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
+      <div>
+        <div class="display text-4xl">CARDIO</div>
+        <div class="mono text-[10px] text-zinc-500 tracking-widest">CONDICIONAMENTO · FORA DA FORCA</div>
+      </div>
+      <button onclick="document.getElementById('modal-cardio').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    <div class="glass p-5 space-y-4">
+      <div>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">TIPO</label>
+        <select id="cardio-tipo" class="w-full text-sm"></select>
+      </div>
+      <div>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DETALHE (opcional)</label>
+        <input id="cardio-nome" type="text" autocomplete="off" placeholder="ex: Bicicleta ar livre, HIIT..." class="w-full text-sm" />
+      </div>
+      <div>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DISTANCIA / TEMPO / OBS</label>
+        <input id="cardio-obs" type="text" autocomplete="off" placeholder="ex: 20km · 45min · zona 2" class="w-full text-sm" />
+      </div>
+      <div>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DATA</label>
+        <input id="cardio-data" type="date" class="w-full text-sm" />
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button onclick="document.getElementById('modal-cardio').classList.add('hidden')" class="btn flex-1">CANCELAR</button>
+        <button id="btn-salvar-cardio" class="btn btn-success flex-1">SALVAR</button>
+      </div>
+      <div id="cardio-status" class="mono text-xs text-center"></div>
+    </div>
+    <div id="cardio-historico" class="mt-6"></div>
   </div>
 </div>
 
@@ -1518,7 +1582,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v29.7.0';
+const FORJA_VERSION = 'v29.8.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -1886,11 +1950,10 @@ function renderEvoCalendario(regs, containerId) {
   const y = ref.getFullYear(), m = ref.getMonth();
   const mesIso = `${y}-${String(m + 1).padStart(2, '0')}`;
   const diasNoMes = new Date(y, m + 1, 0).getDate();
-  const treinados = new Set(
-    (regs || []).map(r => dataSessao(r))
-      .filter(d => d && d.slice(0, 7) === mesIso)
-      .map(d => parseInt(d.slice(8, 10), 10))
-  );
+  // v29.8.0: dias de FORCA (verde) e dias so de CARDIO (azul) separados.
+  const diaDoMes = r => { const d = dataSessao(r); return (d && d.slice(0, 7) === mesIso) ? parseInt(d.slice(8, 10), 10) : null; };
+  const treinados = new Set((regs || []).filter(r => !ehCardio(r)).map(diaDoMes).filter(Boolean));
+  const cardioDias = new Set((regs || []).filter(ehCardio).map(diaDoMes).filter(Boolean));
   const hojeStr = hojeIso();
   const ehMesAtual = hojeStr.slice(0, 7) === mesIso;
   const mesFuturo = mesIso > hojeStr.slice(0, 7);
@@ -1902,11 +1965,14 @@ function renderEvoCalendario(regs, containerId) {
   for (let i = 0; i < primeiroDow; i++) cells += '<div></div>';
   for (let d = 1; d <= diasNoMes; d++) {
     const treinou = treinados.has(d);
+    const soCardio = !treinou && cardioDias.has(d); // v29.8.0: dia so de cardio
     const passado = !mesFuturo && (!ehMesAtual || d < diaHoje);
     const ehHoje = ehMesAtual && d === diaHoje;
     let cls, sty = '';
     if (treinou) {
       cls = 'bg-emerald-600 text-white';
+    } else if (soCardio) {
+      cls = 'text-white'; sty = 'background:#2563EB;'; // azul = cardio (nao conta falta)
     } else if (passado) {
       cls = 'cal-falta';
       faltas++;
@@ -1919,8 +1985,9 @@ function renderEvoCalendario(regs, containerId) {
   }
   const nomeMes = ref.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
   const corFaltas = faltas > 5 ? 'text-red-400' : (faltas === 5 ? 'text-amber-400' : 'text-emerald-400');
+  const cardioTxt = cardioDias.size ? ` · <span style="color:#60A5FA">${cardioDias.size} cardio</span>` : '';
   const resumo = mesFuturo ? '' :
-    `<span class="text-emerald-400">${treinados.size} treino${treinados.size === 1 ? '' : 's'}</span> · <span class="${corFaltas}">${faltas} falta${faltas === 1 ? '' : 's'}</span> <span class="text-zinc-600">(meta ≤5/mes)</span>`;
+    `<span class="text-emerald-400">${treinados.size} treino${treinados.size === 1 ? '' : 's'}</span>${cardioTxt} · <span class="${corFaltas}">${faltas} falta${faltas === 1 ? '' : 's'}</span> <span class="text-zinc-600">(meta ≤5/mes)</span>`;
   c.innerHTML = `
     <div class="glass p-4">
       <div class="flex items-center justify-between mb-3">
@@ -2412,7 +2479,9 @@ async function refreshTrainerEmBackground() {
 
 function renderTrainerDashboard() {
   const alunos = APP.data.alunos || [];
-  const registros = APP.data.registros || [];
+  // v29.8.0: as metricas do trainer (sessoes 7d, ativos, ULT por aluno) sao de
+  // FORCA — cardio (dia='') nao entra, senao o "ULT: <dia>" mostraria dia vazio.
+  const registros = (APP.data.registros || []).filter(r => !ehCardio(r));
   // v28.4: usa dataSessao() (YYYY-MM-DD) em vez de new Date(r.timestamp) direto -
   // timestamp corrompido vira NaN e a linha some da contagem de "7d" silenciosamente.
   const seteDiasAtrasDate = new Date();
@@ -2939,11 +3008,15 @@ function _renderEvo(suffix) {
   const sorted = [...(full.regs || [])].sort((a, b) =>
     String(b.timestamp).localeCompare(String(a.timestamp)));
   const filtrados = filtrarPeriodo(sorted, APP.evoPeriodo[suffix] || 'tudo');
+  // v29.8.0: separa forca de cardio. Stats/grafico/historico usam so forca;
+  // o calendario recebe os dois (pinta cardio de azul).
+  const forca = filtrados.filter(r => !ehCardio(r));
+  const cardio = filtrados.filter(ehCardio);
   renderPeriodoBtns(suffix);
-  renderEvoStats(filtrados, 'evo-stats-' + suffix);
+  renderEvoStats(forca, 'evo-stats-' + suffix, cardio);
   renderEvoCalendario(filtrados, 'evo-calendario-' + suffix);
-  renderEvoHistorico(filtrados, 'evo-historico-' + suffix, full.isTrainer);
-  setupEvoChart(filtrados, suffix);
+  renderEvoHistorico(forca, 'evo-historico-' + suffix, full.isTrainer);
+  setupEvoChart(forca, suffix);
 }
 function renderEvolucao(regs, suffix, isTrainer) {
   // v29.4.0: warm-up do Chart.js em paralelo com stats/calendario/historico
@@ -2954,9 +3027,10 @@ function renderEvolucao(regs, suffix, isTrainer) {
   _renderEvo(suffix);
 }
 
-function renderEvoStats(regs, containerId) {
+function renderEvoStats(regs, containerId, cardio) {
   const c = $(containerId);
   if (!c) return;
+  cardio = cardio || [];
   // v16: conta sessoes por (dataSessao, dia) — MESMA base do historico.
   // Antes usava dataLocalIso(timestamp): treino back-dated contava no dia errado,
   // e quando A + C caiam na mesma data so um dos dois era contado.
@@ -3011,6 +3085,13 @@ function renderEvoStats(regs, containerId) {
       const u = pl[0];
       const sub = fmtDate(dataLocalIso(u.timestamp)) + (u.balanca ? ' - ' + escapeHtml(String(u.balanca)) : '');
       return stat('PESO', `${escapeHtml(String(u.peso))}<span class="text-base">kg</span>`, sub);
+    })() +
+    // v29.8.0: card CARDIO (contagem no periodo + ultimo tipo/data)
+    (function () {
+      if (!cardio.length) return '';
+      const ult = [...cardio].sort((a, b) => String(dataSessao(b)).localeCompare(String(dataSessao(a))))[0];
+      const sub = cardioEmoji(ult.modalidade) + ' ' + cardioLabel(ult.modalidade) + ' · ' + daysAgo(dataSessao(ult));
+      return stat('CARDIO', null, sub, cardio.length);
     })();
   // dispara o count-up dos numeros recem-inseridos
   c.querySelectorAll('.evo-count').forEach(el => countUp(el, el.dataset.count));
@@ -3576,14 +3657,18 @@ function renderAlunoDashboard() {
   // v28.4: nao confia so no sort do backend (registros[0]) - se algum dia o
   // getAluno perder o sort, isso pegaria uma linha qualquer. Reduz aqui
   // mesmo por dataSessao(), igual ao dashboard do trainer.
+  // v29.8.0: ULT = ultima sessao de FORCA (cardio nao marca dia A/B/C como feito).
   const regsAluno = APP.data.registros || [];
-  let last = null;
+  let last = null, lastCardio = null;
   regsAluno.forEach(r => {
     const d = dataSessao(r);
     if (!d) return;
+    if (ehCardio(r)) { if (!lastCardio || d > dataSessao(lastCardio)) lastCardio = r; return; }
     if (!last || d > dataSessao(last)) last = r;
   });
-  $('aluno-last').textContent = last ? `ULT: ${last.dia} · ${daysAgo(dataSessao(last))}` : 'NENHUMA SESSAO REGISTRADA';
+  let ultTxt = last ? `ULT: ${last.dia} · ${daysAgo(dataSessao(last))}` : 'NENHUMA SESSAO DE FORCA';
+  if (lastCardio) ultTxt += `   ·   ${cardioEmoji(lastCardio.modalidade)} ${cardioLabel(lastCardio.modalidade)} ${daysAgo(dataSessao(lastCardio))}`;
+  $('aluno-last').textContent = ultTxt;
   const meta = $('aluno-meta');
   let metaHtml = '';
   if (a.objetivo) metaHtml += `<div><span class="text-zinc-600">OBJETIVO:</span> ${escapeHtml(a.objetivo)}</div>`;
@@ -3710,6 +3795,94 @@ $('btn-salvar-peso').onclick = async () => {
     showLoading(false);
   }
 };
+// ===== v29.8.0: CARDIO (modalidade a parte da forca) =====
+// Um registro e CARDIO quando tem modalidade preenchida. Cardio nao conta como
+// dia de forca (A/B/C) em lugar nenhum — so aparece no proprio espaco (card
+// CARDIO na evolucao, dias azuis no calendario, linha no topo do painel).
+const CARDIO_TIPOS = [
+  { v: 'pedal',   label: 'Pedal / Bike', emoji: '🚴' },
+  { v: 'esteira', label: 'Esteira',      emoji: '🏃' },
+  { v: 'remo',    label: 'Remo',         emoji: '🚣' },
+  { v: 'corrida', label: 'Corrida',      emoji: '👟' },
+  { v: 'outro',   label: 'Outro cardio', emoji: '❤️' },
+];
+function ehCardio(r) { return String((r && r.modalidade) || '').trim() !== ''; }
+function cardioLabel(v) {
+  const t = CARDIO_TIPOS.find(t => t.v === String(v || '').toLowerCase());
+  return t ? t.label : (v ? String(v) : 'Cardio');
+}
+function cardioEmoji(v) {
+  const t = CARDIO_TIPOS.find(t => t.v === String(v || '').toLowerCase());
+  return t ? t.emoji : '🚴';
+}
+
+$('btn-aluno-cardio').onclick = () => abrirModalCardio();
+function abrirModalCardio() {
+  const sel = $('cardio-tipo');
+  sel.innerHTML = CARDIO_TIPOS.map(t => `<option value="${t.v}">${t.emoji} ${t.label}</option>`).join('');
+  $('cardio-nome').value = '';
+  $('cardio-obs').value = '';
+  $('cardio-status').textContent = '';
+  const hoje = new Date();
+  $('cardio-data').value =
+    `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+  renderCardioHistorico();
+  $('modal-cardio').classList.remove('hidden');
+}
+function renderCardioHistorico() {
+  const c = $('cardio-historico'); if (!c) return;
+  const lista = (APP.data && APP.data.registros ? APP.data.registros : []).filter(ehCardio)
+    .sort((a, b) => String(dataSessao(b)).localeCompare(String(dataSessao(a))));
+  if (!lista.length) { c.innerHTML = '<div class="mono text-[10px] text-zinc-600 text-center">Nenhum cardio registrado ainda.</div>'; return; }
+  const linhas = lista.slice(0, 10).map(r => {
+    const nome = String(r.exercicio || '').trim();
+    const det = nome && slugify(nome) !== slugify(cardioLabel(r.modalidade)) ? ' · ' + escapeHtml(nome) : '';
+    return `<div class="flex items-center justify-between text-xs py-1.5 border-b border-zinc-900/60">
+      <span class="mono text-zinc-500">${fmtDate(dataSessao(r))}</span>
+      <span class="text-zinc-200">${cardioEmoji(r.modalidade)} ${escapeHtml(cardioLabel(r.modalidade))}${det}</span>
+      <span class="mono text-zinc-600">${escapeHtml(String(r.obs || ''))}</span></div>`;
+  }).join('');
+  c.innerHTML = `<div class="mono text-[10px] text-zinc-500 tracking-widest mb-2">ULTIMOS CARDIOS</div>${linhas}`;
+}
+$('btn-salvar-cardio').onclick = async () => {
+  const tipo = $('cardio-tipo').value || 'outro';
+  const nome = String($('cardio-nome').value || '').trim() || cardioLabel(tipo);
+  const dataCardio = String($('cardio-data').value || '').trim() || hojeIso();
+  const st = $('cardio-status');
+  const payload = {
+    action: 'registro',
+    aluno_id: APP.alunoSession.id,
+    pin: APP.alunoSession.pin,
+    dia: '',                     // cardio NAO pertence a nenhum dia de forca
+    exercicio: nome,
+    carga: '', reps: '', rir: '',
+    completou: true,
+    obs: $('cardio-obs').value || '',
+    data_treino: dataCardio,
+    modalidade: tipo,
+  };
+  // mesma rede de seguranca offline do registro de forca (buffer + local_id)
+  const localId = pushBuffer(payload);
+  showLoading(true);
+  try {
+    await apiPost({ ...payload, local_id: localId });
+    removeFromBuffer(localId);
+    toast('Cardio registrado · ' + cardioLabel(tipo), 'success');
+    $('modal-cardio').classList.add('hidden');
+    await loadAlunoData({ force: true });
+  } catch (e) {
+    if (e && e.network) {
+      toast('Sem conexao — cardio guardado no dispositivo, sera enviado quando a rede voltar.', 'info');
+      $('modal-cardio').classList.add('hidden');
+      return;
+    }
+    removeFromBuffer(localId);
+    st.innerHTML = '<span class="text-red-500">✗ ' + escapeHtml(e.message) + '</span>';
+  } finally {
+    showLoading(false);
+  }
+};
+
 $('btn-aluno-historico').onclick = () => {
   const s = $('aluno-historico-section');
   s.classList.toggle('hidden');
@@ -3808,6 +3981,7 @@ function calcularRecuperacao() {
   plano.forEach(p => musculosDoExercicio(p.exercicio).forEach(x => programados.add(x)));
   const ultimo = {};
   regs.forEach(r => {
+    if (ehCardio(r)) return; // v29.8.0: cardio nao recupera musculo de forca
     const dias = mapaIsoParaDias(dataSessao(r));
     musculosDoExercicio(r.exercicio).forEach(x => { if (ultimo[x] == null || dias < ultimo[x]) ultimo[x] = dias; });
   });
