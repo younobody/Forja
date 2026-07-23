@@ -81,9 +81,12 @@
  * v29.8.1: FICHA DO EXERCICIO embutida no TREINAR AGORA (bloco COMO FAZER
  * com ilustracao/musculos/instrucoes sempre visivel). So HTML; as imagens
  * ja eram cache-first aqui. Bump pra invalidar o shell antigo.
+ * v29.8.2: +11 imagens de ficha (50/55 com foto; hack squat = foto do usuario)
+ * + credito wger so quando ha wger_id. Imagens self-hosted (cache-first aqui);
+ * bump pra invalidar o shell antigo.
  */
 
-const CACHE_VERSION = 'forja-v29.8.1';
+const CACHE_VERSION = 'forja-v29.8.2';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',

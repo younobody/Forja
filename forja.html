@@ -1,4 +1,18 @@
-<!-- FORJA v29.8.1 - FICHA DO EXERCICIO EMBUTIDA NO TREINAR AGORA
+<!-- FORJA v29.8.2 - MAIS IMAGENS DE FICHA + CREDITO WGER CORRETO
+     11 exercicios que estavam sem foto ganharam imagem (agora 50 de 55 com
+     imagem no banco): Hack squat (foto do PROPRIO usuario — a render 3D 45deg),
+     Puxada frontal, Face pull, Abdominal remador, Crucifixo invertido,
+     Desenvolvimento maquina, Extensora/Flexora unilateral (reusam a bilateral),
+     Panturrilha, Squat, Triceps maquina paralela. Todas otimizadas p/ WebP
+     <=640px e self-hosted em forja-site/img/exercicios (mesma pega da v29.7.0).
+     Mudanca de CODIGO nesta versao: o credito "DADOS/IMAGEM: WGER.DE" agora so
+     aparece quando o exercicio tem wger_id (mapeia mesmo pro wger) — antes
+     aparecia sempre que havia imagem, o que creditaria o wger pela foto que o
+     usuario tirou do hack squat. Os 5 que seguem sem imagem sao os que nao tem
+     bom match no wger (crunch no cabo alto, halter individual banco inclinado,
+     panturrilha sentado, remada barra supinada, remo ergometro) — pendente de
+     foto real do usuario na academia.
+     FORJA v29.8.1 - FICHA DO EXERCICIO EMBUTIDA NO TREINAR AGORA
      A ficha (ilustracao + musculos + equipamento + instrucoes, dados da
      v29.7.0) agora aparece DIRETO na tela do TREINAR, num bloco "COMO FAZER"
      logo abaixo do nome do exercicio — sem precisar tocar no ⓘ (escolha do
@@ -1616,7 +1630,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v29.8.1';
+const FORJA_VERSION = 'v29.8.2';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -3983,7 +3997,9 @@ function abrirExInfo(nome) {
   const img = $('exinfo-img');
   if (info.imagem_url) { img.classList.remove('hidden'); img.src = info.imagem_url; }
   else { img.classList.add('hidden'); img.removeAttribute('src'); }
-  $('exinfo-fonte').classList.toggle('hidden', !(info.wger_id || info.imagem_url));
+  // v29.8.2: credito wger SO quando o exercicio mapeia pra la (wger_id). Imagem
+  // propria (ex: hack squat do usuario, wger_id null) nao leva credito do wger.
+  $('exinfo-fonte').classList.toggle('hidden', !info.wger_id);
   $('modal-exinfo').classList.remove('hidden');
 }
 
@@ -4830,7 +4846,7 @@ function mostrarExercicioAtual() {
       fimg.classList.add('hidden');
       fimg.removeAttribute('src');
     }
-    $('treinar-ficha-fonte').classList.toggle('hidden', !(infoTr.wger_id || infoTr.imagem_url));
+    $('treinar-ficha-fonte').classList.toggle('hidden', !infoTr.wger_id); // v29.8.2: so credita wger com wger_id
     elFicha.classList.remove('hidden');
   } else {
     elFicha.classList.add('hidden');
