@@ -1,4 +1,13 @@
-<!-- FORJA v29.8.2 - MAIS IMAGENS DE FICHA + CREDITO WGER CORRETO
+<!-- FORJA v29.8.3 - LINK PRO MANUAL DE USO
+     Novo arquivo forja-site/manual.html (fora do forja.html, nao versionado
+     junto) com o manual completo do app — instalar, entrar, cada tela do
+     aluno e do trainer, FAQ. Link discreto "▸ MANUAL DE USO" adicionado em
+     dois lugares: tela de login (view-home, ao lado de RECONFIGURAR URL) e
+     rodape do painel do aluno (view-aluno). Abre em aba nova. Nao linkado no
+     header do trainer (Marcos ja sabe onde fica). ZERO mudanca de logica —
+     so os dois <a> novos. O manual.html tem changelog/versao proprios, fora
+     do FORJA_VERSION deste arquivo.
+     FORJA v29.8.2 - MAIS IMAGENS DE FICHA + CREDITO WGER CORRETO
      11 exercicios que estavam sem foto ganharam imagem (agora 50 de 55 com
      imagem no banco): Hack squat (foto do PROPRIO usuario — a render 3D 45deg),
      Puxada frontal, Face pull, Abdominal remador, Crucifixo invertido,
@@ -750,6 +759,8 @@
       </div>
     </div>
     <div class="mono text-[10px] text-zinc-600 mt-14 text-center tracking-widest">
+      <a href="./manual.html" target="_blank" rel="noopener" class="hover:text-zinc-400 transition-colors">▸ MANUAL DE USO</a>
+      <span class="text-zinc-800"> · </span>
       <button onclick="resetConfig()" class="hover:text-zinc-400 transition-colors">▸ RECONFIGURAR URL</button>
     </div>
   </div><!-- fecha max-w-3xl -->
@@ -1020,6 +1031,8 @@
 
     <div class="mt-10 text-center mono text-[10px] text-zinc-700 tracking-widest">
       FORJA · <span class="forja-ver">v?</span> · backend <span class="forja-backend">?</span>
+      <br class="sm:hidden" />
+      <a href="./manual.html" target="_blank" rel="noopener" class="hover:text-zinc-500 transition-colors">MANUAL DE USO</a>
     </div>
   </main>
 </section>
@@ -1630,7 +1643,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v29.8.2';
+const FORJA_VERSION = 'v29.8.3';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao

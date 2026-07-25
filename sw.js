@@ -84,13 +84,18 @@
  * v29.8.2: +11 imagens de ficha (50/55 com foto; hack squat = foto do usuario)
  * + credito wger so quando ha wger_id. Imagens self-hosted (cache-first aqui);
  * bump pra invalidar o shell antigo.
+ * v29.8.3: manual.html novo (guia de uso do app, fora do forja.html) +
+ * link discreto pra ele na tela de login e no rodape do painel do aluno.
+ * manual.html entra em ASSETS pra abrir offline tambem. Bump pra invalidar
+ * o shell antigo.
  */
 
-const CACHE_VERSION = 'forja-v29.8.2';
+const CACHE_VERSION = 'forja-v29.8.3';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',
   './forja.html',
+  './manual.html',
   './manifest.json',
   'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600;800&display=swap',
   'https://fonts.gstatic.com',

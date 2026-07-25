@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>FORJA — Manual de uso</title>
+<meta name="theme-color" content="#F6F7F9" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23FFFFFF'/%3E%3Cg fill='none' stroke='%23EE5622' stroke-width='4' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M14 26 h30 a8 8 0 0 1 -8 8 h-6 l-2 0 a10 10 0 0 0 14 0'/%3E%3Cpath d='M28 34 v10'/%3E%3Cpath d='M20 46 h16'/%3E%3C/g%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F6F7F9; --bg-soft:#EFF1F4; --card:#FFFFFF; --border:#E7EAEE;
+    --ink:#0E1116; --dim:#5B6472; --faint:#8B93A0;
+    --brasa:#EE5622; --brasa-ink:#B23A12; --brasa-soft:#FDECE5;
+    --dia-a:#DC2626; --dia-b:#C77400; --dia-c:#10935E; --azul:#2563EB;
+    --tela-bg:#09090b; --tela-linha:#27272a; --tela-ink:#f4f4f5; --tela-dim:#71717a;
+    --medida:54ch;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#101317; --bg-soft:#151920; --card:#171B21; --border:#252B34;
+      --ink:#E9ECF1; --dim:#A2ABB8; --faint:#7B8593;
+      --brasa:#FF7043; --brasa-ink:#FFA184; --brasa-soft:#2A1710;
+      --dia-a:#F87171; --dia-b:#E0A33A; --dia-c:#34D399; --azul:#60A5FA;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#101317; --bg-soft:#151920; --card:#171B21; --border:#252B34;
+    --ink:#E9ECF1; --dim:#A2ABB8; --faint:#7B8593;
+    --brasa:#FF7043; --brasa-ink:#FFA184; --brasa-soft:#2A1710;
+    --dia-a:#F87171; --dia-b:#E0A33A; --dia-c:#34D399; --azul:#60A5FA;
+  }
+  :root[data-theme="light"]{
+    --bg:#F6F7F9; --bg-soft:#EFF1F4; --card:#FFFFFF; --border:#E7EAEE;
+    --ink:#0E1116; --dim:#5B6472; --faint:#8B93A0;
+    --brasa:#EE5622; --brasa-ink:#B23A12; --brasa-soft:#FDECE5;
+    --dia-a:#DC2626; --dia-b:#C77400; --dia-c:#10935E; --azul:#2563EB;
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'DM Sans',system-ui,sans-serif; font-size:16px; line-height:1.65;
+  }
+  .display{font-family:'Bebas Neue',sans-serif; letter-spacing:.02em; font-weight:400}
+  .mono{font-family:'JetBrains Mono',monospace}
+
+  .wrap{max-width:1180px; margin:0 auto; padding:0 20px}
+
+  /* ---------- HERO ---------- */
+  header.hero{border-bottom:1px solid var(--border); background:var(--card)}
+  .hero-in{display:flex; gap:28px; align-items:center; padding:44px 0 38px; flex-wrap:wrap}
+  .anvil{flex:0 0 auto}
+  .hero-txt{flex:1 1 320px; min-width:280px}
+  .hero h1{
+    font-family:'Bebas Neue',sans-serif; font-weight:400; letter-spacing:.01em;
+    font-size:clamp(44px,8vw,76px); line-height:.92; margin:0 0 6px; text-wrap:balance;
+  }
+  .hero h1 .dot{color:var(--brasa)}
+  .kicker{
+    font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--brasa-ink); margin:0 0 14px;
+  }
+  .lede{font-size:17px; color:var(--dim); margin:0; max-width:58ch}
+
+  /* ---------- LAYOUT ---------- */
+  .cols{display:grid; grid-template-columns:200px minmax(0,1fr); gap:48px; padding:40px 0 80px}
+  @media (max-width:900px){ .cols{grid-template-columns:1fr; gap:0; padding-top:24px} }
+
+  nav.rail{position:sticky; top:24px; align-self:start; font-family:'JetBrains Mono',monospace; font-size:12px}
+  @media (max-width:900px){
+    nav.rail{position:static; margin-bottom:32px; padding:16px; background:var(--card);
+      border:1px solid var(--border); border-radius:12px}
+  }
+  nav.rail .grp{font-size:10px; letter-spacing:.16em; color:var(--faint); text-transform:uppercase; margin:20px 0 8px}
+  nav.rail .grp:first-child{margin-top:0}
+  nav.rail a{display:block; color:var(--dim); text-decoration:none; padding:4px 0 4px 12px;
+    border-left:2px solid var(--border); transition:color .15s,border-color .15s}
+  nav.rail a:hover,nav.rail a:focus-visible{color:var(--brasa-ink); border-left-color:var(--brasa)}
+  nav.rail a:focus-visible{outline:2px solid var(--brasa); outline-offset:2px}
+
+  main{min-width:0}
+  section{scroll-margin-top:20px}
+  section + section{margin-top:56px}
+
+  .partline{display:flex; align-items:baseline; gap:14px; margin:0 0 8px}
+  .parttag{
+    font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.18em;
+    text-transform:uppercase; padding:4px 10px; border-radius:999px; white-space:nowrap;
+  }
+  .tag-aluno{background:var(--brasa-soft); color:var(--brasa-ink)}
+  .tag-trainer{background:color-mix(in srgb,var(--dia-c) 14%,transparent); color:var(--dia-c)}
+  h2{font-family:'Bebas Neue',sans-serif; font-weight:400; font-size:clamp(30px,4.5vw,42px);
+     line-height:1.02; margin:0; text-wrap:balance}
+  h3{font-family:'Bebas Neue',sans-serif; font-weight:400; font-size:26px; line-height:1.1;
+     margin:0 0 4px; text-wrap:balance}
+  .sub{color:var(--dim); margin:6px 0 0; max-width:var(--medida)}
+  p{margin:0 0 12px; max-width:var(--medida)}
+  p:last-child{margin-bottom:0}
+
+  hr.rule{border:0; border-top:1px solid var(--border); margin:44px 0 32px}
+
+  /* passo = bloco com texto + ilustração */
+  .passo{display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:32px; align-items:start;
+    padding:28px 0; border-top:1px solid var(--border)}
+  .passo:first-of-type{border-top:0}
+  .passo.solo{grid-template-columns:minmax(0,1fr)}
+  @media (max-width:820px){ .passo{grid-template-columns:minmax(0,1fr); gap:20px} }
+
+  ol.steps{margin:12px 0 0; padding:0; list-style:none; counter-reset:s}
+  ol.steps li{counter-increment:s; position:relative; padding-left:34px; margin-bottom:10px; max-width:var(--medida)}
+  ol.steps li::before{
+    content:counter(s); position:absolute; left:0; top:1px;
+    font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600;
+    width:22px; height:22px; border-radius:6px; display:grid; place-items:center;
+    background:var(--brasa-soft); color:var(--brasa-ink);
+  }
+  ul.bul{margin:12px 0 0; padding-left:20px}
+  ul.bul li{margin-bottom:8px; max-width:var(--medida)}
+
+  code{font-family:'JetBrains Mono',monospace; font-size:.86em; background:var(--bg-soft);
+    padding:2px 6px; border-radius:5px; border:1px solid var(--border)}
+
+  .nota{
+    border-left:3px solid var(--brasa); background:var(--brasa-soft); padding:12px 16px;
+    margin:16px 0 0; border-radius:0; font-size:15px; color:var(--ink); max-width:var(--medida);
+  }
+  .nota strong{color:var(--brasa-ink)}
+  .nota.verde{border-left-color:var(--dia-c); background:color-mix(in srgb,var(--dia-c) 10%,transparent)}
+  .nota.verde strong{color:var(--dia-c)}
+
+  /* ---------- TELAS (recriações do app) ---------- */
+  figure.tela{margin:0; position:sticky; top:24px}
+  @media (max-width:820px){ figure.tela{position:static; max-width:300px} }
+  .frame{
+    border:1px solid var(--border); border-radius:22px; overflow:hidden; background:#fff;
+    box-shadow:0 10px 30px -18px rgba(14,17,22,.5);
+  }
+  .frame.dark{background:var(--tela-bg); border-color:#2b2b30}
+  figcaption{font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--faint); margin-top:10px; text-align:center}
+
+  /* telas claras (painel do aluno) */
+  .s{padding:14px; font-size:12px}
+  .s-top{display:flex; align-items:center; gap:9px; padding-bottom:11px; border-bottom:1px solid #E7EAEE}
+  .avatar{width:32px;height:32px;border-radius:9px;background:#5B6472;color:#fff;
+    display:grid;place-items:center;font-family:'Bebas Neue',sans-serif;font-size:15px}
+  .s-nome{font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;color:#0E1116}
+  .s-ult{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:#8B93A0;letter-spacing:.06em}
+  .tabs{display:flex;gap:0;border-bottom:1px solid #E7EAEE;margin:11px 0}
+  .tab{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;
+    padding:6px 13px;color:#8B93A0;border-bottom:2px solid transparent}
+  .tab.on{color:#DC2626;border-bottom-color:#DC2626}
+  .cardx{border:1px solid #E7EAEE;border-radius:9px;padding:9px 11px;margin-bottom:7px;background:#fff;position:relative;overflow:hidden}
+  .cardx .stripe{position:absolute;left:0;top:0;bottom:0;width:3px}
+  .exname{color:#0E1116;font-size:12px;margin-bottom:3px}
+  .exmeta{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:#8B93A0;letter-spacing:.05em}
+  .btn-s{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;
+    text-align:center;padding:10px;border-radius:8px;border:1px solid #E7EAEE;color:#5B6472;background:#fff}
+  .btn-s.go{background:#10935E;color:#fff;border-color:#10935E}
+  .btn-s.br{border-color:rgba(238,86,34,.5);color:#B23A12}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+
+  /* telas escuras (treinar) */
+  .d{padding:13px;color:var(--tela-ink);font-size:12px}
+  .d-top{display:flex;align-items:center;justify-content:space-between;
+    padding-bottom:9px;border-bottom:1px solid var(--tela-linha)}
+  .d-mono{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--tela-dim);letter-spacing:.12em}
+  .prog{height:3px;background:#18181b;border-radius:2px;overflow:hidden;margin:8px 0 11px}
+  .prog i{display:block;height:100%;background:#10b981}
+  .chips-row{display:flex;gap:4px;margin-bottom:11px}
+  .chip-q{flex:1;height:4px;border-radius:2px;background:#3f3f46}
+  .d-h{font-family:'Bebas Neue',sans-serif;font-size:25px;line-height:1.05;margin-bottom:9px}
+  .ficha{border:1px solid rgba(238,86,34,.4);border-radius:10px;padding:9px;background:#0d0d0f;margin-bottom:10px}
+  .ficha-lb{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.14em;color:#EE5622;margin-bottom:7px}
+  .ficha img{width:100%;max-height:112px;object-fit:contain;background:#fff;border-radius:6px;display:block}
+  .mchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+  .mchip{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;
+    padding:3px 6px;border-radius:5px;border:1px solid}
+  .ficha-tx{font-size:10.5px;line-height:1.5;color:#d4d4d8;margin-top:8px}
+  .kard{background:#18181b;border:1px solid var(--tela-linha);border-radius:8px;padding:9px;margin-bottom:8px}
+  .kard-lb{font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.12em;color:var(--tela-dim);margin-bottom:3px}
+  .kard-vl{font-family:'JetBrains Mono',monospace;font-size:11px;color:#e4e4e7}
+  .sug{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;
+    border-radius:8px;padding:9px;margin-bottom:10px}
+  .sug.up{border:1px solid rgba(16,147,94,.5);background:rgba(16,147,94,.08);color:#34d399}
+  .in3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:11px}
+  .in-lb{font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.1em;color:var(--tela-dim);margin-bottom:4px}
+  .in-bx{border:1px solid #3f3f46;border-radius:7px;padding:8px 0;text-align:center;font-size:17px}
+  .d2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .bt{font-family:'JetBrains Mono',monospace;font-size:12px;text-align:center;padding:13px 0;border-radius:8px}
+  .bt.no{border:1px solid #7f1d1d;color:#f87171}
+  .bt.si{background:#10935E;color:#fff}
+
+  /* calendário mini */
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+  .cal span{aspect-ratio:1;border-radius:3px;display:grid;place-items:center;
+    font-family:'JetBrains Mono',monospace;font-size:8px;color:#8B93A0;background:#F1F3F6}
+  .cal .v{background:#10935E;color:#fff}
+  .cal .b{background:#2563EB;color:#fff}
+  .cal .r{background:#FBE9E9;color:#DC2626}
+
+  /* legenda de cores */
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .lg{display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;
+    font-size:11px;color:var(--dim);border:1px solid var(--border);border-radius:999px;padding:5px 12px 5px 8px;background:var(--card)}
+  .dot9{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+
+  /* FAQ */
+  details{border:1px solid var(--border);border-radius:10px;background:var(--card);
+    padding:14px 16px;margin-bottom:10px}
+  details[open]{border-color:color-mix(in srgb,var(--brasa) 40%,var(--border))}
+  summary{cursor:pointer;font-weight:500;list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:'+';font-family:'JetBrains Mono',monospace;color:var(--brasa);
+    margin-right:10px;font-weight:600}
+  details[open] summary::before{content:'–'}
+  details p{margin:10px 0 0;color:var(--dim);font-size:15px}
+
+  footer{border-top:1px solid var(--border);padding:28px 0 44px;color:var(--faint);
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em}
+
+  a{color:var(--brasa-ink)}
+  :focus-visible{outline:2px solid var(--brasa); outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-in">
+    <div class="anvil" aria-hidden="true">
+      <svg width="92" height="92" viewBox="0 0 64 64" role="img">
+        <rect width="64" height="64" rx="16" fill="var(--brasa-soft)"/>
+        <g fill="none" stroke="var(--brasa)" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+          <path d="M14 26 h30 a8 8 0 0 1 -8 8 h-6 l-2 0 a10 10 0 0 0 14 0"/>
+          <path d="M28 34 v10"/><path d="M20 46 h16"/>
+        </g>
+      </svg>
+    </div>
+    <div class="hero-txt">
+      <p class="kicker">Manual de uso · atualizado na v29.8.2</p>
+      <h1>FORJA<span class="dot">.</span></h1>
+      <p class="lede">Seu treino registrado em segundos, direto do celular. Este manual mostra cada tela do app — o que fazer, onde tocar e o que cada número significa.</p>
+    </div>
+  </div>
+</header>
+
+<div class="wrap cols">
+
+  <nav class="rail" aria-label="Índice">
+    <div class="grp">Começar</div>
+    <a href="#instalar">Instalar no celular</a>
+    <a href="#entrar">Entrar</a>
+    <div class="grp">Para o aluno</div>
+    <a href="#painel">Sua tela inicial</a>
+    <a href="#treinar">Treinar agora</a>
+    <a href="#lancar">Lançar sessão</a>
+    <a href="#cardio">Cardio</a>
+    <a href="#peso">Peso</a>
+    <a href="#evolucao">Evolução</a>
+    <div class="grp">Para o trainer</div>
+    <a href="#trainer">Painel do trainer</a>
+    <a href="#plano">Montar o plano</a>
+    <div class="grp">Dúvidas</div>
+    <a href="#faq">Perguntas rápidas</a>
+  </nav>
+
+  <main>
+
+    <!-- ============ INSTALAR ============ -->
+    <section id="instalar">
+      <div class="partline"><h2>Instalar no celular</h2></div>
+      <p class="sub">O FORJA é um site que vira aplicativo. Instalando, ele ganha ícone na tela inicial, abre em tela cheia e funciona mesmo sem internet.</p>
+
+      <div class="passo">
+        <div>
+          <h3>Android (Chrome)</h3>
+          <ol class="steps">
+            <li>Abra <code>younobody.github.io/Forja</code> no Chrome.</li>
+            <li>Toque nos três pontinhos <strong>⋮</strong> no canto da tela.</li>
+            <li>Escolha <strong>Instalar app</strong> (ou "Adicionar à tela inicial").</li>
+            <li>Pronto: o ícone da bigorna aparece junto com seus outros apps.</li>
+          </ol>
+
+          <h3 style="margin-top:22px">iPhone (Safari)</h3>
+          <ol class="steps">
+            <li>Abra o mesmo endereço no <strong>Safari</strong> (não funciona no Chrome do iPhone).</li>
+            <li>Toque no botão de compartilhar <strong>⬆</strong> na barra de baixo.</li>
+            <li>Role e escolha <strong>Adicionar à Tela de Início</strong>.</li>
+          </ol>
+
+          <div class="nota"><strong>Vale a pena instalar.</strong> Depois de instalado, o app abre sem a barra do navegador e guarda seus treinos no aparelho se a internet cair na academia.</div>
+        </div>
+
+        <figure class="tela">
+          <div class="frame">
+            <div class="s" style="text-align:center;padding:26px 16px">
+              <svg width="64" height="64" viewBox="0 0 64 64" style="margin:0 auto 10px;display:block" aria-hidden="true">
+                <rect width="64" height="64" rx="14" fill="#fff" stroke="#E7EAEE"/>
+                <g fill="none" stroke="#EE5622" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+                  <path d="M14 26 h30 a8 8 0 0 1 -8 8 h-6 l-2 0 a10 10 0 0 0 14 0"/>
+                  <path d="M28 34 v10"/><path d="M20 46 h16"/>
+                </g>
+              </svg>
+              <div class="display" style="font-size:34px;line-height:1;color:#0E1116">FORJA<span style="color:#EE5622">.</span></div>
+              <div class="mono" style="font-size:8px;letter-spacing:.16em;color:#8B93A0;margin-top:6px">FORJANDO A SAÚDE</div>
+              <div style="margin-top:18px;border:1px solid #E7EAEE;border-radius:9px;padding:9px;background:#F6F7F9">
+                <div class="mono" style="font-size:8px;letter-spacing:.14em;color:#8B93A0">QUEM TÁ TREINANDO</div>
+                <div style="display:flex;align-items:center;gap:7px;margin-top:6px">
+                  <span style="font-size:13px">🏆</span>
+                  <span class="display" style="font-size:15px;color:#0E1116">MARCOS D. ABATI</span>
+                </div>
+                <div class="mono" style="font-size:8px;color:#10935E;margin-top:3px">✅ TREINOU HOJE · 4 SEGUIDOS</div>
+              </div>
+              <div class="mono" style="font-size:8px;letter-spacing:.14em;color:#8B93A0;margin-top:14px;text-align:left">SEU CÓDIGO</div>
+              <div style="border:1px solid #E7EAEE;border-radius:8px;padding:9px;margin-top:4px;letter-spacing:.5em;color:#8B93A0">••••</div>
+              <div class="btn-s go" style="margin-top:8px">ENTRAR ▸</div>
+            </div>
+          </div>
+          <figcaption>Tela de abertura</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============ ENTRAR ============ -->
+    <section id="entrar">
+      <div class="partline"><h2>Entrar</h2></div>
+      <p class="sub">Não tem cadastro, e-mail nem senha. Você entra com um código curto que o trainer te passa.</p>
+
+      <div class="passo solo">
+        <div>
+          <ol class="steps">
+            <li>Digite seu <strong>código de 4 dígitos</strong> no campo <em>SEU CÓDIGO</em>.</li>
+            <li>Toque em <strong>ENTRAR</strong>. Sua tela abre na hora, com o plano do dia.</li>
+          </ol>
+          <p style="margin-top:14px">Na tela de abertura também aparece o <strong>QUEM TÁ TREINANDO</strong>: um resumo de quem treinou nos últimos dias, com sequência de dias seguidos e o campeão do mês. É só motivação — ninguém vê carga, peso ou medida de ninguém.</p>
+          <div class="nota"><strong>Perdeu o código?</strong> Fale com o trainer. Ele consegue ver e trocar seu código a qualquer momento.</div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============ PAINEL ============ -->
+    <section id="painel">
+      <div class="partline"><span class="parttag tag-aluno">Aluno</span><h2>Sua tela inicial</h2></div>
+      <p class="sub">É o seu ponto de partida: o que treinar hoje, como seu corpo está de recuperação e os atalhos para registrar.</p>
+
+      <div class="passo">
+        <div>
+          <h3>O que tem nessa tela</h3>
+          <ul class="bul">
+            <li><strong>Seu nome e a última sessão</strong> — ex.: <code>ULT: C · 2d atrás</code>. Se você registrou cardio, ele aparece do lado, separado.</li>
+            <li><strong>Abas A / B / C</strong> — seus dias de treino. Toque para ver o plano de cada um.</li>
+            <li><strong>Mapa muscular</strong> — um bonequinho colorido mostrando quais grupos estão descansados e quais ainda estão se recuperando.</li>
+            <li><strong>Lista de exercícios do dia</strong> — séries, reps, carga sugerida e RIR.</li>
+            <li><strong>Botões de ação</strong> — treinar, lançar sessão, evolução, peso e cardio.</li>
+          </ul>
+
+          <h3 style="margin-top:24px">Como ler o mapa muscular</h3>
+          <p>O app olha seus últimos treinos e pinta cada grupo muscular:</p>
+          <div class="legend">
+            <span class="lg"><span class="dot9" style="background:#10935E"></span>Pronto pra treinar</span>
+            <span class="lg"><span class="dot9" style="background:#C77400"></span>Recuperando (treinou ontem)</span>
+            <span class="lg"><span class="dot9" style="background:#DC2626"></span>Atrasado (5+ dias parado)</span>
+          </div>
+          <p style="margin-top:14px">Ele também sugere qual dia faz mais sentido treinar hoje, com base no que está mais descansado.</p>
+
+          <div class="nota"><strong>Viu um ⓘ do lado do exercício?</strong> Toque no nome dele: abre a ficha com desenho, músculos trabalhados e como executar.</div>
+        </div>
+
+        <figure class="tela">
+          <div class="frame">
+            <div class="s">
+              <div class="s-top">
+                <div class="avatar">MA</div>
+                <div>
+                  <div class="s-nome">MARCOS ABATI</div>
+                  <div class="s-ult">ULT: C · 2D ATRÁS · 🚴 PEDAL ONTEM</div>
+                </div>
+              </div>
+              <div class="tabs"><span class="tab on">A</span><span class="tab">B</span><span class="tab">C</span></div>
+
+              <div style="border:1px solid #E7EAEE;border-radius:9px;padding:10px;margin-bottom:10px;background:#F6F7F9">
+                <div class="mono" style="font-size:8px;letter-spacing:.14em;color:#8B93A0;margin-bottom:7px">MAPA MUSCULAR</div>
+                <div style="display:flex;gap:5px;flex-wrap:wrap">
+                  <span class="mono" style="font-size:7.5px;padding:3px 6px;border-radius:4px;background:#10935E;color:#fff">PEITO</span>
+                  <span class="mono" style="font-size:7.5px;padding:3px 6px;border-radius:4px;background:#10935E;color:#fff">OMBRO</span>
+                  <span class="mono" style="font-size:7.5px;padding:3px 6px;border-radius:4px;background:#C77400;color:#fff">COSTAS</span>
+                  <span class="mono" style="font-size:7.5px;padding:3px 6px;border-radius:4px;background:#DC2626;color:#fff">PANTURRILHA</span>
+                  <span class="mono" style="font-size:7.5px;padding:3px 6px;border-radius:4px;background:#10935E;color:#fff">TRÍCEPS</span>
+                </div>
+              </div>
+
+              <div class="cardx"><span class="stripe" style="background:#DC2626"></span>
+                <div class="exname" style="padding-left:6px">Supino reto barra <span class="mono" style="font-size:8px;color:#8B93A0">ⓘ</span></div>
+                <div class="exmeta" style="padding-left:6px">3×8-10 · 22KG · RIR 1-2</div>
+              </div>
+              <div class="cardx"><span class="stripe" style="background:#DC2626"></span>
+                <div class="exname" style="padding-left:6px">Desenvolvimento halter <span class="mono" style="font-size:8px;color:#8B93A0">ⓘ</span></div>
+                <div class="exmeta" style="padding-left:6px">3×10-12 · 15KG · RIR 2</div>
+              </div>
+
+              <div class="btn-s go" style="margin:10px 0 7px">▸ TREINAR AGORA</div>
+              <div class="grid2">
+                <div class="btn-s">LANÇAR SESSÃO</div>
+                <div class="btn-s">EVOLUÇÃO</div>
+                <div class="btn-s">⚖ PESO</div>
+                <div class="btn-s br">🚴 CARDIO</div>
+              </div>
+            </div>
+          </div>
+          <figcaption>Painel do aluno</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============ TREINAR ============ -->
+    <section id="treinar">
+      <div class="partline"><span class="parttag tag-aluno">Aluno</span><h2>Treinar agora</h2></div>
+      <p class="sub">O modo principal: você usa durante o treino, um exercício por vez. Ele cronometra a sessão, lembra o que você fez da última vez e sugere a carga de hoje.</p>
+
+      <div class="passo">
+        <div>
+          <h3>Como funciona</h3>
+          <ol class="steps">
+            <li>Na sua tela inicial, escolha o dia (A, B ou C) e toque em <strong>▸ TREINAR AGORA</strong>.</li>
+            <li>O app mostra o <strong>primeiro exercício</strong>, com o desenho e as instruções na tela.</li>
+            <li>Faça a série. Entre uma série e outra, toque em <strong>⏱ DESCANSAR</strong> — os botões <strong>−</strong> e <strong>+</strong> ajustam o tempo.</li>
+            <li>Preencha <strong>CARGA</strong>, <strong>REPS</strong> e <strong>RIR</strong>.</li>
+            <li><strong>Segure</strong> o botão <strong>✓ FECHEI</strong> até a barra encher. Se não conseguiu fazer, toque em <strong>✗ FALTEI</strong>.</li>
+            <li>O app pula sozinho para o próximo. Quando todos estiverem fechados, aparece a tela <strong>FECHADO</strong> com o resumo.</li>
+          </ol>
+
+          <div class="nota"><strong>Por que segurar o "FECHEI"?</strong> Para não registrar treino sem querer com o celular no bolso. Toque rápido não conta.</div>
+
+          <h3 style="margin-top:26px">Os dois cards que te ajudam</h3>
+          <p><strong>ÚLTIMO TREINO</strong> mostra o que você fez da última vez nesse exercício. Toque no card e ele copia os valores para os campos — aí você só ajusta.</p>
+          <p><strong>SUGESTÃO</strong> é o app olhando seu histórico e dizendo se dá para subir a carga:</p>
+          <div class="legend">
+            <span class="lg"><span class="dot9" style="background:#10935E"></span>↑ Subir — toque e ele preenche</span>
+            <span class="lg"><span class="dot9" style="background:#8B93A0"></span>= Manter — e o porquê</span>
+            <span class="lg"><span class="dot9" style="background:#C77400"></span>🎯 Meta do plano atingida</span>
+          </div>
+          <p style="margin-top:14px">Ele só sugere subir quando você fechou a última, sobrou gás (RIR 2 ou mais) e bateu as repetições planejadas. É <strong>sugestão</strong>: se o dia estiver ruim, ignore.</p>
+
+          <h3 style="margin-top:26px">Outros botões dessa tela</h3>
+          <ul class="bul">
+            <li><strong>⇄ TROCAR</strong> — aparece quando existe um exercício equivalente (ex.: Prancha ↔ Pallof press). A troca vale só para esse treino; seu plano não muda.</li>
+            <li><strong>◂ ANTERIOR / PRÓXIMO ▸</strong> — pula de exercício sem registrar, para quando o aparelho está ocupado.</li>
+            <li><strong>+ EXERCÍCIO EXTRA</strong> — fez algo a mais que não estava no plano? Adicione aqui.</li>
+            <li><strong>DATA DO TREINO</strong> — está treinando hoje mas quer lançar como ontem? Mude a data antes de fechar o primeiro exercício.</li>
+          </ul>
+        </div>
+
+        <figure class="tela">
+          <div class="frame dark">
+            <div class="d">
+              <div class="d-top">
+                <span class="d-mono">◂ SAIR</span>
+                <span><span class="display" style="font-size:22px;color:#DC2626">A</span> <span class="d-mono">TREINANDO</span></span>
+                <span class="d-mono" style="text-align:right">3 / 6<br>⏱ 24MIN</span>
+              </div>
+              <div class="prog"><i style="width:42%"></i></div>
+              <div class="chips-row">
+                <span class="chip-q" style="background:#10b981"></span>
+                <span class="chip-q" style="background:#10b981"></span>
+                <span class="chip-q" style="background:#EE5622"></span>
+                <span class="chip-q"></span><span class="chip-q"></span><span class="chip-q"></span>
+              </div>
+              <div class="d-h">SUPINO RETO BARRA</div>
+
+              <div class="ficha">
+                <div class="ficha-lb">COMO FAZER</div>
+                <img src="img/exercicios/supino-reto-barra.webp" alt="Ilustração do supino reto com barra" />
+                <div class="mchips">
+                  <span class="mchip" style="color:#E0A33A;border-color:rgba(199,116,0,.5)">PEITO</span>
+                  <span class="mchip" style="color:#9ca3af;border-color:rgba(110,118,131,.45)">TRÍCEPS</span>
+                  <span class="mchip" style="color:#9ca3af;border-color:rgba(110,118,131,.45)">OMBRO</span>
+                  <span class="mchip" style="color:#34d399;border-color:rgba(16,147,94,.5)">BARRA</span>
+                </div>
+                <div class="ficha-tx">Escápulas retraídas, pés firmes no chão. Desça a barra até o meio do peito e empurre sem perder o arco natural das costas.</div>
+              </div>
+
+              <div class="d-mono" style="margin-bottom:9px">ALVO: 3×8-10 · RIR 1-2</div>
+
+              <div class="kard">
+                <div class="kard-lb">ÚLTIMO TREINO · 12/07 · TOQUE PRA COPIAR</div>
+                <div class="kard-vl">20kg · ×10 · RIR 1</div>
+              </div>
+              <div class="sug up">↑ SUGESTÃO: 22,5kg (sobrou RIR 2)</div>
+
+              <div class="in3">
+                <div><div class="in-lb">CARGA</div><div class="in-bx">22,5</div></div>
+                <div><div class="in-lb">REPS</div><div class="in-bx">10</div></div>
+                <div><div class="in-lb">RIR</div><div class="in-bx">1</div></div>
+              </div>
+              <div class="d2">
+                <div class="bt no">✗ FALTEI</div>
+                <div class="bt si">✓ FECHEI</div>
+              </div>
+            </div>
+          </div>
+          <figcaption>Treinar agora</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============ LANÇAR ============ -->
+    <section id="lancar">
+      <div class="partline"><span class="parttag tag-aluno">Aluno</span><h2>Lançar sessão</h2></div>
+      <p class="sub">Para quando você já treinou e quer registrar tudo de uma vez — em casa, no fim do dia, ou lançando um treino de ontem.</p>
+
+      <div class="passo solo">
+        <div>
+          <ol class="steps">
+            <li>Escolha o dia (A, B ou C) e toque em <strong>LANÇAR SESSÃO</strong>.</li>
+            <li>Confira a <strong>data do treino</strong> no topo — já vem com hoje.</li>
+            <li>Preencha carga, reps e RIR de cada exercício. Cada card mostra a linha <em>ÚLTIMO</em> com o que você fez da última vez e um botão <strong>USAR</strong> que aplica a carga sugerida.</li>
+            <li>Se faltou algum exercício, toque no <strong>✓ SIM</strong> daquele card para virar <strong>✗ FALTOU</strong>.</li>
+            <li>Toque em <strong>SALVAR SESSÃO</strong> e confirme.</li>
+          </ol>
+          <div class="nota"><strong>Já existe treino nesse dia?</strong> O app avisa antes de gravar e pergunta se você quer sobrescrever a sessão antiga ou cancelar. Nada é apagado sem você confirmar.</div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============ CARDIO ============ -->
+    <section id="cardio">
+      <div class="partline"><span class="parttag tag-aluno">Aluno</span><h2>Cardio</h2></div>
+      <p class="sub">Pedal, esteira, remo ou corrida. Fica registrado, mas separado da musculação.</p>
+
+      <div class="passo">
+        <div>
+          <ol class="steps">
+            <li>Na sua tela inicial, toque em <strong>🚴 CARDIO</strong>.</li>
+            <li>Escolha o <strong>tipo</strong>: pedal, esteira, remo, corrida ou outro.</li>
+            <li>Em <strong>detalhe</strong> você pode ser específico (ex.: "Bicicleta ar livre", "HIIT").</li>
+            <li>Em <strong>distância / tempo / obs</strong>, anote o que importa: <code>20km</code>, <code>45min zona 2</code>.</li>
+            <li>Confira a data e toque em <strong>SALVAR</strong>.</li>
+          </ol>
+
+          <div class="nota verde"><strong>Cardio não fecha dia de treino.</strong> Se você pedalou mas não fez o treino A, o dia A continua em aberto. O cardio aparece em azul no calendário e num card próprio na Evolução — não conta como falta nem infla suas sessões de musculação.</div>
+        </div>
+
+        <figure class="tela">
+          <div class="frame">
+            <div class="s">
+              <div class="display" style="font-size:26px;color:#0E1116;line-height:1">CARDIO</div>
+              <div class="mono" style="font-size:8px;letter-spacing:.14em;color:#8B93A0;padding-bottom:10px;border-bottom:1px solid #E7EAEE">CONDICIONAMENTO · FORA DA FORÇA</div>
+              <div style="margin-top:12px">
+                <div class="mono" style="font-size:8px;letter-spacing:.12em;color:#8B93A0">TIPO</div>
+                <div style="border:1px solid #E7EAEE;border-radius:7px;padding:8px;margin-top:4px;font-size:11px">🚴 Pedal / Bike</div>
+              </div>
+              <div style="margin-top:10px">
+                <div class="mono" style="font-size:8px;letter-spacing:.12em;color:#8B93A0">DETALHE (OPCIONAL)</div>
+                <div style="border:1px solid #E7EAEE;border-radius:7px;padding:8px;margin-top:4px;font-size:11px">Bicicleta ar livre</div>
+              </div>
+              <div style="margin-top:10px">
+                <div class="mono" style="font-size:8px;letter-spacing:.12em;color:#8B93A0">DISTÂNCIA / TEMPO / OBS</div>
+                <div style="border:1px solid #E7EAEE;border-radius:7px;padding:8px;margin-top:4px;font-size:11px">20km · 1h10</div>
+              </div>
+              <div style="margin-top:10px">
+                <div class="mono" style="font-size:8px;letter-spacing:.12em;color:#8B93A0">DATA</div>
+                <div style="border:1px solid #E7EAEE;border-radius:7px;padding:8px;margin-top:4px;font-size:11px">19/07/2026</div>
+              </div>
+              <div class="grid2" style="margin-top:12px">
+                <div class="btn-s">CANCELAR</div>
+                <div class="btn-s go">SALVAR</div>
+              </div>
+            </div>
+          </div>
+          <figcaption>Registrar cardio</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============ PESO ============ -->
+    <section id="peso">
+      <div class="partline"><span class="parttag tag-aluno">Aluno</span><h2>Peso</h2></div>
+      <div class="passo solo">
+        <div>
+          <p class="sub">Toque em <strong>⚖ PESO</strong> na sua tela inicial, digite os quilos, escolha onde pesou (academia, casa ou outra) e salve. Abaixo do formulário ficam suas últimas pesagens.</p>
+          <div class="nota">Pese sempre na <strong>mesma balança e no mesmo horário</strong> — de manhã, em jejum, é o mais consistente. O que importa é a tendência ao longo das semanas, não o número de um dia.</div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============ EVOLUÇÃO ============ -->
+    <section id="evolucao">
+      <div class="partline"><span class="parttag tag-aluno">Aluno</span><h2>Evolução</h2></div>
+      <p class="sub">Onde você vê se está progredindo de verdade. Toque em <strong>EVOLUÇÃO</strong> na tela inicial.</p>
+
+      <div class="passo">
+        <div>
+          <h3>O que tem lá</h3>
+          <ul class="bul">
+            <li><strong>Período</strong> — 30 dias, 90 dias, 6 meses ou tudo. Muda todo o resto da tela.</li>
+            <li><strong>Números do período</strong> — quantas sessões, exercícios registrados, sessões por dia (A/B/C), tempo médio de treino, seu peso mais recente e quantos cardios.</li>
+            <li><strong>Calendário de frequência</strong> — um quadradinho por dia do mês.</li>
+            <li><strong>Progressão de carga</strong> — o gráfico. Escolha um exercício e veja a carga subindo ao longo do tempo. Se o trainer definiu uma meta, aparece uma linha tracejada laranja de alvo.</li>
+            <li><strong>Sessões registradas</strong> — o histórico completo, treino por treino.</li>
+          </ul>
+
+          <h3 style="margin-top:24px">As cores do calendário</h3>
+          <div class="legend">
+            <span class="lg"><span class="dot9" style="background:#10935E"></span>Treinou (musculação)</span>
+            <span class="lg"><span class="dot9" style="background:#2563EB"></span>Cardio</span>
+            <span class="lg"><span class="dot9" style="background:#DC2626"></span>Dia sem treino</span>
+          </div>
+          <p style="margin-top:14px">Embaixo do calendário aparece o placar do mês: treinos, cardios e faltas. A meta é <strong>no máximo 5 faltas por mês</strong> — dia de cardio não conta como falta.</p>
+        </div>
+
+        <figure class="tela">
+          <div class="frame">
+            <div class="s">
+              <div class="mono" style="font-size:8px;letter-spacing:.14em;color:#8B93A0;margin-bottom:9px">FREQUÊNCIA · JULHO DE 2026</div>
+              <div class="cal" aria-hidden="true">
+                <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+              </div>
+              <div class="cal" style="margin-top:4px" aria-hidden="true">
+                <span></span><span></span><span class="v">1</span><span class="r">2</span><span class="v">3</span><span class="r">4</span><span class="v">5</span>
+                <span class="r">6</span><span class="v">7</span><span class="v">8</span><span class="r">9</span><span class="v">10</span><span class="b">11</span><span class="r">12</span>
+                <span class="v">13</span><span class="v">14</span><span class="r">15</span><span class="v">16</span><span class="v">17</span><span class="v">18</span><span class="b">19</span>
+              </div>
+              <div class="mono" style="font-size:8.5px;text-align:center;margin-top:9px">
+                <span style="color:#10935E">18 treinos</span> · <span style="color:#2563EB">2 cardio</span> · <span style="color:#10935E">0 faltas</span>
+              </div>
+
+              <div style="border:1px solid #E7EAEE;border-radius:9px;padding:10px;margin-top:12px">
+                <div class="mono" style="font-size:8px;letter-spacing:.14em;color:#8B93A0;margin-bottom:8px">PROGRESSÃO DE CARGA · PUXADA FRONTAL</div>
+                <svg viewBox="0 0 220 74" width="100%" height="74" role="img" aria-label="Gráfico de carga subindo de 40 a 52,5 quilos">
+                  <line x1="0" y1="24" x2="220" y2="24" stroke="#C77400" stroke-width="1.5" stroke-dasharray="6 4"/>
+                  <polyline fill="none" stroke="#EE5622" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                    points="8,64 44,58 80,52 116,44 152,40 188,32 212,30"/>
+                  <g fill="#EE5622">
+                    <circle cx="8" cy="64" r="3"/><circle cx="44" cy="58" r="3"/><circle cx="80" cy="52" r="3"/>
+                    <circle cx="116" cy="44" r="3"/><circle cx="152" cy="40" r="3"/><circle cx="188" cy="32" r="3"/>
+                    <circle cx="212" cy="30" r="3.5"/>
+                  </g>
+                </svg>
+                <div class="mono" style="font-size:8px;color:#8B93A0;margin-top:4px">40kg → 52,5kg · alvo 60kg</div>
+              </div>
+            </div>
+          </div>
+          <figcaption>Evolução</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============ TRAINER ============ -->
+    <section id="trainer">
+      <div class="partline"><span class="parttag tag-trainer">Trainer</span><h2>Painel do trainer</h2></div>
+      <p class="sub">Mesma tela de entrada do aluno — só que digitando a chave de trainer em vez do PIN de 4 dígitos.</p>
+
+      <div class="passo">
+        <div>
+          <h3>O que você vê</h3>
+          <ul class="bul">
+            <li><strong>Resumo no topo</strong> — total de alunos, sessões nos últimos 7 dias e quantos alunos estão ativos.</li>
+            <li><strong>Card de cada aluno</strong> — nome, objetivo e a última sessão dele. Borda verde = treinou nos últimos 7 dias.</li>
+            <li><strong>+ NOVO ALUNO</strong> — cria um aluno com id, nome e PIN.</li>
+            <li><strong>IMPORTAR JSON</strong> — traz um aluno inteiro (plano + histórico) de uma vez.</li>
+          </ul>
+          <p style="margin-top:14px">Toque no card de um aluno para abrir a ficha dele.</p>
+          <div class="nota"><strong>Cardio não entra nessas contas.</strong> "Sessões 7d", "ativos" e a última sessão de cada card contam só musculação.</div>
+        </div>
+
+        <figure class="tela">
+          <div class="frame">
+            <div class="s">
+              <div class="mono" style="font-size:8px;letter-spacing:.16em;color:#B23A12;margin-bottom:8px">MODO TRAINER</div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:11px">
+                <div style="border:1px solid #E7EAEE;border-radius:8px;padding:8px 6px;text-align:center">
+                  <div class="display" style="font-size:22px;line-height:1;color:#0E1116">4</div>
+                  <div class="mono" style="font-size:7px;color:#8B93A0;letter-spacing:.08em">ALUNOS</div>
+                </div>
+                <div style="border:1px solid #E7EAEE;border-radius:8px;padding:8px 6px;text-align:center">
+                  <div class="display" style="font-size:22px;line-height:1;color:#0E1116">18</div>
+                  <div class="mono" style="font-size:7px;color:#8B93A0;letter-spacing:.08em">SESSÕES 7D</div>
+                </div>
+                <div style="border:1px solid #E7EAEE;border-radius:8px;padding:8px 6px;text-align:center">
+                  <div class="display" style="font-size:22px;line-height:1;color:#0E1116">3</div>
+                  <div class="mono" style="font-size:7px;color:#8B93A0;letter-spacing:.08em">ATIVOS</div>
+                </div>
+              </div>
+              <div style="border:1px solid #047857;border-radius:9px;padding:10px;margin-bottom:7px;background:#fff">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div class="avatar" style="width:26px;height:26px;font-size:12px">MA</div>
+                  <div>
+                    <div class="display" style="font-size:16px;line-height:1;color:#0E1116">MARCOS ABATI</div>
+                    <div class="mono" style="font-size:7.5px;color:#8B93A0">@marcos</div>
+                  </div>
+                </div>
+                <div class="mono" style="font-size:7.5px;color:#8B93A0;margin-top:8px;padding-top:7px;border-top:1px solid #E7EAEE;display:flex;justify-content:space-between">
+                  <span>ULT: C · 2D ATRÁS</span><span style="color:#0E7490">EDITAR ▸</span>
+                </div>
+              </div>
+              <div style="border:1px solid #E7EAEE;border-radius:9px;padding:10px;background:#fff;opacity:.65">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div class="avatar" style="width:26px;height:26px;font-size:12px">AL</div>
+                  <div>
+                    <div class="display" style="font-size:16px;line-height:1;color:#0E1116">ALUNO 2</div>
+                    <div class="mono" style="font-size:7.5px;color:#8B93A0">@aluno2</div>
+                  </div>
+                </div>
+                <div class="mono" style="font-size:7.5px;color:#8B93A0;margin-top:8px;padding-top:7px;border-top:1px solid #E7EAEE;display:flex;justify-content:space-between">
+                  <span>ULT: B · 9D ATRÁS</span><span style="color:#0E7490">EDITAR ▸</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <figcaption>Painel do trainer</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============ PLANO ============ -->
+    <section id="plano">
+      <div class="partline"><span class="parttag tag-trainer">Trainer</span><h2>Montar o plano</h2></div>
+      <p class="sub">Dentro da ficha do aluno você edita tudo: dados, plano por dia e histórico.</p>
+
+      <div class="passo solo">
+        <div>
+          <h3>A tabela do plano</h3>
+          <p>Escolha a aba do dia (A, B, C…) e edite direto na tabela. Cada linha é um exercício:</p>
+          <ul class="bul">
+            <li><strong>Exercício</strong> — o nome. Se ele existir no banco de exercícios, o aluno ganha a ficha com desenho e instruções automaticamente.</li>
+            <li><strong>Séries / Reps / Carga / RIR</strong> — pode escrever faixas: <code>8-10</code>, <code>3</code>, <code>22kg</code>, <code>1-2</code>.</li>
+            <li><strong>Tipo</strong> — composto ou isolado (muda a sugestão de descanso na tela do aluno).</li>
+            <li><strong>Meta</strong> — o alvo de carga para um ano. Vira a linha tracejada no gráfico do aluno, e quando ele alcança, o app comemora em vez de sugerir mais peso.</li>
+            <li><strong>Obs</strong> — aparece em destaque âmbar na tela dele durante o treino.</li>
+          </ul>
+
+          <h3 style="margin-top:24px">Outras coisas que dá para fazer</h3>
+          <ul class="bul">
+            <li><strong>Registrar pelo aluno</strong> — lançar um treino em nome dele (útil se ele esqueceu o celular).</li>
+            <li><strong>Ver a evolução dele</strong> — mesma tela de evolução do aluno, com a opção de comparar alunos no gráfico.</li>
+            <li><strong>Editar dados</strong> — nome, objetivo, PIN e notas/restrições (que ele vê no rodapé da tela dele).</li>
+            <li><strong>Apagar registros</strong> — remover linhas erradas do histórico.</li>
+          </ul>
+
+          <div class="nota"><strong>Salvou o plano?</strong> O aluno vê na próxima vez que abrir o app. Não precisa reinstalar nada.</div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============ FAQ ============ -->
+    <section id="faq">
+      <div class="partline"><h2>Perguntas rápidas</h2></div>
+
+      <div style="margin-top:20px">
+        <details>
+          <summary>A internet caiu no meio do treino. Perdi tudo?</summary>
+          <p>Não. Cada exercício é salvo primeiro no seu celular e só depois enviado. Se a rede cair, o app avisa que guardou no aparelho e manda sozinho assim que a conexão voltar — ou no próximo login. Pode continuar treinando normalmente.</p>
+        </details>
+        <details>
+          <summary>Registrei errado. Como apago?</summary>
+          <p>Na <strong>Evolução</strong>, dentro de "Sessões registradas", dá para remover registros. Se preferir refazer a sessão inteira, é só lançar de novo no mesmo dia e escolher <strong>sobrescrever</strong> quando o app perguntar.</p>
+        </details>
+        <details>
+          <summary>Fiz o treino A mas só um exercício extra (um pedal, por exemplo). Conta como treino A?</summary>
+          <p>Não. Cardio é registrado à parte, pelo botão 🚴 CARDIO, e não fecha dia de musculação. O dia A continua em aberto até você registrar exercícios do plano A.</p>
+        </details>
+        <details>
+          <summary>O que é RIR?</summary>
+          <p>"Repetições em reserva": quantas repetições você ainda conseguiria fazer no fim da série. RIR 0 = falha total, não aguentava mais nenhuma. RIR 2 = daria para fazer mais duas. É esse número que o app usa para sugerir subir a carga.</p>
+        </details>
+        <details>
+          <summary>Por que alguns exercícios não têm desenho?</summary>
+          <p>A ficha ilustrada cobre a maior parte dos exercícios, mas alguns ainda não têm imagem cadastrada. Nesses casos o exercício funciona igual — só não abre a ficha. Fale com o trainer se quiser que algum seja incluído.</p>
+        </details>
+        <details>
+          <summary>Troquei de celular. E meus treinos?</summary>
+          <p>Estão todos no servidor, não no aparelho. Instale o app no celular novo, digite seu código e tudo aparece igual.</p>
+        </details>
+        <details>
+          <summary>Alguém vê meus dados?</summary>
+          <p>Só você e o trainer. Na tela de abertura, o "quem tá treinando" mostra apenas nome, se treinou recentemente e sequência de dias — nunca carga, peso ou medidas. Se preferir não aparecer nem assim, peça ao trainer para te tirar dessa lista.</p>
+        </details>
+        <details>
+          <summary>O app parece desatualizado depois de uma novidade.</summary>
+          <p>Feche e abra o app de novo. Ele checa a versão sozinho e atualiza. Se estiver instalado na tela inicial, fechar de vez (tirar da lista de apps recentes) e abrir resolve.</p>
+        </details>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">FORJA · MANUAL DE USO · V29.8.2 · FORJANDO A SAÚDE — FICA FORTE, FICA FORJA.</div>
+</footer>
+
+</body>
+</html>
