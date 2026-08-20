@@ -1,4 +1,63 @@
-<!-- FORJA v29.8.3 - LINK PRO MANUAL DE USO
+<!-- FORJA v29.10.0 - CONSOLE FERRO (aba somente leitura)
+     Aba nova #console atras do login do aluno, botao no grid de CTAs. Existe
+     porque os dois textos mais importantes do banco eram invisiveis no app:
+     plano.obs (teto de 90 no hack, banco a 70 no desenvolvimento, teto de
+     carga do face pull, dia fixo do terra) saia truncada numa linha de 10px,
+     e alunos.notas (8800+ caracteres de lesoes, gatilhos, progressao, prazos)
+     era UMA linha corrida no rodape. Agora sao conteudo navegavel, a um toque,
+     no celular, entre series.
+     CONTRATO: a tela NAO faz requisicao nenhuma e NAO escreve nada. Le so o
+     APP.data que o login ja carregou. O ramo #console do route() e o que
+     garante isso: sem dado em memoria ele devolve pro painel do aluno em vez
+     de ir na rede. Nenhuma chamada a apiGet/apiPost, nenhuma <img>, nenhuma
+     fonte nova (reusa JetBrains Mono/Bebas/DM Sans que o <head> ja carrega).
+     5 secoes numa "regua de furos" fixa no RODAPE (nao no header: ele usa
+     isso de pe, no celular, e o polegar alcanca a base da tela): Hoje, Plano,
+     Log, Regras, Corpo.
+     - HOJE: rotacao pela regra "o dia mais atrasado vence" (maior numero de
+       dias desde a ultima sessao de FORCA daquele dia; cardio nao conta).
+       Alertas DERIVADOS DO BANCO, cada um citando a linha que o gerou:
+       exercicio do plano sem registro ha 21+ dias, exercicio registrado fora
+       do plano, e RIR 0 em exercicio cuja obs diz FALHA PROIBIDA/TETO RIR.
+       Secao ALERTAS: escrita em alunos.notas tambem aparece aqui — assim da
+       pra criar aviso sem tocar no codigo. Switch DELOAD: series -1 (min 2) e
+       RIR 3-4, so exibicao, nao escreve no banco; se series nao for inteiro
+       puro ("3-4") ele NAO faz conta e diz por que.
+     - PLANO: os dias do aluno, cada exercicio com ordem/carga/series×reps/
+       RIR/tipo e um botao que abre a obs COMPLETA em white-space:pre-wrap.
+       Sem obs no banco o botao aparece desabilitado dizendo isso (ausencia
+       visivel > ausencia ambigua).
+     - LOG: faixa de 30 dias (letra do treino, ponto azul = cardio, tracejado
+       = avulsa), sessoes detalhadas com RIR 0 em vermelho, e historico de
+       carga por composto ("04/08 60kg > 11/08 75kg > 16/08 80kg" + rotulo
+       subiu/parada/regrediu).
+     - REGRAS: alunos.notas renderizado. As notas NAO sao markdown - sao texto
+       puro com convencao propria (cabecalho em CAIXA ALTA terminando em ':',
+       itens (1)(2)(3), paragrafo por linha em branco). frcParseNotas() agrupa
+       por esses cabecalhos e vira acordeao; o texto sai LITERAL, com os erros
+       de digitacao. Markdown ('#', '**') tambem e reconhecido, se um dia ele
+       reescrever as notas assim.
+     - CORPO: peso[] com sparkline SVG inline (sem Chart.js: a lib vem por
+       rede) e perimetros[] como UM CARD POR DATA — tabela de 9 colunas nao
+       cabe em 360px.
+     REGRA DE OURO da ilha: nada normaliza, corrige ou "limpa" dado de treino.
+     carga e texto livre ("9 furo", "35kg por lado", "30kg assist.") e sai como
+     esta. A unica normalizacao e de DATA, so pra ordenar/comparar.
+     BUGFIX embutido: frcIsoValido() so aceita YYYY-MM-DD de verdade. Sem ele,
+     dataLocalIso() cai num slice(0,10) quando nao consegue parsear, e um
+     timestamp corrompido virava pseudo-data que ordena como string,
+     sequestrava a "ultima vez" do dia e quebrava a rotacao. Registro com data
+     ilegivel agora vira contador visivel no header, nao some calado.
+     CSS: ilha ESCURA (#14171A) dentro do app claro, TODA escopada em .frc,
+     com nomes que nao colidem com as globais do app (.pill/.act/.disp no
+     lugar de .chip/.btn/.display). Sem utilitaria Tailwind nova — o Tailwind
+     deste arquivo e PRE-COMPILADO, classe fora do build nao existe.
+     Diff fora da ilha: 3 linhas trocadas (FORJA_VERSION, a lista de views do
+     route(), CACHE_VERSION do sw.js) + 1 botao + 1 ramo no router. Zero
+     refatoracao do registro de treino.
+     Numero 29.10.0 e proposital: a v29.9.0 segue reservada pras fotos por
+     link do roadmap wger.
+     FORJA v29.8.3 - LINK PRO MANUAL DE USO
      Novo arquivo forja-site/manual.html (fora do forja.html, nao versionado
      junto) com o manual completo do app — instalar, entrar, cada tela do
      aluno e do trainer, FAQ. Link discreto "▸ MANUAL DE USO" adicionado em
@@ -597,6 +656,278 @@
   .toast-err { background: #FDE8E8; border-color: #F3C6C6; color: #B42318; }
   .cal-falta { background: #FBEAEA; color: #B42318; }
 </style>
+
+<style id="console-css">
+  /* ===================== FORJA v29.10.0 — CONSOLE FERRO =====================
+     Ilha ESCURA dentro de um app CLARO (design system v29). Por isso TUDO aqui
+     e escopado em .frc — nada vaza pro resto do app, e o resto do app nao
+     pinta nada aqui dentro.
+     NADA de utilitaria Tailwind neste bloco: o Tailwind deste arquivo e
+     PRE-COMPILADO (CLI v3.4.19, bloco #tailwind-compiled), entao classe que
+     nao esta no build simplesmente NAO EXISTE. CSS proprio, sempre.
+     Nomes de classe: evitei de proposito .chip/.btn/.display, que ja existem
+     como globais CLARAS do app — aqui sao .pill/.act/.disp.
+     Fontes: JetBrains Mono, Bebas Neue e DM Sans, as MESMAS que o <head> ja
+     carrega. Zero fonte nova = zero requisicao nova (criterio de aceite no 1). */
+
+  .frc, .frc *, .frc *:before, .frc *:after { box-sizing: border-box; }
+  .frc {
+    --iron:#14171A; --iron2:#1B1F24; --iron3:#262C33; --hole:#0C0E10;
+    --steel:#6B7580; --chalk:#E6E8EA; --sinal:#F2C230; --trava:#E05252;
+    --livre:#4FBF8B; --info:#6B9BD1; --ink:#101316; --hair:#1F242A;
+    --frc-mono:'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --frc-sans:'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+    background: #14171A;
+    color: #E6E8EA;
+    font-family: var(--frc-sans);
+    font-size: 14px;
+    line-height: 1.45;
+    min-height: 100vh;
+    /* espaco pra regua de furos, que e fixa no rodape */
+    padding: 0 0 calc(92px + env(safe-area-inset-bottom, 0px));
+    -webkit-font-smoothing: antialiased;
+  }
+  .frc .wrap { max-width: 760px; margin: 0 auto; padding: 0 12px; }
+  .frc .disp { font-family:'Bebas Neue', var(--frc-sans); letter-spacing:.02em; text-transform:uppercase; }
+  .frc .mono { font-family: var(--frc-mono); font-variant-numeric: tabular-nums; }
+  .frc .mut { color: var(--steel); }
+  .frc b, .frc strong { font-weight: 700; }
+
+  /* ---------- header sticky ---------- */
+  .frc .hd {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(20,23,26,.94);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--iron3);
+    padding: 10px 0 11px;
+  }
+  .frc .hd-row { display:flex; align-items:center; gap:9px; }
+  .frc .logo { font-size:24px; line-height:1; }
+  .frc .logo b { color: var(--sinal); font-weight: inherit; }
+  .frc .ver { font-size:10px; letter-spacing:.14em; color:var(--steel); line-height:1.3; }
+  .frc .voltar {
+    margin-left:auto; background:none; border:1px solid var(--iron3); border-radius:2px;
+    color:var(--chalk); font-family:var(--frc-mono); font-size:11px; letter-spacing:.06em;
+    padding:9px 12px; min-height:40px; cursor:pointer; flex:none;
+  }
+  .frc .voltar:hover { border-color: var(--sinal); color: var(--sinal); }
+  .frc .voltar:focus-visible { outline:2px solid var(--sinal); outline-offset:2px; }
+  .frc .pills { display:flex; gap:5px; flex-wrap:wrap; margin-top:8px; }
+  .frc .pill {
+    font-family:var(--frc-mono); font-size:10px; letter-spacing:.03em; line-height:1.5;
+    padding:3px 7px; border-radius:2px; border:1px solid var(--iron3);
+    color:var(--steel); background:transparent;
+  }
+  .frc .pill.on  { border-color:var(--sinal); color:var(--sinal); }
+  .frc .pill.bad { border-color:var(--trava); color:var(--trava); }
+  .frc .pill.ok  { border-color:var(--livre); color:var(--livre); }
+
+  /* ---------- REGUA DE FUROS (elemento assinatura) — fixa no RODAPE ----------
+     Desvio deliberado do prototipo, que a punha no header sticky: ele usa isso
+     EM PE, no celular, entre series — o polegar alcanca a base da tela, nao o
+     topo. O pino amarelo tem a haste apontando PRA CIMA, na direcao do
+     conteudo da secao ativa, igual pino de maquina plate-loaded encaixado. */
+  .frc .rail {
+    position: fixed; left:0; right:0; bottom:0; z-index:40;
+    display:flex; justify-content:space-between; gap:2px;
+    background: rgba(20,23,26,.97);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    border-top: 1px solid var(--iron3);
+    padding: 14px 8px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  .frc .rail:before {
+    content:""; position:absolute; left:26px; right:26px; top:21px;
+    height:2px; background:var(--iron3);
+  }
+  .frc .pin {
+    position:relative; flex:1 1 0; min-width:0; min-height:48px;
+    background:none; border:0; padding:0; margin:0; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:7px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .frc .hole {
+    width:15px; height:15px; border-radius:50%; background:var(--hole);
+    border:1px solid var(--iron3); position:relative; flex:none;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.05);
+  }
+  .frc .pin[data-on="1"] .hole {
+    background: var(--sinal); border-color: var(--sinal);
+    box-shadow: 0 0 0 3px rgba(242,194,48,.16);
+  }
+  .frc .pin[data-on="1"] .hole:after {
+    content:""; position:absolute; left:4px; top:-14px;
+    width:3px; height:14px; background:var(--sinal); border-radius:1px;
+  }
+  .frc .pin span {
+    font-family:var(--frc-mono); font-size:9.5px; letter-spacing:.06em;
+    color:var(--steel); text-transform:uppercase; white-space:nowrap;
+  }
+  .frc .pin[data-on="1"] span { color: var(--chalk); }
+  .frc .pin:focus-visible { outline:2px solid var(--sinal); outline-offset:3px; border-radius:4px; }
+
+  /* ---------- blocos ---------- */
+  .frc .sec { margin: 18px 0 0; }
+  .frc .sec-h { display:flex; align-items:center; gap:8px; margin:0 0 8px; }
+  .frc .sec-h h2 { font-size:12px; letter-spacing:.12em; margin:0; font-weight:400; }
+  .frc .sec-h .ln { flex:1; height:1px; background:var(--iron3); }
+  .frc .card {
+    background: var(--iron2); border:1px solid var(--iron3);
+    border-radius:3px; padding:10px 11px; margin-bottom:7px;
+  }
+  .frc .card.acc { border-left:2px solid var(--sinal); }
+  .frc .card.red { border-left:2px solid var(--trava); }
+  .frc .card.grn { border-left:2px solid var(--livre); }
+  .frc .card.blu { border-left:2px solid var(--info); }
+  .frc .card .ct { font-size:13.5px; font-weight:700; overflow-wrap:anywhere; }
+  .frc .card .cb { font-size:13px; margin-top:4px; line-height:1.55; overflow-wrap:anywhere; }
+  .frc .fonte { font-family:var(--frc-mono); font-size:10px; color:var(--steel); margin-top:6px; letter-spacing:.04em; }
+  .frc .vazio {
+    border:1px dashed var(--iron3); border-radius:3px; padding:18px 12px;
+    text-align:center; color:var(--steel); font-size:13px; line-height:1.6;
+  }
+
+  /* ---------- exercicio ---------- */
+  .frc .ex-top { display:flex; gap:9px; align-items:flex-start; }
+  .frc .ord { font-family:var(--frc-mono); font-size:11px; color:var(--steel); min-width:19px; padding-top:2px; flex:none; }
+  .frc .ex-nm { font-weight:600; font-size:14px; flex:1; min-width:0; overflow-wrap:anywhere; }
+  .frc .ex-meta { display:flex; gap:6px; flex-wrap:wrap; margin:7px 0 0 28px; }
+  .frc .tag {
+    font-family:var(--frc-mono); font-size:11px; padding:3px 6px;
+    background:var(--iron3); border-radius:2px; color:var(--chalk);
+    font-variant-numeric: tabular-nums; overflow-wrap:anywhere;
+  }
+  .frc .tag.load { background:#2E3640; color:var(--sinal); font-weight:600; }
+  .frc .tag.rir  { background:transparent; border:1px solid var(--iron3); color:var(--steel); }
+  .frc .tag.dl   { background:transparent; border:1px dashed var(--sinal); color:var(--sinal); }
+  .frc .obs-btn {
+    margin:8px 0 0 28px; background:none; border:0; padding:6px 0; cursor:pointer;
+    font-family:var(--frc-mono); font-size:10.5px; letter-spacing:.05em;
+    color:var(--sinal); text-align:left; min-height:32px; display:block;
+  }
+  .frc .obs-btn[disabled] { color:var(--steel); cursor:default; }
+  .frc .obs-btn:focus-visible { outline:2px solid var(--sinal); outline-offset:2px; }
+  .frc .obs {
+    margin:7px 0 0 28px; padding:9px 10px; background:var(--ink);
+    border-left:2px solid var(--iron3); border-radius:2px;
+    font-size:12.5px; line-height:1.55; color:#BFC5CB;
+    white-space: pre-wrap; overflow-wrap:anywhere;
+  }
+  .frc .obs[hidden] { display:none; }
+
+  /* ---------- calendario 30 dias ---------- */
+  .frc .cal { display:grid; grid-template-columns:repeat(auto-fill, minmax(30px, 1fr)); gap:3px; }
+  .frc .day {
+    aspect-ratio:1; border-radius:2px; background:var(--iron2); border:1px solid var(--iron3);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  }
+  .frc .day.hoje { border-color:var(--sinal); }
+  .frc .day.avul { border-style:dashed; }
+  .frc .day .dn { font-family:var(--frc-mono); font-size:8px; color:var(--steel); }
+  .frc .day .dl { font-family:var(--frc-mono); font-size:12px; font-weight:700; color:var(--sinal); }
+  .frc .day .dl.dois { font-size:9px; letter-spacing:-.03em; }
+  .frc .day.off .dl { color:#333A41; font-weight:400; }
+  .frc .day .cd { width:4px; height:4px; border-radius:50%; background:var(--info); }
+  .frc .day .cd.ph { background:transparent; }
+  .frc .legenda { display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; font-size:11px; color:var(--steel); }
+  .frc .legenda i { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--info); margin-right:5px; }
+  .frc .legenda u { display:inline-block; width:9px; height:9px; border:1px dashed var(--iron3); margin-right:5px; text-decoration:none; }
+
+  /* ---------- log ---------- */
+  .frc .lg-h { display:flex; align-items:center; gap:8px; margin-bottom:7px; flex-wrap:wrap; }
+  .frc .lg-d { font-family:var(--frc-mono); font-size:12px; color:var(--chalk); font-variant-numeric:tabular-nums; }
+  .frc .badge {
+    font-family:var(--frc-mono); font-size:10px; font-weight:700; min-width:18px; height:18px;
+    display:grid; place-items:center; border-radius:2px; padding:0 4px;
+    background:var(--iron3); color:var(--sinal);
+  }
+  .frc .badge.cardio { color:var(--info); }
+  .frc .badge.avulsa { color:var(--steel); }
+  .frc .tw { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .frc table { width:100%; border-collapse:collapse; table-layout:fixed; }
+  .frc td {
+    padding:5px 3px; vertical-align:top; font-size:12.5px;
+    border-top:1px solid var(--hair); overflow-wrap:anywhere;
+  }
+  .frc td.n { font-family:var(--frc-mono); color:var(--steel); font-variant-numeric:tabular-nums; }
+  .frc td.r0 { color:var(--trava); font-weight:700; }
+  .frc .oz { font-size:11.5px; color:#8B939B; font-style:italic; margin-top:3px; white-space:pre-wrap; }
+
+  /* ---------- kv / listas / sparkline ---------- */
+  .frc .kv {
+    display:flex; justify-content:space-between; gap:10px; padding:6px 0;
+    border-top:1px solid var(--hair); font-size:13px;
+  }
+  .frc .kv:first-child { border-top:0; }
+  .frc .kv span { min-width:0; overflow-wrap:anywhere; }
+  .frc .kv b { font-family:var(--frc-mono); font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; flex:none; }
+  .frc ul.tight { margin:6px 0 0; padding-left:17px; list-style:disc; }
+  .frc ul.tight li { margin:3px 0; font-size:13px; }
+  .frc .spark { display:block; width:100%; height:58px; margin-bottom:8px; }
+  .frc .seq { font-family:var(--frc-mono); font-size:11.5px; color:var(--steel); margin-top:5px; line-height:1.7; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+  .frc .trend { font-family:var(--frc-mono); font-size:10.5px; letter-spacing:.06em; flex:none; }
+  .frc .trend.up { color:var(--livre); }
+  .frc .trend.down { color:var(--trava); }
+  .frc .trend.flat { color:var(--steel); }
+
+  /* ---------- switch deload ---------- */
+  .frc .sw {
+    display:inline-flex; align-items:center; gap:8px; font-family:var(--frc-mono);
+    font-size:11px; letter-spacing:.05em; cursor:pointer; user-select:none;
+    position:relative; min-height:44px; padding:4px 2px; color:var(--chalk);
+  }
+  .frc .sw input { position:absolute; opacity:0; width:0; height:0; }
+  .frc .sw i { width:30px; height:16px; border-radius:9px; background:var(--iron3);
+    position:relative; transition:.15s; flex:none; }
+  .frc .sw i:after {
+    content:""; position:absolute; top:2px; left:2px; width:12px; height:12px;
+    border-radius:50%; background:var(--steel); transition:.15s;
+  }
+  .frc .sw[data-on="1"] i { background:rgba(242,194,48,.28); }
+  .frc .sw[data-on="1"] i:after { left:16px; background:var(--sinal); }
+  .frc .sw input:focus-visible + i { outline:2px solid var(--sinal); outline-offset:3px; }
+
+  /* ---------- acordeao das notas (aba Regras) ---------- */
+  .frc .acc-h {
+    width:100%; text-align:left; background:none; border:0; padding:12px 2px;
+    color:var(--chalk); font-family:var(--frc-mono); font-size:11.5px;
+    letter-spacing:.06em; cursor:pointer; display:flex; align-items:center;
+    gap:8px; min-height:44px;
+  }
+  .frc .acc-h .mk { color:var(--sinal); flex:none; }
+  .frc .acc-h .tt { flex:1; min-width:0; overflow-wrap:anywhere; }
+  .frc .acc-h:focus-visible { outline:2px solid var(--sinal); outline-offset:2px; }
+  .frc .acc-b {
+    padding:2px 2px 10px; font-size:13px; line-height:1.6; color:#BFC5CB;
+    white-space: pre-wrap; overflow-wrap:anywhere;
+  }
+  .frc .acc-b[hidden] { display:none; }
+
+  /* ---------- rodape ---------- */
+  .frc .foot {
+    margin-top:24px; padding-top:10px; border-top:1px solid var(--iron3);
+    font-family:var(--frc-mono); font-size:10px; color:var(--steel); line-height:1.7;
+  }
+
+  /* ---------- quadro da rotacao ---------- */
+  .frc .rot { display:flex; gap:5px; margin-top:10px; }
+  .frc .rot > div {
+    flex:1 1 0; min-width:0; text-align:center; padding:7px 2px; border-radius:2px;
+    background:#171B1F; border:1px solid var(--iron3);
+  }
+  .frc .rot > div.win { background:rgba(242,194,48,.12); border-color:var(--sinal); }
+  .frc .rot .l { font-family:'Bebas Neue', var(--frc-mono); font-size:16px; line-height:1.1; }
+  .frc .rot > div.win .l { color:var(--sinal); }
+  .frc .rot .d { font-family:var(--frc-mono); font-size:10px; color:var(--steel); font-variant-numeric:tabular-nums; }
+
+  @media (max-width: 380px) {
+    .frc .pin span { font-size:8.5px; letter-spacing:.01em; }
+    .frc .wrap { padding:0 10px; }
+    .frc .rail { padding-left:4px; padding-right:4px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .frc *, .frc *:before, .frc *:after { transition:none !important; animation:none !important; }
+  }
+</style>
 </head>
 <body>
 
@@ -997,6 +1328,7 @@
     <!-- CTAs -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-12">
       <button id="btn-aluno-treinar" class="btn btn-success py-4 text-base sm:col-span-3">▸ TREINAR AGORA</button>
+      <button id="btn-aluno-console" class="btn py-4 sm:col-span-3">▤ CONSOLE (plano, regras e log)</button>
       <button id="btn-aluno-registrar" class="btn py-4">LANCAR SESSAO</button>
       <button id="btn-aluno-historico" class="btn py-4">EVOLUCAO</button>
       <button id="btn-aluno-peso" class="btn py-4">⚖ PESO</button>
@@ -1036,6 +1368,14 @@
     </div>
   </main>
 </section>
+
+<!-- =========================================== -->
+<!-- TELA: CONSOLE FERRO (v29.10.0)              -->
+<!-- Somente leitura. O conteudo inteiro e       -->
+<!-- montado por frcRender() a partir de         -->
+<!-- APP.data — esta tela nao vai na rede.       -->
+<!-- =========================================== -->
+<section id="view-console" class="hidden frc"></section>
 
 <!-- =========================================== -->
 <!-- TELA: TREINAR AGORA (mobile-first guided)   -->
@@ -1643,7 +1983,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v29.8.3';
+const FORJA_VERSION = 'v29.10.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -2263,7 +2603,7 @@ function route() {
   }
   const h = window.location.hash || '#home';
   // hidden tudo
-  ['view-home','view-config','view-trainer-login','view-trainer','view-edit-aluno','view-aluno-login','view-aluno','view-treinar']
+  ['view-home','view-config','view-trainer-login','view-trainer','view-edit-aluno','view-aluno-login','view-aluno','view-treinar','view-console']
     .forEach(id => $(id).classList.add('hidden'));
 
   if (h === '#home') { show('view-home'); setTimeout(() => renderizarProgresso(), 50); carregarFeedMotivacional(); return; }
@@ -2288,6 +2628,16 @@ function route() {
       return;
     }
     show('view-aluno'); loadAlunoData(); return;
+  }
+  // v29.10.0: CONSOLE FERRO (somente leitura). E AQUI que mora a garantia de
+  // "nenhuma requisicao nova ao abrir a aba": sem dado em memoria, esta rota
+  // NAO busca — devolve pro painel do aluno, que ja tem o fluxo de carga.
+  if (h === '#console') {
+    if (!APP.alunoSession) { show('view-aluno-login'); return; }
+    if (!APP.data || APP.dataIdentity !== identidadeAtual()) {
+      navigateTo('#aluno/' + APP.alunoSession.id); return;
+    }
+    show('view-console'); frcRender(); return;
   }
   show('view-home');
 }
@@ -5434,6 +5784,831 @@ async function mostrarBackendVer() {
   } catch (e) { txt = '—'; }
   document.querySelectorAll('.forja-backend').forEach(e => { e.textContent = txt; });
 }
+
+// ===========================================================================
+// v29.10.0: CONSOLE FERRO — visao nova, SOMENTE LEITURA (#console)
+// ---------------------------------------------------------------------------
+// CONTRATO DESTA ILHA, em uma linha: ela NAO faz requisicao nenhuma.
+// Tudo que ela desenha sai de APP.data, o payload do getAluno que ja esta em
+// memoria desde o login. Sem fetch, sem apiGet, sem apiPost, sem <img>, sem
+// fonte nova, sem CDN. Se algum dia alguem precisar de dado novo aqui, o
+// caminho certo e o painel do aluno recarregar APP.data — nao esta tela.
+//
+// Por que existe: a coluna plano.obs (teto de 90 no hack, banco a 70 no
+// desenvolvimento, teto de carga do face pull, dia fixo do terra) e o texto de
+// alunos.notas eram praticamente invisiveis no app — obs truncada em 10px e
+// notas numa unica linha corrida no rodape. Aqui os dois viram conteudo
+// navegavel, a um toque, no celular, de pe, entre series.
+//
+// REGRA DE OURO: nada aqui normaliza, corrige ou "limpa" dado de treino.
+// carga e texto livre ("9 furo", "35kg por lado", "30kg assist.") e aparece
+// como esta. Se a obs tem erro de digitacao, o erro aparece. E registro, nao
+// relatorio. A unica normalizacao e de DATA, e so pra ORDENAR/COMPARAR
+// (data_treino vem em DD/MM/YYYY e YYYY-MM-DD misturados) — a exibicao usa
+// fmtDate() em cima do ISO, igual ao resto do app.
+//
+// Prefixo frc = FeRro Console. NADA aqui pode se chamar console* — colidiria
+// com o objeto global console.
+// ===========================================================================
+
+const FRC_PINS = [
+  { k: 'hoje',   n: 'Hoje'   },
+  { k: 'plano',  n: 'Plano'  },
+  { k: 'log',    n: 'Log'    },
+  { k: 'regras', n: 'Regras' },
+  { k: 'corpo',  n: 'Corpo'  },
+];
+
+const FRC_SUMICO_DIAS  = 21;   // exercicio do plano sem registro ha N dias vira alerta
+const FRC_FORA_DIAS    = 30;   // janela pra "registrado mas fora do plano"
+const FRC_TRAVA_DIAS   = 60;   // janela pra procurar violacao de RIR 0
+const FRC_ALERTA_MAX   = 6;
+const FRC_SESSOES_INI  = 20;   // sessoes desenhadas de cara (o resto sai no botao)
+const FRC_HIST_PONTOS  = 6;    // pontos de carga por exercicio
+const FRC_CAL_DIAS     = 30;
+
+APP.frc = {
+  pin: 'hoje',
+  deload: (function () {
+    try { return localStorage.getItem('forja-frc-deload') === '1'; } catch (e) { return false; }
+  })(),
+  tudoSessoes: false,
+  _ligado: false,
+  _regsCache: null,
+  _regsFonte: null,
+};
+
+// ---------- datas ----------
+// daysAgo() do app devolve string ("6d atras"); aqui preciso do NUMERO.
+// Mesma matematica de DIA DE CALENDARIO do original: Date local, sem fuso,
+// sem hora, entao horario de verao nao desloca a conta.
+function frcDiasDesde(iso) {
+  const m = String(iso == null ? '' : iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const h = new Date();
+  const hc = new Date(h.getFullYear(), h.getMonth(), h.getDate());
+  return Math.round((hc - d) / 86400000);
+}
+
+// so aceita YYYY-MM-DD de verdade; qualquer outra coisa vira '' (sem data)
+function frcIsoValido(v) {
+  const m = String(v == null ? '' : v).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return '';
+  const mes = Number(m[2]), dia = Number(m[3]);
+  if (mes < 1 || mes > 12 || dia < 1 || dia > 31) return '';
+  return m[0];
+}
+
+function frcIsoDeDate(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+// ---------- leitura do payload ----------
+// Uma passada so por render, memoizada pela IDENTIDADE do array de registros
+// (APP.data trocado pelo refresh em background invalida sozinho).
+//
+// Classificacao — as duas fontes de verdade do banco discordam e eu respeito
+// as duas, em vez de escolher uma e apagar a outra:
+//   FORCA  = dia em A..E e sem modalidade. So essas contam na rotacao.
+//   CARDIO = modalidade preenchida (modelo do app desde a v29.8.0).
+//   AVULSA = dia vazio E modalidade vazia. Sao as linhas da era planilha
+//            ("caminhada", "INCLINADA", "Beach tenis"). Aparecem no Log com
+//            marcador proprio e rotulo "avulsa" — NAO viram cardio, porque o
+//            banco nao diz que sao.
+function frcRegistros() {
+  const src = (APP.data && Array.isArray(APP.data.registros)) ? APP.data.registros : [];
+  if (APP.frc._regsFonte === src && APP.frc._regsCache) return APP.frc._regsCache;
+  const out = src.map(r => {
+    const dia = String(r.dia == null ? '' : r.dia).trim().toUpperCase();
+    const cardio = ehCardio(r);
+    const forca = !cardio && DAYS.includes(dia);
+    return {
+      r: r,
+      // dataSessao() ja resolve DD/MM/YYYY e YYYY-MM-DD. O frcIsoValido em
+      // cima dele NAO e paranoia: dataLocalIso() cai num slice(0,10) quando
+      // nao consegue parsear, entao um timestamp corrompido (ha registros
+      // legados assim, ver HANDOFF_FASE6) virava uma pseudo-data que ordena
+      // como string, sequestrava a "ultima vez" do dia e quebrava a rotacao.
+      _iso: frcIsoValido(dataSessao(r)),
+      _dia: dia,
+      _slug: slugify(r.exercicio),
+      _cardio: cardio,
+      _forca: forca,
+      _avulsa: !cardio && !forca,
+    };
+  });
+  // desc por data da sessao; empate desempata pelo timestamp cru
+  out.sort((a, b) =>
+    String(b._iso).localeCompare(String(a._iso)) ||
+    String(b.r.timestamp || '').localeCompare(String(a.r.timestamp || '')));
+  APP.frc._regsFonte = src;
+  APP.frc._regsCache = out;
+  return out;
+}
+
+// registros com data ilegivel: NAO somem em silencio, viram contador no rodape
+function frcSemData() { return frcRegistros().filter(x => !x._iso).length; }
+
+// plano.ordem e integer no schema e chega como number no JSON — ordena direto.
+function frcPlano() {
+  const p = (APP.data && Array.isArray(APP.data.plano)) ? APP.data.plano : [];
+  return p.slice().sort((a, b) => {
+    const da = String(a.dia || '').trim().toUpperCase();
+    const db = String(b.dia || '').trim().toUpperCase();
+    if (da !== db) return da.localeCompare(db);
+    return (a.ordem - b.ordem) || 0;
+  });
+}
+
+function frcPlanoDoDia(d) {
+  return frcPlano().filter(p => String(p.dia || '').trim().toUpperCase() === d);
+}
+
+// ---------- rotacao: o dia mais atrasado vence ----------
+function frcRotacao() {
+  const regs = frcRegistros();
+  const linhas = diasDoAluno().map(d => {
+    let ult = '';
+    regs.forEach(x => { if (x._forca && x._dia === d && x._iso > ult) ult = x._iso; });
+    return { d: d, ult: ult, dias: ult ? frcDiasDesde(ult) : null };
+  });
+  // maior contador vence; dia NUNCA registrado (dias null) vence de todos;
+  // empate desempata pela letra, pra ordem ser estavel entre renders.
+  linhas.sort((a, b) => {
+    const ad = (a.dias == null) ? Infinity : a.dias;
+    const bd = (b.dias == null) ? Infinity : b.dias;
+    if (ad !== bd) return bd - ad;
+    return a.d.localeCompare(b.d);
+  });
+  return linhas;
+}
+
+// ---------- deload (SO apresentacao — nao escreve nada) ----------
+// series -1 (minimo 2) e RIR 3-4. Se series nao for inteiro puro (ex "3-4"),
+// NAO faz conta nenhuma e diz por que: inventar numero aqui seria prescrever.
+function frcSeriesReps(p) {
+  const s = String(p.series == null ? '' : p.series).trim();
+  const reps = String(p.reps == null ? '' : p.reps).trim();
+  const base = (s || '—') + '×' + (reps || '—');
+  if (!APP.frc.deload) return { txt: base, dl: false, aviso: '' };
+  if (/^\d+$/.test(s)) {
+    return { txt: Math.max(2, parseInt(s, 10) - 1) + '×' + (reps || '—'), dl: true, aviso: '' };
+  }
+  return { txt: base, dl: false, aviso: 'series "' + s + '" nao e numero inteiro — deload nao aplicado aqui' };
+}
+
+function frcRirTxt(p) {
+  if (APP.frc.deload) return '3-4';
+  const r = String(p.rir == null ? '' : p.rir).trim();
+  return r || '—';
+}
+
+// ---------- notas -> blocos (aba Regras) ----------
+// alunos.notas NAO e markdown. E texto puro com convencao propria, confirmada
+// no banco: cabecalho em CAIXA ALTA terminando em ':' (LESOES ATIVAS:,
+// NUTRICAO:, PROGRESSAO:, DELOAD:, CARDIO:, POSTURA:), itens (1)(2)(3),
+// paragrafos separados por linha em branco. Um renderizador markdown puro
+// passaria reto e entregaria um bloco cinza de 2800 caracteres.
+// Este parser AGRUPA, nao reescreve: o texto de cada bloco sai literal, com
+// as quebras de linha e os erros de digitacao. O titulo e TUDO que vem antes
+// dos dois pontos (inclusive parenteses em minuscula, como em "PERFIL
+// GENETICO (hipotese, nao dado clinico)") — assim nenhum caractere se perde.
+// Tambem reconhece '#' de markdown, caso ele reescreva as notas um dia.
+const FRC_RE_CAB = /^([A-ZÀ-ÖØ-Þ][A-ZÀ-ÖØ-Þ0-9]{2,}(?:[ \-\/][A-ZÀ-ÖØ-Þ0-9]{2,})*[^:\n]{0,60}):[ \t]?/;
+
+function frcParseNotas(txt) {
+  const s = String(txt == null ? '' : txt);
+  if (!s.trim()) return [];
+  const blocos = [];
+  let atual = { titulo: '', linhas: [] };
+  s.split(/\r?\n/).forEach(linha => {
+    const md = linha.match(/^#{1,4}[ \t]+(.+?)[ \t]*#*$/);
+    const cab = md ? null : linha.match(FRC_RE_CAB);
+    if (md || cab) {
+      if (atual.titulo || atual.linhas.join('\n').trim()) blocos.push(atual);
+      atual = {
+        titulo: md ? md[1].trim() : cab[1].trim(),
+        linhas: md ? [] : [linha.slice(cab[0].length)],
+      };
+      return;
+    }
+    atual.linhas.push(linha);
+  });
+  if (atual.titulo || atual.linhas.join('\n').trim()) blocos.push(atual);
+  return blocos.map(b => ({ titulo: b.titulo, corpo: b.linhas.join('\n').replace(/^\n+|\n+$/g, '') }));
+}
+
+function frcCorDoBloco(titulo) {
+  const t = String(titulo || '');
+  if (/LESAO|LESOES|LESÃO|LESÕES|TRAVA|PROIBID/i.test(t)) return 'red';
+  if (/LIBER|GATILHO DE SAIDA|GATILHO DE SAÍDA/i.test(t)) return 'grn';
+  return '';
+}
+
+// escapa e SO depois aplica **negrito** (o escape nunca produz '*',
+// entao a ordem e segura). Nenhuma outra transformacao no texto.
+function frcTexto(s) {
+  return escapeHtml(String(s == null ? '' : s)).replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>');
+}
+
+// ---------- alertas (derivados do banco, nada hardcoded) ----------
+function frcAlertas() {
+  const out = [];
+  const plano = frcPlano();
+  const regs = frcRegistros();
+
+  // 1) secao ALERTAS: escrita a mao em alunos.notas — controle pelo banco,
+  //    sem tocar no codigo.
+  frcParseNotas((APP.data.aluno || {}).notas).forEach(b => {
+    if (/^ALERTAS?\b/i.test(b.titulo || '')) {
+      out.push({ cor: 'acc', t: b.titulo, txt: b.corpo, fonte: 'alunos.notas' });
+    }
+  });
+
+  // 2) exercicio que esta no plano e sumiu do registro
+  plano.forEach(p => {
+    const grupo = slugsEquivalentes(p.exercicio);
+    let ult = '';
+    regs.forEach(x => { if (x._iso && grupo.has(x._slug) && x._iso > ult) ult = x._iso; });
+    const dd = ult ? frcDiasDesde(ult) : null;
+    if (dd === null) {
+      out.push({
+        cor: 'red', t: p.exercicio + ' — nunca registrado',
+        txt: 'Esta no plano do dia ' + p.dia + ' (ordem ' + p.ordem + ') e nao tem nenhum registro no banco.',
+        fonte: 'plano',
+      });
+    } else if (dd >= FRC_SUMICO_DIAS) {
+      out.push({
+        cor: 'red', t: p.exercicio + ' — ' + dd + ' dias sem registro',
+        txt: 'Ultima vez em ' + fmtDate(ult) + '. Continua no plano do dia ' + p.dia + ', ordem ' + p.ordem + '.',
+        fonte: 'plano + registro',
+      });
+    }
+  });
+
+  // 3) registrado nos ultimos 30 dias mas fora do plano
+  const slugsPlano = new Set();
+  plano.forEach(p => slugsEquivalentes(p.exercicio).forEach(s => slugsPlano.add(s)));
+  const foraVistos = {};
+  regs.forEach(x => {
+    if (!x._forca || !x._iso) return;
+    const dd = frcDiasDesde(x._iso);
+    if (dd === null || dd > FRC_FORA_DIAS) return;
+    if (slugsPlano.has(x._slug)) return;
+    if (foraVistos[x._slug]) return;
+    foraVistos[x._slug] = true;
+    out.push({
+      cor: 'blu', t: x.r.exercicio + ' — registrado fora do plano',
+      txt: 'Aparece no registro (' + fmtDate(x._iso) + ', dia ' + x._dia + ') e nao existe na tabela plano. O banco manda: e isso que esta la.',
+      fonte: 'registro',
+    });
+  });
+
+  // 4) RIR 0 em exercicio cuja obs do plano diz FALHA PROIBIDA / TETO RIR
+  const travas = {};
+  plano.forEach(p => {
+    if (!/FALHA\s+PROIBIDA|TETO\s+RIR/i.test(String(p.obs || ''))) return;
+    slugsEquivalentes(p.exercicio).forEach(s => { travas[s] = p; });
+  });
+  regs.forEach(x => {
+    if (!x._iso) return;
+    const dd = frcDiasDesde(x._iso);
+    if (dd === null || dd > FRC_TRAVA_DIAS) return;
+    const rir = String(x.r.rir == null ? '' : x.r.rir).trim();
+    if (rir === '' || parseFloat(rir.replace(',', '.')) !== 0) return;
+    const p = travas[x._slug];
+    if (!p) return;
+    out.push({
+      cor: 'red', t: x.r.exercicio + ' — RIR 0 em exercicio com trava',
+      txt: 'Registro de ' + fmtDate(x._iso) + ' com RIR "' + rir + '". A obs do plano diz: ' + String(p.obs || '').slice(0, 160),
+      fonte: 'registro + plano.obs',
+    });
+  });
+
+  return out;
+}
+
+// ---------- calendario de 30 dias ----------
+function frcCalendario(nDias) {
+  const mapa = {};
+  frcRegistros().forEach(x => {
+    if (!x._iso) return;
+    const c = mapa[x._iso] || (mapa[x._iso] = { letras: [], cardio: false, avulsa: false });
+    if (x._forca && c.letras.indexOf(x._dia) === -1) c.letras.push(x._dia);
+    if (x._cardio) c.cardio = true;
+    if (x._avulsa) c.avulsa = true;
+  });
+  const hoje = new Date();
+  const hojeIsoS = frcIsoDeDate(hoje);
+  const out = [];
+  for (let i = nDias - 1; i >= 0; i--) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - i);
+    const iso = frcIsoDeDate(d);
+    const m = mapa[iso] || { letras: [], cardio: false, avulsa: false };
+    out.push({
+      iso: iso,
+      dm: String(d.getDate()).padStart(2, '0'),
+      letras: m.letras.slice().sort(),
+      cardio: m.cardio,
+      avulsa: m.avulsa,
+      hoje: iso === hojeIsoS,
+    });
+  }
+  return out;
+}
+
+// ---------- sessoes agrupadas ----------
+function frcSessoes() {
+  const g = {};
+  frcRegistros().forEach(x => {
+    if (!x._iso) return;
+    const tipo = x._forca ? 'forca' : (x._cardio ? 'cardio' : 'avulsa');
+    const k = x._iso + '|' + (x._forca ? x._dia : '@' + tipo);
+    (g[k] || (g[k] = { iso: x._iso, dia: x._forca ? x._dia : '', tipo: tipo, itens: [] })).itens.push(x);
+  });
+  return Object.keys(g).map(k => g[k]).sort((a, b) =>
+    String(b.iso).localeCompare(String(a.iso)) || a.tipo.localeCompare(b.tipo) || a.dia.localeCompare(b.dia));
+}
+
+// ---------- historico de carga (compostos do plano) ----------
+function frcHistoricoCarga() {
+  const regs = frcRegistros();
+  const vistos = {};
+  const out = [];
+  frcPlano().forEach(p => {
+    if (!/^c/i.test(String(p.tipo || '').trim())) return;   // so os compostos
+    const grupo = slugsEquivalentes(p.exercicio);
+    const canon = nomeCanonico(p.exercicio);
+    const chave = slugify(canon);
+    if (vistos[chave]) return;
+    vistos[chave] = true;
+    const pontos = [];
+    for (let i = regs.length - 1; i >= 0; i--) {   // ordem cronologica ASC
+      const x = regs[i];
+      if (!x._iso || !grupo.has(x._slug)) continue;
+      const carga = String(x.r.carga == null ? '' : x.r.carga).trim();
+      if (!carga) continue;
+      pontos.push({ iso: x._iso, carga: carga });
+    }
+    if (!pontos.length) return;
+    const corte = Math.max(0, pontos.length - FRC_HIST_PONTOS);
+    const mostrados = pontos.slice(corte);
+    const a = parseCargaNum(pontos[0].carga);
+    const b = parseCargaNum(pontos[pontos.length - 1].carga);
+    let trend = 'flat', label = 'parada';
+    if (a == null || b == null) { trend = 'flat'; label = 'sem comparacao numerica'; }
+    else if (b > a) { trend = 'up'; label = 'subiu'; }
+    else if (b < a) { trend = 'down'; label = 'regrediu'; }
+    out.push({ nome: canon, pontos: mostrados, ocultos: corte, trend: trend, label: label });
+  });
+  return out;
+}
+
+// ---------- peso / perimetros ----------
+function frcPesoLista() {
+  const l = (APP.data && Array.isArray(APP.data.peso)) ? APP.data.peso : [];
+  return l.map(p => ({ p: p, iso: dataTreinoLimpa(p.data) || dataLocalIso(p.timestamp) || '' }))
+    .filter(x => x.iso)
+    .sort((a, b) => String(a.iso).localeCompare(String(b.iso)));   // ASC
+}
+
+function frcPerimetrosLista() {
+  const l = (APP.data && Array.isArray(APP.data.perimetros)) ? APP.data.perimetros : [];
+  return l.map(p => ({ p: p, iso: dataTreinoLimpa(p.data) || dataLocalIso(p.timestamp) || '' }))
+    .sort((a, b) => String(b.iso).localeCompare(String(a.iso)));   // DESC
+}
+
+const FRC_PERIMETROS = [
+  ['cintura', 'Cintura'], ['quadril', 'Quadril'], ['peito', 'Peito'], ['braco', 'Braco'],
+  ['antebraco', 'Antebraco'], ['coxa', 'Coxa'], ['panturrilha', 'Panturrilha'], ['pescoco', 'Pescoco'],
+];
+
+// sparkline de peso, SVG inline (sem Chart.js: a lib e carregada sob demanda
+// e por rede — aqui isso violaria o "zero requisicao").
+function frcSparkPeso(lista) {
+  const pts = lista.map(x => parseFloat(String(x.p.peso).replace(',', '.')))
+    .filter(v => !isNaN(v));
+  if (pts.length < 2) return '';
+  const min = Math.min.apply(null, pts) - 0.3;
+  const max = Math.max.apply(null, pts) + 0.3;
+  const W = 320, H = 58, span = (max - min) || 1;
+  const xy = pts.map((v, i) => [
+    (i / (pts.length - 1)) * (W - 8) + 4,
+    H - 6 - ((v - min) / span) * (H - 14),
+  ]);
+  const d = xy.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const ult = xy[xy.length - 1];
+  const ultTxt = String(lista[lista.length - 1].p.peso);
+  return '<svg class="spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="peso ao longo do tempo">' +
+    '<path d="' + d + '" fill="none" stroke="#6B7580" stroke-width="1.5" vector-effect="non-scaling-stroke"/>' +
+    xy.map((p, i) => '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' +
+      (i === xy.length - 1 ? 3.5 : 2) + '" fill="' + (i === xy.length - 1 ? '#F2C230' : '#39414A') + '"/>').join('') +
+    '<text x="' + Math.max(24, ult[0] - 4).toFixed(1) + '" y="' + Math.max(11, ult[1] - 8).toFixed(1) + '" fill="#F2C230" ' +
+    'font-size="10" font-family="JetBrains Mono, ui-monospace, monospace" text-anchor="end">' + escapeHtml(ultTxt) + '</text>' +
+    '</svg>';
+}
+
+// ===================== HTML =====================
+
+function frcSec(titulo, corpo) {
+  return '<div class="sec"><div class="sec-h"><h2 class="disp">' + escapeHtml(titulo) +
+    '</h2><div class="ln"></div></div>' + corpo + '</div>';
+}
+
+function frcVazio(txt) { return '<div class="vazio">' + escapeHtml(txt) + '</div>'; }
+
+function frcSwitchDeload(rotulo) {
+  const on = APP.frc.deload ? '1' : '0';
+  return '<label class="sw" data-on="' + on + '">' +
+    '<input type="checkbox" id="frc-deload"' + (APP.frc.deload ? ' checked' : '') + ' />' +
+    '<i></i> ' + escapeHtml(rotulo) + '</label>';
+}
+
+// Card de exercicio. O botao de obs e o motivo desta tela existir: a regra
+// tem que estar A UM TOQUE do exercicio, no celular. Sem obs no banco, o
+// botao aparece DESABILITADO dizendo isso — ausencia visivel e melhor que
+// ausencia ambigua.
+function frcExCard(p, id) {
+  const sr = frcSeriesReps(p);
+  const ti = tipoInfo(p.tipo);
+  const obs = String(p.obs == null ? '' : p.obs);
+  const carga = String(p.carga == null ? '' : p.carga).trim();
+  return '<div class="card">' +
+    '<div class="ex-top">' +
+      '<div class="ord">' + escapeHtml(String(p.ordem == null ? '—' : p.ordem).padStart(2, '0')) + '</div>' +
+      '<div class="ex-nm">' + escapeHtml(String(p.exercicio || '—')) + '</div>' +
+    '</div>' +
+    '<div class="ex-meta">' +
+      '<span class="tag load">' + escapeHtml(carga || 'sem carga no banco') + '</span>' +
+      '<span class="tag' + (sr.dl ? ' dl' : '') + '">' + escapeHtml(sr.txt) + '</span>' +
+      '<span class="tag rir">RIR ' + escapeHtml(frcRirTxt(p)) + '</span>' +
+      (ti ? '<span class="tag rir">' + escapeHtml(ti.label.toLowerCase()) + '</span>' : '') +
+    '</div>' +
+    (sr.aviso ? '<div class="fonte" style="margin-left:28px">⚠ ' + escapeHtml(sr.aviso) + '</div>' : '') +
+    (obs
+      ? '<button class="obs-btn" type="button" data-frc-obs="' + id + '" aria-expanded="false" aria-controls="frc-obs-' + id + '">▸ regra e observacoes</button>' +
+        '<div class="obs" id="frc-obs-' + id + '" hidden>' + frcTexto(obs) + '</div>'
+      : '<button class="obs-btn" type="button" disabled>· sem observacao no banco</button>') +
+    '</div>';
+}
+
+// ---------- HOJE ----------
+function frcHtmlHoje() {
+  const rot = frcRotacao();
+  let html = '';
+
+  if (!rot.length) {
+    html += frcSec('Rotacao', frcVazio('Nenhum dia no plano deste aluno.'));
+  } else {
+    const win = rot[0];
+    const quadros = rot.map(r =>
+      '<div class="' + (r.d === win.d ? 'win' : '') + '">' +
+        '<div class="l disp">' + escapeHtml(r.d) + '</div>' +
+        '<div class="d">' + (r.dias == null ? 'nunca' : r.dias + 'd') + '</div>' +
+      '</div>').join('');
+    html += frcSec('Rotacao — o dia mais atrasado vence',
+      '<div class="card acc">' +
+        '<div style="display:flex;align-items:baseline;gap:10px">' +
+          '<div class="disp" style="font-size:38px;line-height:1;color:var(--sinal)">' + escapeHtml(win.d) + '</div>' +
+          '<div><div style="font-weight:600">Proximo treino</div>' +
+          '<div class="mut mono" style="font-size:11px">' +
+            (win.ult ? 'ultima vez ' + escapeHtml(fmtDate(win.ult)) + ' · ' + win.dias + ' dias' : 'nenhuma sessao registrada') +
+          '</div></div>' +
+        '</div>' +
+        '<div class="rot">' + quadros + '</div>' +
+      '</div>');
+  }
+
+  const alertas = frcAlertas();
+  if (alertas.length) {
+    const mostrar = alertas.slice(0, FRC_ALERTA_MAX);
+    let a = mostrar.map(x =>
+      '<div class="card ' + x.cor + '">' +
+        '<div class="ct">' + escapeHtml(x.t) + '</div>' +
+        '<div class="cb">' + frcTexto(x.txt) + '</div>' +
+        '<div class="fonte">FONTE: ' + escapeHtml(x.fonte) + '</div>' +
+      '</div>').join('');
+    if (alertas.length > mostrar.length) {
+      a += '<div class="fonte">+ ' + (alertas.length - mostrar.length) + ' alerta(s) alem dos ' + FRC_ALERTA_MAX + ' mostrados.</div>';
+    }
+    html += frcSec('Alertas — derivados do banco', a);
+  }
+
+  if (rot.length) {
+    const win = rot[0];
+    const itens = frcPlanoDoDia(win.d);
+    html += frcSec('Sessao ' + win.d + (APP.frc.deload ? ' · deload' : ''),
+      frcSwitchDeload('Deload aplicado (series −1, RIR 3-4)') +
+      (itens.length
+        ? itens.map((p, i) => frcExCard(p, 'h' + i)).join('')
+        : frcVazio('Sem exercicios no plano para o dia ' + win.d + '.')));
+  }
+  return html;
+}
+
+// ---------- PLANO ----------
+function frcHtmlPlano() {
+  const dias = diasDoAluno();
+  let html = '<div style="margin:14px 0 2px">' + frcSwitchDeload('Deload aplicado (series −1, RIR 3-4)') + '</div>';
+  dias.forEach(d => {
+    const itens = frcPlanoDoDia(d);
+    html += frcSec(d + ' — ' + itens.length + ' exercicios',
+      itens.length
+        ? itens.map((p, i) => frcExCard(p, 'p' + d + i)).join('')
+        : frcVazio('Sem exercicios neste dia.'));
+  });
+  return html;
+}
+
+// ---------- LOG ----------
+function frcHtmlLog() {
+  let html = '';
+
+  // faixa de 30 dias
+  const cal = frcCalendario(FRC_CAL_DIAS);
+  const celulas = cal.map(c => {
+    const cls = 'day' + (c.letras.length ? '' : ' off') + (c.hoje ? ' hoje' : '') + (!c.letras.length && c.avulsa ? ' avul' : '');
+    const letra = c.letras.length ? c.letras.join('') : '·';
+    return '<div class="' + cls + '" title="' + escapeHtml(c.iso) + '">' +
+      '<div class="dn">' + c.dm + '</div>' +
+      '<div class="dl' + (letra.length > 1 ? ' dois' : '') + '">' + escapeHtml(letra) + '</div>' +
+      '<div class="cd' + (c.cardio ? '' : ' ph') + '"></div>' +
+    '</div>';
+  }).join('');
+  const nForca = cal.filter(c => c.letras.length).length;
+  const nCardio = cal.filter(c => c.cardio).length;
+  html += frcSec('Ultimos ' + FRC_CAL_DIAS + ' dias',
+    '<div class="cal">' + celulas + '</div>' +
+    '<div class="legenda">' +
+      '<span><b class="mono" style="color:var(--sinal)">A</b> sessao de forca</span>' +
+      '<span><i></i>cardio</span>' +
+      '<span><u></u>avulsa (dia vazio no banco)</span>' +
+    '</div>' +
+    '<div class="fonte">' + nForca + ' dias com forca · ' + nCardio + ' dias com cardio, na janela de ' + FRC_CAL_DIAS + ' dias.</div>');
+
+  // sessoes detalhadas
+  const todas = frcSessoes();
+  const sess = APP.frc.tudoSessoes ? todas : todas.slice(0, FRC_SESSOES_INI);
+  let sHtml = sess.map(s => {
+    const linhas = s.itens.map(x => {
+      const r = x.r;
+      const rirRaw = String(r.rir == null ? '' : r.rir).trim();
+      // TESTE numerico (pega "0" e "0.0"), EXIBICAO literal.
+      const zero = rirRaw !== '' && parseFloat(rirRaw.replace(',', '.')) === 0;
+      const obs = String(r.obs == null ? '' : r.obs).trim();
+      return '<tr>' +
+        '<td style="width:40%">' + escapeHtml(String(r.exercicio || '—')) +
+          (obs ? '<div class="oz">' + frcTexto(obs) + '</div>' : '') + '</td>' +
+        '<td class="n" style="width:22%">' + escapeHtml(String(r.carga == null ? '' : r.carga)) + '</td>' +
+        '<td class="n" style="width:22%">' + escapeHtml(String(r.reps == null ? '' : r.reps)) + '</td>' +
+        '<td class="n' + (zero ? ' r0' : '') + '" style="width:16%">' + (rirRaw ? 'RIR ' + escapeHtml(rirRaw) : '') + '</td>' +
+      '</tr>';
+    }).join('');
+    const badgeTxt = s.tipo === 'forca' ? s.dia : (s.tipo === 'cardio' ? '~' : '?');
+    const rotulo = s.tipo === 'forca' ? '' : (s.tipo === 'cardio' ? 'cardio' : 'avulsa');
+    return '<div class="card">' +
+      '<div class="lg-h">' +
+        '<div class="badge ' + s.tipo + '">' + escapeHtml(badgeTxt) + '</div>' +
+        '<div class="lg-d">' + escapeHtml(fmtDate(s.iso)) + '</div>' +
+        '<div class="mut mono" style="font-size:11px">' + s.itens.length + ' linha(s)' +
+          (rotulo ? ' · ' + rotulo : '') + '</div>' +
+      '</div>' +
+      '<div class="tw"><table><tbody>' + linhas + '</tbody></table></div>' +
+    '</div>';
+  }).join('');
+  if (!todas.length) sHtml = frcVazio('Nenhuma sessao registrada.');
+  else if (todas.length > sess.length) {
+    sHtml += '<button class="obs-btn" type="button" data-frc-tudo="1" style="margin-left:0">▸ mostrar todas as ' + todas.length + ' sessoes (' + (todas.length - sess.length) + ' ocultas)</button>';
+  }
+  html += frcSec('Sessoes registradas — RIR 0 em vermelho', sHtml);
+
+  // historico de carga
+  const hist = frcHistoricoCarga();
+  html += frcSec('Carga ao longo do tempo — compostos',
+    hist.length
+      ? hist.map(h =>
+          '<div class="card">' +
+            '<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline">' +
+              '<b style="font-size:13px;overflow-wrap:anywhere">' + escapeHtml(h.nome) + '</b>' +
+              '<span class="trend ' + h.trend + '">' + escapeHtml(h.label) + '</span>' +
+            '</div>' +
+            '<div class="seq">' +
+              (h.ocultos ? '<span class="mut">+' + h.ocultos + ' antes · </span>' : '') +
+              h.pontos.map(p => escapeHtml(fmtDate(p.iso).slice(0, 5) + ' ' + p.carga)).join(' → ') +
+            '</div>' +
+          '</div>').join('')
+      : frcVazio('Nenhum exercicio marcado como composto no plano, ou sem carga registrada.'));
+
+  return html;
+}
+
+// ---------- REGRAS ----------
+function frcHtmlRegras() {
+  const notas = (APP.data.aluno || {}).notas;
+  const blocos = frcParseNotas(notas);
+  if (!blocos.length) {
+    return frcSec('Regras',
+      frcVazio('Sem notas no banco para este aluno. Todo o conteudo desta aba vem de alunos.notas — nada aqui e escrito no codigo. Peca ao trainer pra preencher.'));
+  }
+  const cards = blocos.map((b, i) => {
+    const cor = frcCorDoBloco(b.titulo);
+    if (!b.titulo) {
+      return '<div class="card ' + cor + '"><div class="acc-b">' + frcTexto(b.corpo) + '</div></div>';
+    }
+    const aberto = i === 0;
+    return '<div class="card ' + cor + '">' +
+      '<button class="acc-h" type="button" data-frc-acc="' + i + '" aria-expanded="' + (aberto ? 'true' : 'false') + '" aria-controls="frc-acc-' + i + '">' +
+        '<span class="mk">' + (aberto ? '▾' : '▸') + '</span><span class="tt">' + escapeHtml(b.titulo) + '</span>' +
+      '</button>' +
+      '<div class="acc-b" id="frc-acc-' + i + '"' + (aberto ? '' : ' hidden') + '>' + frcTexto(b.corpo) + '</div>' +
+    '</div>';
+  }).join('');
+  return frcSec('Regras — direto de alunos.notas', cards) +
+    '<div class="fonte">Texto literal do banco, quebras de linha preservadas. Atualizou a nota, atualizou esta tela.</div>';
+}
+
+// ---------- CORPO ----------
+function frcHtmlCorpo() {
+  let html = '';
+  const peso = frcPesoLista();
+  if (!peso.length) {
+    html += frcSec('Peso', frcVazio('Nenhuma pesagem registrada.'));
+  } else {
+    const ultimos = peso.slice(Math.max(0, peso.length - 12));
+    const linhas = ultimos.slice().reverse().map(x =>
+      '<div class="kv">' +
+        '<span class="mono mut">' + escapeHtml(fmtDate(x.iso)) + '</span>' +
+        '<span class="mut">' + escapeHtml(String(x.p.balanca || '')) + (x.p.obs ? ' · ' + escapeHtml(String(x.p.obs)) : '') + '</span>' +
+        '<b>' + escapeHtml(String(x.p.peso)) + 'kg</b>' +
+      '</div>').join('');
+    html += frcSec('Peso — ' + peso.length + ' pesagem(ns)',
+      '<div class="card">' + frcSparkPeso(ultimos) + linhas + '</div>' +
+      (peso.length > ultimos.length ? '<div class="fonte">Mostrando as ' + ultimos.length + ' mais recentes de ' + peso.length + '.</div>' : ''));
+  }
+
+  const per = frcPerimetrosLista();
+  if (!per.length) {
+    html += frcSec('Perimetros', frcVazio('Nenhuma medicao registrada.'));
+  } else {
+    const mostrar = per.slice(0, 6);
+    // um CARD POR DATA, nao uma tabela de 9 colunas: 9 colunas nao cabem em
+    // 360px sem rolagem horizontal, e este app e usado no celular.
+    const cards = mostrar.map(x => {
+      const kvs = FRC_PERIMETROS.map(c => {
+        const v = String(x.p[c[0]] == null ? '' : x.p[c[0]]).trim();
+        if (!v) return '';
+        return '<div class="kv"><span>' + escapeHtml(c[1]) + '</span><b>' + escapeHtml(v) + 'cm</b></div>';
+      }).filter(Boolean).join('');
+      return '<div class="card">' +
+        '<div class="mono mut" style="font-size:11px;margin-bottom:4px">' + escapeHtml(x.iso ? fmtDate(x.iso) : 'sem data') + '</div>' +
+        (kvs || '<div class="mut" style="font-size:12px">Linha sem nenhuma medida preenchida.</div>') +
+      '</div>';
+    }).join('');
+    html += frcSec('Perimetros — ' + per.length + ' medicao(oes)',
+      cards + (per.length > mostrar.length ? '<div class="fonte">Mostrando as ' + mostrar.length + ' mais recentes de ' + per.length + '.</div>' : ''));
+  }
+  return html;
+}
+
+// ===================== render =====================
+
+function frcHtmlCorpoDoPin() {
+  switch (APP.frc.pin) {
+    case 'plano':  return frcHtmlPlano();
+    case 'log':    return frcHtmlLog();
+    case 'regras': return frcHtmlRegras();
+    case 'corpo':  return frcHtmlCorpo();
+    default:       return frcHtmlHoje();
+  }
+}
+
+function frcHtmlPills() {
+  const regs = frcRegistros();
+  const pills = [];
+  let ultF = null, ultC = null;
+  regs.forEach(x => {
+    if (!x._iso) return;
+    if (x._forca && (!ultF || x._iso > ultF._iso)) ultF = x;
+    if (x._cardio && (!ultC || x._iso > ultC._iso)) ultC = x;
+  });
+  if (ultF) pills.push({ c: '', t: 'ULT ' + ultF._dia + ' · ' + daysAgo(ultF._iso) });
+  if (ultC) pills.push({ c: '', t: 'CARDIO · ' + daysAgo(ultC._iso) });
+  const peso = frcPesoLista();
+  if (peso.length) pills.push({ c: '', t: String(peso[peso.length - 1].p.peso) + 'kg' });
+  if (APP.frc.deload) pills.push({ c: 'on', t: 'DELOAD LIGADO (exibicao)' });
+  const sd = frcSemData();
+  if (sd) pills.push({ c: 'bad', t: sd + ' registro(s) sem data legivel' });
+  if (!pills.length) return '';
+  return '<div class="pills">' + pills.map(p => '<span class="pill ' + p.c + '">' + escapeHtml(p.t) + '</span>').join('') + '</div>';
+}
+
+function frcRender() {
+  const el = $('view-console');
+  if (!el || !APP.data || !APP.data.aluno) return;
+  const a = APP.data.aluno;
+  el.innerHTML =
+    '<div class="hd"><div class="wrap">' +
+      '<div class="hd-row">' +
+        '<div class="logo disp">FER<b>RO</b></div>' +
+        '<div class="ver mono">console<br/>' + escapeHtml(String(a.nome || a.id || '')) + '</div>' +
+        '<button class="voltar" type="button" data-frc-voltar="1">◂ VOLTAR</button>' +
+      '</div>' +
+      frcHtmlPills() +
+    '</div></div>' +
+    '<div class="wrap" id="frc-body">' + frcHtmlCorpoDoPin() + frcHtmlFoot() + '</div>' +
+    '<div class="rail" id="frc-rail">' + frcHtmlRail() + '</div>';
+  frcLigarEventos();
+}
+
+function frcHtmlRail() {
+  return FRC_PINS.map(t =>
+    '<button class="pin" type="button" data-frc-pin="' + t.k + '" data-on="' + (APP.frc.pin === t.k ? 1 : 0) + '"' +
+    (APP.frc.pin === t.k ? ' aria-current="page"' : '') + '>' +
+      '<span class="hole" aria-hidden="true"></span><span>' + escapeHtml(t.n) + '</span>' +
+    '</button>').join('');
+}
+
+function frcHtmlFoot() {
+  const p = (APP.data.plano || []).length;
+  const r = (APP.data.registros || []).length;
+  return '<div class="foot">' +
+    'CONSOLE ' + escapeHtml(FORJA_VERSION) + ' · somente leitura · ' + p + ' linhas de plano, ' + r + ' de registro' +
+    '<br/>Tudo nesta tela sai do payload que o app ja carregou. Esta tela nao faz requisicao nem escreve nada.' +
+    '<br/>Escrita e do FORJA: TREINAR AGORA, LANCAR SESSAO, PESO, CARDIO.' +
+  '</div>';
+}
+
+function frcRenderBody() {
+  const b = $('frc-body');
+  if (!b) { frcRender(); return; }
+  b.innerHTML = frcHtmlCorpoDoPin() + frcHtmlFoot();
+  const rail = $('frc-rail');
+  if (rail) rail.innerHTML = frcHtmlRail();
+  window.scrollTo(0, 0);
+}
+
+// Delegacao ligada UMA vez na secao: sobrevive a qualquer re-render do corpo
+// (innerHTML novo nao perde listener que esta no ancestral).
+function frcLigarEventos() {
+  if (APP.frc._ligado) return;
+  const el = $('view-console');
+  if (!el) return;
+  APP.frc._ligado = true;
+
+  el.addEventListener('click', ev => {
+    const alvo = ev.target.closest('[data-frc-pin],[data-frc-obs],[data-frc-acc],[data-frc-voltar],[data-frc-tudo]');
+    if (!alvo) return;
+
+    if (alvo.dataset.frcVoltar) {
+      navigateTo(APP.alunoSession ? '#aluno/' + APP.alunoSession.id : '#home');
+      return;
+    }
+    if (alvo.dataset.frcPin) {
+      APP.frc.pin = alvo.dataset.frcPin;
+      APP.frc.tudoSessoes = false;
+      frcRenderBody();
+      return;
+    }
+    if (alvo.dataset.frcTudo) {
+      APP.frc.tudoSessoes = true;
+      frcRenderBody();
+      return;
+    }
+    // obs e acordeao: alterna a classe SEM re-render, pra nao perder o
+    // scroll da pagina — importante quando se le isso de pe, na academia.
+    if (alvo.dataset.frcObs) {
+      const box = $('frc-obs-' + alvo.dataset.frcObs);
+      if (!box) return;
+      const abrir = box.hasAttribute('hidden');
+      if (abrir) box.removeAttribute('hidden'); else box.setAttribute('hidden', '');
+      alvo.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+      alvo.textContent = abrir ? '▾ fechar regra' : '▸ regra e observacoes';
+      return;
+    }
+    if (alvo.dataset.frcAcc) {
+      const box = $('frc-acc-' + alvo.dataset.frcAcc);
+      if (!box) return;
+      const abrir = box.hasAttribute('hidden');
+      if (abrir) box.removeAttribute('hidden'); else box.setAttribute('hidden', '');
+      alvo.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+      const mk = alvo.querySelector('.mk');
+      if (mk) mk.textContent = abrir ? '▾' : '▸';
+      return;
+    }
+  });
+
+  el.addEventListener('change', ev => {
+    if (!ev.target || ev.target.id !== 'frc-deload') return;
+    APP.frc.deload = !!ev.target.checked;
+    try { localStorage.setItem('forja-frc-deload', APP.frc.deload ? '1' : '0'); } catch (e) {}
+    frcRender();   // o switch muda header (pill) e corpo
+  });
+}
+
+// entrada: botao no painel do aluno. So navega — quem decide se pode abrir
+// (e se ha dado em memoria) e o route(), sem nunca ir na rede.
+$('btn-aluno-console').onclick = () => navigateTo('#console');
 
 (function init() {
   injectOrbs();
