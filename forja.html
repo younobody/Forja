@@ -822,7 +822,7 @@
   table.editable input { width: 100%; }
 
   /* avatars */
-  .avatar { width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 1.125rem; border-radius: 10px; box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 18px -10px rgba(255,107,51,0.8); }
+  .avatar { width: 2.5rem; height: 2.5rem; flex: none; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 1.125rem; border-radius: 10px; box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 18px -10px rgba(255,107,51,0.8); }
 
   /* tabs (v29: ativa = pill escura solida, sem glow por dia) */
   .tab-btn { padding: 0.5rem 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; letter-spacing: 0.1em; border-bottom: 2px solid transparent; color: var(--text-faint); cursor: pointer; text-transform: uppercase; transition: color 0.15s, background 0.15s; border-radius: 9px 9px 0 0; }
@@ -3224,6 +3224,39 @@
   .overflow-x-auto { -webkit-overflow-scrolling: touch; }
   table { max-width: 100%; }
 
+  /* ==================================================================
+     v30.8.0: ACORDEAO DE OBSERVACOES (.obs-fold) — o pedido 1 do Marcos
+     ("muito texto longo nos card, faca com abertura e fechamento").
+     Escopo proprio: o acordeao do CONSOLE (.frc .obs-btn/.obs, ~3371) le
+     --sinal e um --steel que so existem dentro do .frc, entao desescopar
+     repintaria em silencio. Aqui os tokens sao os do :root.
+     Alvo de toque de 44px: o .frc .obs-btn tem 32, abaixo do minimo, e este
+     app e usado EM PE, entre series.
+     ================================================================== */
+  .obs-fold-btn {
+    display: block; width: 100%; margin: 8px 0 0; padding: 11px 0 11px 8px;
+    min-height: 44px; background: none; border: 0; border-radius: 2px;
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+    text-align: left; color: var(--acc-ink); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* o preflight do Tailwind (linha 649) declara [hidden]{display:none} ANTES
+     deste bloco — sem esta regra o display:block acima venceria. */
+  .obs-fold-btn[hidden] { display: none; }
+  .obs-fold-btn:focus-visible { outline: 2px solid var(--acc-ink); outline-offset: 2px; }
+  .obs-fold {
+    margin: 6px 0 0 8px; padding: 9px 10px;
+    background: var(--surface-1); border-left: 2px solid var(--line);
+    border-radius: 2px;
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    font-size: 11px; line-height: 1.6; color: var(--text-dim);
+    white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .obs-fold[hidden] { display: none; }
+  .obs-fold b { color: var(--text); font-weight: 600; }
+
+
 </style>
 
 <style id="console-css">
@@ -3861,7 +3894,7 @@
 <section id="view-config" class="hidden min-h-screen flex items-center justify-center px-6 py-12">
   <div class="max-w-xl w-full">
     <div class="display text-6xl mb-2">FORJA</div>
-    <div class="mono text-xs text-zinc-500 tracking-widest mb-8">CONFIGURACAO INICIAL</div>
+    <div class="mono text-xs text-zinc-500 tracking-widest mb-8">CONFIGURAÇÃO INICIAL</div>
     <div class="glass p-6">
       <p class="text-sm text-zinc-400 mb-6 leading-relaxed">
         Esta pagina precisa da URL do seu <strong class="text-zinc-100">Google Apps Script</strong> publicado como Web App para funcionar.
@@ -4229,7 +4262,7 @@
   <div class="max-w-md w-full">
     <button onclick="navigateTo('#home')" class="mono text-xs text-zinc-500 hover:text-zinc-100 tracking-widest mb-6">◂ VOLTAR</button>
     <div class="display text-5xl text-cyan-400 mb-1">TRAINER</div>
-    <div class="mono text-xs text-zinc-500 tracking-widest mb-8">AUTENTICACAO ADMIN</div>
+    <div class="mono text-xs text-zinc-500 tracking-widest mb-8">AUTENTICAÇÃO ADMIN</div>
     <div class="glass p-6">
       <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">CHAVE ADMIN</label>
       <input id="trainer-key" type="password" placeholder="sua chave secreta" class="w-full mb-4" />
@@ -4306,7 +4339,7 @@
           <input id="edit-id" type="text" disabled class="w-full opacity-50" />
         </div>
         <div>
-          <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">PIN (4-6 digitos)</label>
+          <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">CÓDIGO (8 CARACTERES)</label>
           <input id="edit-pin" type="text" class="w-full" />
         </div>
         <div class="md:col-span-2">
@@ -4318,7 +4351,7 @@
           <input id="edit-objetivo" type="text" class="w-full" />
         </div>
         <div class="md:col-span-2">
-          <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">NOTAS / RESTRICOES</label>
+          <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">NOTAS / RESTRIÇÕES</label>
           <textarea id="edit-notas" rows="3" class="w-full"></textarea>
         </div>
       </div>
@@ -4378,7 +4411,7 @@
       <!-- Grafico de carga por exercicio -->
       <div class="glass p-4 mb-6">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <div class="mono text-[10px] text-zinc-500 tracking-widest">PROGRESSAO DE CARGA</div>
+          <div class="mono text-[10px] text-zinc-500 tracking-widest">PROGRESSÃO DE CARGA</div>
           <label class="mono text-[10px] text-zinc-500 tracking-widest flex items-center gap-1.5 cursor-pointer ml-auto mr-2">
             <input type="checkbox" id="evo-compare-trainer" style="accent-color:#E85616" /> COMPARAR ALUNOS
           </label>
@@ -4389,12 +4422,12 @@
              se ajusta sozinho a largura do card. -->
         <div id="evo-chart-trainer" class="chr-pack"></div>
         <div id="evo-chart-empty-trainer" class="mono text-[10px] text-zinc-600 text-center py-8 hidden">
-          Sem dados numericos de carga para este exercicio.
+          Sem dados numéricos de carga para este exercício.
         </div>
       </div>
 
       <!-- Historico por sessao -->
-      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-3">SESSOES REGISTRADAS</div>
+      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-3">SESSÕES REGISTRADAS</div>
       <div id="evo-historico-trainer" class="space-y-3"></div>
     </div>
   </main>
@@ -4412,7 +4445,7 @@
       <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">SEU ID</label>
       <input id="aluno-id" type="text" placeholder="ex: marcos" class="w-full mb-4" />
       <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">PIN</label>
-      <input id="aluno-pin" type="password" placeholder="****" class="w-full mb-4" />
+      <input id="aluno-pin" type="password" placeholder="••••••••" class="w-full mb-4" />
       <button id="btn-aluno-entrar" class="btn btn-primary w-full">ENTRAR</button>
       <div id="aluno-login-status" class="mono text-xs mt-3 text-center"></div>
     </div>
@@ -4446,6 +4479,17 @@
     <div id="aluno-day-tabs" class="flex border-b border-zinc-800 mb-6"></div>
     <!-- Objetivo / notas -->
     <div id="aluno-meta" class="mono text-xs text-zinc-500 mb-6"></div>
+    <!-- v30.8.0: o CTA principal saiu da grade do rodape do <main> e subiu
+         pra ca. Medido em 375x812 com o plano real do dia A: ele estava em
+         y=5087, 6,3 telas de rolagem. Aqui nasce visivel.
+         w-full e obrigatorio — .btn-ico e inline-flex (3191) e so era largura
+         total por ser item de grid; fora dela encolheria pro tamanho do texto.
+         O rotulo carrega o dia (pintarBotaoTreinar): iniciarTreinar() comeca
+         APP.alunoDay e o painel do mapa anuncia mapaSugerirDia() — podem
+         divergir, e agora o botao esta ACIMA do painel. -->
+    <div class="mb-6">
+      <button id="btn-aluno-treinar" class="btn btn-ico btn-success py-4 text-base w-full"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-treinar"></use></svg><span id="btn-aluno-treinar-lbl">TREINAR AGORA</span></button>
+    </div>
     <!-- v24: Mapa Muscular (heroi do home) -->
     <!-- v30.3.0: o desenho e ESTATICO aqui (SVG de ~17 KB que nunca muda).
          renderMapaMuscular() so repinta cor de path, lista, chip e painel —
@@ -4456,7 +4500,7 @@
         <header class="map-cab">
           <div>
             <h3 class="map-h" id="map-titulo">MAPA MUSCULAR</h3>
-            <p class="map-sub">Recuperação por grupo · últ. 7 dias</p>
+            <p class="map-sub">Recuperação por grupo · últ. 4 dias</p>
           </div>
           <div class="map-chip">
             <svg class="map-chip-ic" viewBox="0 0 12 14" aria-hidden="true" focusable="false">
@@ -4706,25 +4750,24 @@
     <div id="aluno-plano" class="space-y-3 mb-8"></div>
     <!-- CTAs -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-12">
-      <button id="btn-aluno-treinar" class="btn btn-ico btn-success py-4 text-base sm:col-span-3"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-treinar"></use></svg>TREINAR AGORA</button>
-      <button id="btn-aluno-console" class="btn btn-ico py-4 sm:col-span-3"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-ficha"></use></svg>CONSOLE (plano, regras e log)</button>
-      <button id="btn-aluno-registrar" class="btn py-4">LANCAR SESSAO</button>
-      <button id="btn-aluno-historico" class="btn py-4">EVOLUCAO</button>
+      <button id="btn-aluno-console" class="btn btn-ico py-4 sm:col-span-3"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-ficha"></use></svg>CONSOLE · PLANO E REGRAS</button>
+      <button id="btn-aluno-registrar" class="btn btn-ico py-4"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-lancar"></use></svg>LANÇAR SESSÃO</button>
+      <button id="btn-aluno-historico" class="btn btn-ico py-4"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-evolucao"></use></svg>EVOLUÇÃO</button>
       <button id="btn-aluno-peso" class="btn btn-ico py-4"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-peso"></use></svg>PESO</button>
-      <button id="btn-aluno-cardio" class="btn btn-ico py-4 sm:col-span-3"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-bike"></use></svg>CARDIO (pedal / esteira / remo)</button>
+      <button id="btn-aluno-cardio" class="btn btn-ico py-4 sm:col-span-3"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-bike"></use></svg>CARDIO · PEDAL, ESTEIRA, REMO</button>
     </div>
     <!-- Historico / Evolucao (collapse) -->
     <div id="aluno-historico-section" class="hidden glass p-5">
       <div class="mono text-[10px] text-zinc-500 tracking-widest mb-4 flex items-center gap-2">
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-        SUA EVOLUCAO
+        SUA EVOLUÇÃO
       </div>
       <div id="evo-periodo-aluno" class="flex flex-wrap gap-2 mb-4"></div>
       <div id="evo-stats-aluno" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"></div>
       <div id="evo-calendario-aluno" class="mb-6"></div>
       <div class="glass p-4 mb-6">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <div class="mono text-[10px] text-zinc-500 tracking-widest">PROGRESSAO DE CARGA</div>
+          <div class="mono text-[10px] text-zinc-500 tracking-widest">PROGRESSÃO DE CARGA</div>
           <select id="evo-select-aluno" class="text-xs"></select>
         </div>
         <!-- v30.4.0: era <canvas> do Chart.js; agora o proprio app monta o
@@ -4732,10 +4775,10 @@
              se ajusta sozinho a largura do card. -->
         <div id="evo-chart-aluno" class="chr-pack"></div>
         <div id="evo-chart-empty-aluno" class="mono text-[10px] text-zinc-600 text-center py-8 hidden">
-          Sem dados numericos de carga para este exercicio.
+          Sem dados numéricos de carga para este exercício.
         </div>
       </div>
-      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-3">SESSOES REGISTRADAS</div>
+      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-3">SESSÕES REGISTRADAS</div>
       <div id="evo-historico-aluno" class="space-y-3"></div>
     </div>
     <!-- NOTAS / RESTRICOES - moved to bottom -->
@@ -4809,7 +4852,7 @@
       </div>
     </div>
     <div id="treinar-substituido" class="hidden mono text-[10px] text-cyan-400 tracking-widest mb-2"></div>
-    <div id="treinar-ja-salvo" class="hidden mono text-[10px] text-emerald-400 tracking-widest mb-2">✓ JA REGISTRADO NESTA SESSAO — mostrando o que voce salvou</div>
+    <div id="treinar-ja-salvo" class="hidden mono text-[10px] text-emerald-400 tracking-widest mb-2">✓ JÁ REGISTRADO NESTA SESSÃO — mostrando o que você salvou</div>
     <!-- v29.8.1: FICHA embutida (COMO FAZER) — sempre visivel quando o exercicio
          tem cadastro na tabela exercicios; some quando nao tem. -->
     <div id="treinar-ficha" class="hidden mb-4 mt-2 p-3 border" style="border-color:rgba(232,86,22,.5);border-radius:12px;">
@@ -4830,7 +4873,16 @@
       <div id="treinar-ficha-fonte" class="hidden mono text-[9px] text-zinc-600 tracking-widest mt-2">DADOS/IMAGEM: WGER.DE (CC-BY-SA)</div>
     </div>
     <div id="treinar-alvo" class="mono text-xs text-zinc-500 mb-1 tracking-widest">—</div>
-    <div id="treinar-obs" class="mono text-[11px] text-amber-500/90 mt-3 mb-4 leading-relaxed"></div>
+    <!-- v30.8.0: aqui a obs continua ABERTA por padrao, ao contrario da home.
+         Esta e a tela onde a decisao acontece, e a regra ("TETO DE CARGA em
+         30kg", "NAO subir carga enquanto ombro > 0") nao pode depender de ele
+         lembrar de abrir. O botao existe pra FECHAR depois de ler — com a obs
+         fechada os campos e o FECHEI sobem ~330px.
+         Markup estatico + $(id).onclick no parse: #treinar-obs so recebe
+         textContent, entao nao existe caminho de innerHTML nesta regiao. -->
+    <div id="treinar-obs" class="mono text-[11px] text-amber-500/90 mt-3 leading-relaxed"></div>
+    <button id="treinar-obs-btn" type="button" class="obs-fold-btn mb-2" hidden
+            aria-expanded="true" aria-controls="treinar-obs">▾ FECHAR OBSERVAÇÕES</button>
 
     <!-- v27: lembrete do ULTIMO TREINO deste exercicio (data + carga/reps/rir + a
          obs que voce anotou da ultima vez). Toque no card copia os valores pros campos. -->
@@ -4892,11 +4944,11 @@
          o equipamento esta ocupado e voce quer trocar a ordem. -->
     <div class="grid grid-cols-2 gap-3 mt-3">
       <button onclick="exercicioAnterior()" class="btn py-3">◂ ANTERIOR</button>
-      <button onclick="exercicioProximo()" class="btn py-3">PROXIMO ▸</button>
+      <button onclick="exercicioProximo()" class="btn py-3">PRÓXIMO ▸</button>
     </div>
 
     <!-- v28.6: exercicio extra fora do plano (fez algo a mais na sessao) -->
-    <button onclick="abrirModalExtra()" class="btn w-full mt-3">+ EXERCICIO EXTRA</button>
+    <button onclick="abrirModalExtra()" class="btn w-full mt-3">+ EXERCÍCIO EXTRA</button>
 
     <!-- v26: link "FINALIZAR TREINO AGORA" removido — a sessao encerra sozinha
          quando todo exercicio esta fechado; pra sair antes, use ◂ SAIR no topo. -->
@@ -4908,10 +4960,10 @@
        coisa so). -->
   <div id="modal-extra-exercicio" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-50 flex items-center justify-center px-6">
     <div class="max-w-sm w-full glass p-6 corners">
-      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-3">EXERCICIO EXTRA · FORA DO PLANO</div>
+      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-3">EXERCÍCIO EXTRA · FORA DO PLANO</div>
       <input id="extra-exercicio-input" list="lista-exercicios-conhecidos" placeholder="Nome do exercicio..." class="w-full mb-1" autocomplete="off" />
       <datalist id="lista-exercicios-conhecidos"></datalist>
-      <div class="mono text-[10px] text-zinc-600 mb-4 leading-relaxed">Digite um nome novo ou escolha um ja cadastrado (sugestoes aparecem ao digitar).</div>
+      <div class="mono text-[10px] text-zinc-600 mb-4 leading-relaxed">Digite um nome novo ou escolha um já cadastrado (sugestões aparecem ao digitar).</div>
       <div class="flex gap-3">
         <button onclick="fecharModalExtra()" class="btn flex-1">CANCELAR</button>
         <button onclick="confirmarExercicioExtra()" class="btn btn-primary flex-1">ADICIONAR</button>
@@ -4954,7 +5006,7 @@
   <div id="treinar-summary" class="hidden fixed inset-0 bg-zinc-950 z-40 flex items-center justify-center">
     <div class="text-center px-6 max-w-md">
       <div class="display text-7xl text-emerald-400 mb-2">FECHADO</div>
-      <div class="mono text-xs text-zinc-500 tracking-widest mb-8">SESSAO REGISTRADA</div>
+      <div class="mono text-xs text-zinc-500 tracking-widest mb-8">SESSÃO REGISTRADA</div>
       <div id="treinar-summary-stats" class="mono text-sm text-zinc-300 mb-8"></div>
       <button onclick="finalizarTreinar()" class="btn btn-success py-4 px-12 text-base">VOLTAR</button>
     </div>
@@ -4982,7 +5034,7 @@
         <input id="peso-input-kg" type="text" inputmode="decimal" autocomplete="off" placeholder="ex: 84.4" class="w-full text-3xl py-3 text-center" />
       </div>
       <div>
-        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">BALANCA</label>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">BALANÇA</label>
         <select id="peso-input-balanca" class="w-full text-sm">
           <option value="Academia">Academia</option>
           <option value="Casa">Casa</option>
@@ -5011,7 +5063,7 @@
     <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
       <div>
         <div class="display text-4xl">CARDIO</div>
-        <div class="mono text-[10px] text-zinc-500 tracking-widest">CONDICIONAMENTO · FORA DA FORCA</div>
+        <div class="mono text-[10px] text-zinc-500 tracking-widest">CONDICIONAMENTO · FORA DA FORÇA</div>
       </div>
       <button onclick="document.getElementById('modal-cardio').classList.add('hidden')" class="text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -5027,7 +5079,7 @@
         <input id="cardio-nome" type="text" autocomplete="off" placeholder="ex: Bicicleta ar livre, HIIT..." class="w-full text-sm" />
       </div>
       <div>
-        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DISTANCIA / TEMPO / OBS</label>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DISTÂNCIA / TEMPO / OBS</label>
         <input id="cardio-obs" type="text" autocomplete="off" placeholder="ex: 20km · 45min · zona 2" class="w-full text-sm" />
       </div>
       <div>
@@ -5050,7 +5102,7 @@
     <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
       <div>
         <div class="display text-4xl">TROCAR</div>
-        <div class="mono text-[10px] text-zinc-500 tracking-widest">SUBSTITUIR SO NESTA SESSAO</div>
+        <div class="mono text-[10px] text-zinc-500 tracking-widest">SUBSTITUIR SÓ NESTA SESSÃO</div>
       </div>
       <button onclick="document.getElementById('modal-trocar').classList.add('hidden')" class="text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -5061,7 +5113,7 @@
     <!-- v30.2.0: sugestao automatica por musculo. Sai da tabela de fichas
          (musculos_primarios), entao so aparece pra exercicio cadastrado. -->
     <div id="trocar-sugeridos-bloco" class="hidden mt-6">
-      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-2">COMPATIVEIS · MESMO MUSCULO</div>
+      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-2">COMPATÍVEIS · MESMO MÚSCULO</div>
       <div id="trocar-sugeridos" class="space-y-2"></div>
     </div>
     <!-- v30.2.0: o caso "nao tem na lista, eu escrevo". Mesmo datalist do
@@ -5110,7 +5162,7 @@
     <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
       <div>
         <div id="li-exercicio-nome" class="display text-3xl leading-tight">—</div>
-        <div class="mono text-[10px] text-zinc-500 tracking-widest">LANCAR EXECUCAO INDIVIDUAL</div>
+        <div class="mono text-[10px] text-zinc-500 tracking-widest">LANÇAR EXECUÇÃO INDIVIDUAL</div>
       </div>
       <button onclick="document.getElementById('modal-lancar-individual').classList.add('hidden')" class="text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -5157,7 +5209,7 @@
     <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
       <div>
         <div id="modal-reg-day" class="display text-4xl">—</div>
-        <div class="mono text-[10px] text-zinc-500 tracking-widest">REGISTRAR EXECUCAO</div>
+        <div class="mono text-[10px] text-zinc-500 tracking-widest">REGISTRAR EXECUÇÃO</div>
       </div>
       <button onclick="document.getElementById('modal-registrar').classList.add('hidden')" class="text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -5171,7 +5223,7 @@
     </div>
     <div class="flex gap-3">
       <button onclick="document.getElementById('modal-registrar').classList.add('hidden')" class="btn flex-1">CANCELAR</button>
-      <button id="btn-salvar-sessao" class="btn btn-success flex-1">SALVAR SESSAO</button>
+      <button id="btn-salvar-sessao" class="btn btn-success flex-1">SALVAR SESSÃO</button>
     </div>
   </div>
 </div>
@@ -5229,15 +5281,15 @@
         <input id="novo-nome" type="text" placeholder="Marcos R. Abati" class="w-full" />
       </div>
       <div>
-        <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-1">PIN (4-6 digitos)</label>
-        <input id="novo-pin" type="text" placeholder="1234" class="w-full" />
+        <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-1">CÓDIGO (8 CARACTERES)</label>
+        <input id="novo-pin" type="text" placeholder="••••••••" class="w-full" />
       </div>
       <div>
         <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-1">OBJETIVO</label>
         <input id="novo-objetivo" type="text" placeholder="ex: recomposicao corporal" class="w-full" />
       </div>
       <div>
-        <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-1">NOTAS / RESTRICOES</label>
+        <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-1">NOTAS / RESTRIÇÕES</label>
         <textarea id="novo-notas" rows="3" placeholder="ombro esq instavel, sem barra atras..." class="w-full"></textarea>
       </div>
     </div>
@@ -5269,7 +5321,7 @@
     </p>
     <div class="mb-4">
       <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">PIN DO ALUNO (voce define agora)</label>
-      <input id="import-pin" type="text" placeholder="ex: 1234" class="w-full" />
+      <input id="import-pin" type="text" placeholder="••••••••" class="w-full" />
       <div class="mono text-[10px] text-zinc-600 mt-1">O PIN sobrescreve qualquer valor que vier no JSON. Anote pra mandar pro aluno.</div>
     </div>
     <div class="mb-4">
@@ -5427,7 +5479,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v30.7.1';
+const FORJA_VERSION = 'v30.8.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -5465,6 +5517,12 @@ const APP = {
   editPlano: emptyPlanoMap(),
   editDay: 'A',
   alunoDay: 'A',
+  // v30.8.0: quais acordeoes de obs estao abertos. Em memoria, nao no no:
+  // o refresh em background repinta a home com a tela visivel, e sem isto
+  // a caixa fechava sozinha no meio da leitura. A chave carrega o dia,
+  // entao trocar de aba fecha tudo — que e o estado certo.
+  obsAbertas: new Set(),
+  _obsFoldLigado: false,
   savingSession: false, // trava anti-duplo-clique no registro
 
   // OPTIMIZATION (Phase 3A): Registros cache to avoid repeated filters
@@ -5582,7 +5640,7 @@ function daysAgo(input) {
     const diffDias = Math.round((hojeCal - dCal) / (1000 * 60 * 60 * 24));
     if (diffDias <= 0) return 'hoje';
     if (diffDias === 1) return 'ontem';
-    return `${diffDias}d atras`;
+    return `há ${diffDias} dias`;
   } catch { return '—'; }
 }
 
@@ -6568,7 +6626,7 @@ function renderTrainerDashboard() {
       </div>
       <div class="mono text-xs text-zinc-400 mb-2 truncate">${escapeHtml(a.objetivo || '—')}</div>
       <div class="mono text-[10px] text-zinc-500 flex justify-between border-t border-zinc-800 pt-2 mt-3">
-        <span>${last ? `ULT: ${last.dia} · ${daysAgo(dataSessao(last))}` : 'SEM REGISTROS'}</span>
+        <span>${last ? `ÚLT: ${last.dia} · ${daysAgo(dataSessao(last))}` : 'SEM REGISTROS'}</span>
         <span class="text-cyan-400">EDITAR ▸</span>
       </div>
     </div>`;
@@ -8066,22 +8124,22 @@ function renderAlunoDashboard() {
     if (ehCardio(r)) { if (!lastCardio || d > dataSessao(lastCardio)) lastCardio = r; return; }
     if (!last || d > dataSessao(last)) last = r;
   });
-  let ultTxt = last ? `ULT: ${last.dia} · ${daysAgo(dataSessao(last))}` : 'NENHUMA SESSAO DE FORCA';
+  let ultTxt = last ? `ÚLT: ${last.dia} · ${daysAgo(dataSessao(last))}` : 'NENHUMA SESSÃO DE FORÇA';
   // v30: cardioEmoji() agora devolve MARKUP, e esta string vai pra
   // $('aluno-last').textContent — que nao aceita tag nenhuma. Por isso aqui
   // o simbolo sai e sobra so o rotulo, que ja diz a modalidade por extenso.
-  if (lastCardio) ultTxt += `   ·   ${cardioLabel(lastCardio.modalidade)} ${daysAgo(dataSessao(lastCardio))}`;
+  if (lastCardio) ultTxt += ` · ${cardioLabel(lastCardio.modalidade)} ${daysAgo(dataSessao(lastCardio))}`;
   $('aluno-last').textContent = ultTxt;
   const meta = $('aluno-meta');
   let metaHtml = '';
   if (a.objetivo) metaHtml += `<div><span class="text-zinc-600">OBJETIVO:</span> ${escapeHtml(a.objetivo)}</div>`;
   meta.innerHTML = metaHtml;
 
-  // Renderizar NOTAS no fim da página
-  const notasDiv = $('aluno-notas');
-  if (notasDiv) {
-    notasDiv.innerHTML = a.notas ? `<div class="mono text-xs text-zinc-500"><span class="text-zinc-600">NOTAS:</span> ${escapeHtml(a.notas)}</div>` : '';
-  }
+  // v30.8.0: as notas sao um documento (9688 caracteres no caso do Marcos) e
+  // saiam como UM bloco de ~3900px no pe da home. Agora vao por secao, todas
+  // fechadas, reusando o frcParseNotas() que o CONSOLE ja usa.
+  ligarObsFold();
+  renderAlunoNotas(a.notas);
 
   // Renderiza tabs dinamicas: apenas os dias que o aluno realmente tem
   renderAlunoDayTabs();
@@ -8115,7 +8173,132 @@ function setAlunoDay(day) {
   renderAlunoPlano();
 }
 
+
+// ---------- v30.8.0: acordeao de observacoes ----------
+// O vocabulario abaixo e o MESMO de conflitosDoPlano() (~9487) — as familias de
+// regra que o Marcos de fato escreve nas obs. Aqui ele nao decide nada, so
+// acende o aviso no rotulo do botao fechado: sem isso, fechar a obs esconderia
+// que existe um teto de carga ali dentro, e a v30.7.0 inteira foi sobre nao
+// esconder isso dele.
+const OBS_REGRA_RE = [
+  /teto\s+de\s+carga/i,
+  /teto\s+rir/i,
+  /trav(?:ar|ado|ada)\s+(?:em\s+)?\d+\s*reps/i,
+  /falha\s+proibida/i,
+  /proibid[ao]/i,
+  /n[aa\u00e3]o\s+(?:subir|aumentar|progredir|fazer|cortar|deixar|retentar)/i,
+  /progress[a\u00e3]o\s+bloqueada/i,
+  /progride\s+s[o\u00f3]\s+em\s+reps/i,
+  /nunca\s+cortar/i,
+  /s[o\u00f3]\s+at[e\u00e9]\s+\d+\s*graus/i,
+  /teto\s+\d+\s*graus/i,
+];
+function obsTemRegra(obs) {
+  const t = String(obs == null ? '' : obs);
+  if (!t) return false;
+  for (let i = 0; i < OBS_REGRA_RE.length; i++) { if (OBS_REGRA_RE[i].test(t)) return true; }
+  return false;
+}
+
+// Rotulo do botao. Fechado, ele diz TRES coisas antes de o dedo ir la: que ha
+// observacao, quantas notas tem dentro, e se carrega regra.
+function obsFoldRotulo(obs, aberto) {
+  if (aberto) return '\u25be FECHAR OBSERVA\u00c7\u00d5ES';
+  const t = String(obs == null ? '' : obs);
+  const n = t.split('\n').filter(function (l) { return l.trim(); }).length;
+  return '\u25b8 REGRA E OBSERVA\u00c7\u00d5ES'
+       + (n > 1 ? ' \u00b7 ' + n + ' NOTAS' : '')
+       + (obsTemRegra(t) ? ' \u26a0' : '');
+}
+
+// Prefixo proprio no id: TODAS as views coexistem no DOM (route() so alterna a
+// classe .hidden), entao um id 'frc-obs-0' aqui colidiria com o do CONSOLE e o
+// getElementById pegaria o no errado.
+function obsFoldHtml(chave, obs, aberto) {
+  const id = 'plobs-' + chave;
+  return '<button class="obs-fold-btn" type="button" data-obs="' + chave + '"'
+       + ' aria-expanded="' + (aberto ? 'true' : 'false') + '" aria-controls="' + id + '">'
+       + escapeHtml(obsFoldRotulo(obs, aberto)) + '</button>'
+       + '<div class="obs-fold" id="' + id + '"' + (aberto ? '' : ' hidden') + '>'
+       + frcTexto(obs) + '</div>';
+}
+
+// Delegacao ligada UMA vez na secao inteira: sobrevive a todo innerHTML de
+// renderAlunoPlano e renderAlunoNotas. Absorve tambem o [data-exinfo], que ate
+// a v30.7.1 era religado elemento por elemento a cada render (8153-8155).
+// O listener delegado do #aluno-mapa e IRMAO, nao ancestral, e os botoes dele
+// nao tem data-obs nem data-exinfo — nao ha como um clique la cair aqui.
+function ligarObsFold() {
+  if (APP._obsFoldLigado) return;
+  const sec = $('view-aluno');
+  if (!sec) return;
+  APP._obsFoldLigado = true;
+  sec.addEventListener('click', function (ev) {
+    const alvo = (ev.target && ev.target.closest)
+      ? ev.target.closest('[data-obs],[data-exinfo]') : null;
+    if (!alvo) return;
+    if (alvo.dataset.exinfo != null) { abrirExInfo(alvo.dataset.exinfo); return; }
+    const box = document.getElementById(alvo.getAttribute('aria-controls'));
+    if (!box) return;
+    // alterna o atributo SEM re-render, pra nao perder o scroll da pagina —
+    // mesma razao escrita no toggle do CONSOLE (~11692).
+    const abrir = box.hasAttribute('hidden');
+    if (abrir) { box.removeAttribute('hidden'); APP.obsAbertas.add(alvo.dataset.obs); }
+    else { box.setAttribute('hidden', ''); APP.obsAbertas.delete(alvo.dataset.obs); }
+    alvo.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+    // as notas trazem o titulo do bloco no dataset; o plano monta o rotulo a
+    // partir do proprio texto da caixa.
+    alvo.textContent = (alvo.dataset.rot != null)
+      ? (abrir ? '\u25be ' : '\u25b8 ') + alvo.dataset.rot
+      : obsFoldRotulo(box.textContent, abrir);
+  });
+}
+
+// O rotulo do CTA principal carrega o DIA que ele vai comecar. Motivo:
+// iniciarTreinar() usa APP.alunoDay (a aba selecionada) e o painel verde do
+// mapa anuncia mapaSugerirDia() — os dois divergem quando a aba nao e a
+// sugestao, e o botao agora esta ACIMA do painel. Avisar, nunca vetar: e a
+// mesma decisao registrada na v30.7.0 pro detector de divergencia.
+// Pintado por textContent num <span> proprio — o botao tem um <svg> dentro, e
+// textContent no botao inteiro apagaria o icone.
+function pintarBotaoTreinar() {
+  const el = $('btn-aluno-treinar-lbl');
+  if (el) el.textContent = 'TREINAR AGORA \u00b7 ' + (APP.alunoDay || '\u2014');
+}
+
+// As notas do aluno sao um documento: 9688 caracteres no caso do Marcos, que
+// renderizavam como UM bloco de ~3900px no pe da home. frcParseNotas() ja
+// existe e ja corta por cabecalho — aqui ela ganha um acordeao por bloco,
+// todos fechados.
+function renderAlunoNotas(notas) {
+  const el = $('aluno-notas');
+  if (!el) return;
+  const txt = String(notas == null ? '' : notas).trim();
+  if (!txt) { el.innerHTML = ''; el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  let html = '<div class="mono text-[10px] text-zinc-500 tracking-widest mb-2">'
+           + 'NOTAS E RESTRI\u00c7\u00d5ES</div>';
+  frcParseNotas(txt).forEach(function (b, k) {
+    // frcParseNotas devolve titulo VAZIO no bloco de abertura (o texto antes do
+    // primeiro cabecalho). Nas notas reais do Marcos esse bloco e 38% do total:
+    // deixar o botao sem rotulo nenhum seria o pior dos mundos.
+    let rot = String(b.titulo || 'AGENDA').trim();
+    if (rot.length > 34) rot = rot.slice(0, 33).trim() + '\u2026';
+    const chave = 'notas-' + k;
+    const aberto = APP.obsAbertas.has(chave);
+    html += '<button class="obs-fold-btn" type="button" data-obs="' + chave + '"'
+          + ' data-rot="' + escapeHtml(rot) + '"'
+          + ' aria-expanded="' + (aberto ? 'true' : 'false') + '"'
+          + ' aria-controls="plobs-' + chave + '">'
+          + (aberto ? '\u25be ' : '\u25b8 ') + escapeHtml(rot) + '</button>'
+          + '<div class="obs-fold" id="plobs-' + chave + '"' + (aberto ? '' : ' hidden') + '>'
+          + frcTexto(b.corpo) + '</div>';
+  });
+  el.innerHTML = html;
+}
+
 function renderAlunoPlano() {
+  pintarBotaoTreinar();   // antes do return antecipado do dia vazio
   const day = APP.alunoDay;
   const plano = (APP.data.plano || []).filter(p => String(p.dia).toUpperCase() === day);
   const div = $('aluno-plano');
@@ -8146,13 +8329,12 @@ function renderAlunoPlano() {
         <div><span class="text-zinc-600">RIR</span> <span class="text-zinc-100">${escapeHtml(String(p.rir||'—'))}</span></div>
         ${(() => { const ti = tipoInfo(p.tipo); return ti ? `<div><span class="chip" style="border-color:${ti.cor};color:${ti.cor}">${ti.label}</span> <span class="text-zinc-600">${ti.desc}</span></div>` : ''; })()}
       </div>
-      ${p.obs ? `<div class="mono text-[10px] text-amber-500/80 mt-2 pl-2">⚠ ${escapeHtml(p.obs)}</div>` : ''}
+      ${p.obs ? obsFoldHtml(APP.alunoDay + '-' + i, p.obs,
+                            APP.obsAbertas.has(APP.alunoDay + '-' + i)) : ''}
     </div>
   `).join('');
-  // v29.7.0: tocar no nome (ⓘ) abre a ficha do exercicio
-  div.querySelectorAll('[data-exinfo]').forEach(el => {
-    el.addEventListener('click', () => abrirExInfo(el.dataset.exinfo));
-  });
+  // v30.8.0: o [data-exinfo] (tocar no nome ⓘ abre a ficha) era religado
+  // aqui a cada render. Virou delegacao em ligarObsFold(), junto do acordeao.
 }
 
 $('btn-aluno-registrar').onclick = () => abrirModalRegistrar();
@@ -8315,7 +8497,7 @@ $('btn-aluno-historico').onclick = () => {
 
 // ===== v24: MAPA MUSCULAR (recuperacao por grupo, a partir dos registros) =====
 const MAPA_GRUPOS = ['peito','ombro','triceps','costas','biceps','core','quadriceps','posterior','panturrilha'];
-const MAPA_LABEL = { peito:'Peito', ombro:'Ombro', triceps:'Triceps', costas:'Costas', biceps:'Biceps', core:'Core', quadriceps:'Quadriceps', posterior:'Posterior', panturrilha:'Panturrilha' };
+const MAPA_LABEL = { peito:'Peito', ombro:'Ombro', triceps:'Tríceps', costas:'Costas', biceps:'Bíceps', core:'Core', quadriceps:'Quadríceps', posterior:'Posterior', panturrilha:'Panturrilha' };
 const MAPA_REC = { recuperando: 1, atrasado: 5 }; // dias: <=1 recuperando, >=5 atrasado, no meio = pronto
 // v30: verde/ambar/vermelho re-passados pra superficie escura; 'dim' vira
 // o neutro frio da paleta (musculo descansado = frio, treinado = quente).
@@ -9954,7 +10136,17 @@ function mostrarExercicioAtual() {
     (tiEx ? ` · ${tiEx.label} (${tiEx.desc})` : '');
   // v15: timer removido — tira "Descanso: Xs" do obs, mantem o resto (ex: MONITORAR)
   const obsLimpa = String(p.obs || '').replace(/descanso\s*:?\s*\d+(?:\s*-\s*\d+)?\s*s\s*\|?\s*/ig, '').replace(/^\s*\|\s*/, '').trim();
-  $('treinar-obs').textContent = obsLimpa ? '⚠ ' + obsLimpa : '';
+  // v30.8.0: aberta por padrao a cada exercicio (a regra tem que chegar nos
+  // olhos sem ele pedir); o botao so aparece quando ha o que fechar.
+  const elObsTr = $('treinar-obs');
+  const btnObsTr = $('treinar-obs-btn');
+  elObsTr.textContent = obsLimpa ? '⚠ ' + obsLimpa : '';
+  elObsTr.hidden = !obsLimpa;
+  if (btnObsTr) {
+    btnObsTr.hidden = !obsLimpa;
+    btnObsTr.setAttribute('aria-expanded', 'true');
+    btnObsTr.textContent = '\u25be FECHAR OBSERVA\u00c7\u00d5ES';
+  }
   // v27: card "ULTIMO TREINO" — carga/reps/rir + a obs da ultima vez neste
   // exercicio (respeita substituicao via nomeEfetivo). Some se nao ha historico.
   const ult = ultimoRegistroDe(nomeEfetivo(TREINAR.idx));
@@ -11722,6 +11914,16 @@ function frcLigarEventos() {
 // entrada: botao no painel do aluno. So navega — quem decide se pode abrir
 // (e se ha dado em memoria) e o route(), sem nunca ir na rede.
 $('btn-aluno-console').onclick = () => navigateTo('#console');
+
+// v30.8.0: fechar/abrir a obs do exercicio no TREINAR AGORA. Bind por id no
+// parse (o markup e estatico), sem delegacao e sem innerHTML.
+$('treinar-obs-btn').onclick = function () {
+  const box = $('treinar-obs');
+  const abrir = box.hidden;
+  box.hidden = !abrir;
+  this.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  this.textContent = obsFoldRotulo(box.textContent, abrir);
+};
 
 (function init() {
   injectOrbs();
