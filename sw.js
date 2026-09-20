@@ -106,7 +106,7 @@
  * do shell.
  */
 
-const CACHE_VERSION = 'forja-v30.8.0';
+const CACHE_VERSION = 'forja-v30.8.1';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',

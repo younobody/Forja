@@ -5479,7 +5479,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v30.8.0';
+const FORJA_VERSION = 'v30.8.1';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -7989,17 +7989,30 @@ function _attachEvoHistoricoListeners(c, containerId, isTrainer) {
 
 // ---------- COMPARTILHAR ----------
 
+// v30.8.1: lista o plano INTEIRO. Ate a v30.8.0 um .slice(0, 3) cortava cada dia
+// em 3 exercicios e a mensagem nao avisava que tinha cortado (o Marcos tem 9, 9,
+// 5 e 5). Parte vazia (carga, series, reps) sai da linha em vez de deixar espaco
+// duplo ou "x" solto. Funcao pura, sem DOM: share.test.js roda esta mesma
+// funcao contra o plano real.
+function resumoPlanoTexto(plano) {
+  const parte = v => String(v == null ? '' : v).trim();
+  return DAYS.map(d => {
+    const exs = ((plano || {})[d] || []).filter(x => x.exercicio);
+    if (!exs.length) return '';
+    return `DIA ${d}\n` + exs.map(x => {
+      const sr = [parte(x.series), parte(x.reps)].filter(Boolean).join('x');
+      return '· ' + [parte(x.exercicio), parte(x.carga), sr].filter(Boolean).join(' ');
+    }).join('\n') + '\n';
+  }).join('');
+}
+
 $('btn-share-aluno').onclick = () => {
   const id = APP.currentAluno;
   const aluno = APP.data.alunos.find(a => String(a.id) === String(id));
   if (!aluno) return;
   const url = window.location.origin + window.location.pathname + '#aluno/' + id;
   $('share-url').value = url;
-  const resumoDias = DAYS.map(d => {
-    const exs = (APP.editPlano[d] || []).filter(x => x.exercicio).slice(0, 3);
-    if (!exs.length) return '';
-    return `DIA ${d}\n` + exs.map(x => `· ${x.exercicio} ${x.carga||''} ${x.series||''}x${x.reps||''}`).join('\n') + '\n';
-  }).join('');
+  const resumoDias = resumoPlanoTexto(APP.editPlano);
   const msg = `Ola ${aluno.nome},
 
 Seu plano FORJA esta atualizado.
