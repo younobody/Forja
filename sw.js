@@ -104,9 +104,15 @@
  * nenhum - especificidade CSS, ".frq-pack button" vencia as classes de cor
  * do calendario). Frontend-only; bump aqui so pra invalidar o cache antigo
  * do shell.
+ * v30.9.0: LOGIN no HTML - a sessao do ALUNO agora sobrevive a fechar/reabrir
+ * o app (localStorage em vez de sessionStorage; o TRAINER continua so na
+ * sessao, de proposito) e o app pede ao Chrome/Android pra salvar o PIN no
+ * gerenciador de senhas nativo (Credential Management API). PIN/chave
+ * recusados pelo backend agora deslogam com aviso em vez de falhar calado.
+ * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  */
 
-const CACHE_VERSION = 'forja-v30.8.1';
+const CACHE_VERSION = 'forja-v30.9.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',

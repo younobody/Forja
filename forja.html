@@ -4265,7 +4265,7 @@
     <div class="mono text-xs text-zinc-500 tracking-widest mb-8">AUTENTICAÇÃO ADMIN</div>
     <div class="glass p-6">
       <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">CHAVE ADMIN</label>
-      <input id="trainer-key" type="password" placeholder="sua chave secreta" class="w-full mb-4" />
+      <input id="trainer-key" type="password" placeholder="sua chave secreta" autocomplete="current-password" class="w-full mb-4" />
       <button id="btn-trainer-entrar" class="btn btn-primary w-full">ENTRAR</button>
       <div id="trainer-login-status" class="mono text-xs mt-3 text-center"></div>
     </div>
@@ -4443,9 +4443,9 @@
     <div class="mono text-xs text-zinc-500 tracking-widest mb-8">ACESSO AO PLANO</div>
     <div class="glass p-6">
       <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">SEU ID</label>
-      <input id="aluno-id" type="text" placeholder="ex: marcos" class="w-full mb-4" />
+      <input id="aluno-id" type="text" placeholder="ex: marcos" autocomplete="username" class="w-full mb-4" />
       <label class="mono text-[10px] tracking-widest text-zinc-500 block mb-2">PIN</label>
-      <input id="aluno-pin" type="password" placeholder="••••••••" class="w-full mb-4" />
+      <input id="aluno-pin" type="password" placeholder="••••••••" autocomplete="current-password" class="w-full mb-4" />
       <button id="btn-aluno-entrar" class="btn btn-primary w-full">ENTRAR</button>
       <div id="aluno-login-status" class="mono text-xs mt-3 text-center"></div>
     </div>
@@ -5479,7 +5479,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v30.8.1';
+const FORJA_VERSION = 'v30.9.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -6210,6 +6210,15 @@ function identidadeAtual() {
   return null;
 }
 
+// v30.9.0: distingue "PIN/chave nao bate mais" (o backend recusou de
+// proposito - o trainer trocou o codigo) de erro de rede (comum numa
+// academia sem sinal, e que NAO deve deslogar ninguem). So credencial
+// recusada desloga. As 3 mensagens vem literalmente do backend
+// (forja/supabase_migrations/20260719020028_forja_api_functions.SNAPSHOT.sql).
+function credencialRecusada(e) {
+  return !!e && !e.network && /^(aluno\/pin invalido|aluno nao encontrado|unauthorized)$/.test(String(e.message));
+}
+
 function dataCacheKey(identidade) { return 'forja-data-' + DATA_CACHE_SCHEMA + '-' + identidade; }
 
 function marcarDataFresco() {
@@ -6346,6 +6355,7 @@ function logout() {
   limparDataCache(); // dado de aluno em localStorage nao sobrevive ao logout
   sessionStorage.removeItem('forja-trainer-key');
   sessionStorage.removeItem('forja-aluno-session');
+  localStorage.removeItem('forja-aluno-session'); // v30.9.0: sessao do aluno agora persiste aqui
   navigateTo('#home');
 }
 
@@ -6448,6 +6458,25 @@ async function loginCodigo() {
 // e persiste o cache local. A tela de login define a identidade INTEIRA:
 // limpa a credencial do outro papel pra o cache por identidade nunca
 // misturar aluno x trainer.
+// v30.9.0: pede ao navegador (Credential Management API - gerenciador de
+// senhas do Chrome/Android) pra guardar a credencial, sem depender de
+// <form> nenhum na pagina. Silencioso de proposito: Safari/Firefox nao tem
+// PasswordCredential, e o usuario pode recusar o balao - nos dois casos o
+// app segue exatamente como hoje. window.PasswordCredential (nunca o
+// identificador solto) porque o gate eslint no-undef nao conhece esse global.
+function tentarSalvarCredencial(id, senha, nome) {
+  if (!window.PasswordCredential || !navigator.credentials || !id || !senha) return;
+  try {
+    navigator.credentials.store(new window.PasswordCredential({ id: id, password: senha, name: nome })).catch(() => {});
+  } catch (e) {}
+}
+
+// v30.9.0: a sessao do ALUNO agora sobrevive a fechar/reabrir o app
+// (localStorage, nao sessionStorage) - so desloga no SAIR ou quando o
+// backend rejeita id/pin (credencialRecusada, ver loadAlunoData). O TRAINER
+// continua so em sessionStorage, de proposito: o payload dele carrega o PIN
+// de todos os alunos, e persistir arriscaria deixar acesso permanente se o
+// Marcos logar como trainer num celular que nao e so dele e esquecer o SAIR.
 function entrarComoAluno(sessao, data) {
   APP.trainerKey = null;
   sessionStorage.removeItem('forja-trainer-key');
@@ -6456,15 +6485,17 @@ function entrarComoAluno(sessao, data) {
   marcarDataFresco();
   salvarDataCache();
   invalidateRegistrosCache();
-  sessionStorage.setItem('forja-aluno-session', JSON.stringify(sessao));
+  try { localStorage.setItem('forja-aluno-session', JSON.stringify(sessao)); } catch (e) {}
+  sessionStorage.removeItem('forja-aluno-session');
   migrarBufferAnonimo();
   showLoading(false);
   navigateTo('#aluno/' + sessao.id);
+  tentarSalvarCredencial(sessao.id, sessao.pin, 'FORJA · ' + sessao.id);
 }
 
 function entrarComoTrainer(key, data) {
   APP.alunoSession = null;
-  sessionStorage.removeItem('forja-aluno-session');
+  localStorage.removeItem('forja-aluno-session');
   APP.trainerKey = key;
   APP.data = data;
   marcarDataFresco(); // trainer: frescor so em memoria (nada vai pro disco)
@@ -6472,6 +6503,7 @@ function entrarComoTrainer(key, data) {
   sessionStorage.setItem('forja-trainer-key', key);
   showLoading(false);
   navigateTo('#trainer');
+  tentarSalvarCredencial('trainer', key, 'FORJA · trainer');
 }
 
 // Fluxo pre-v3.8: listarIds + tenta getAluno id por id + getAdmin no final.
@@ -6545,7 +6577,8 @@ async function loadTrainerData(opts) {
     invalidateRegistrosCache(); // OPTIMIZATION: Clear cache on fresh data
     renderTrainerDashboard();
   } catch (e) {
-    toast(e.message, 'error');
+    if (credencialRecusada(e)) { toast('Sua chave mudou — entre de novo', 'error'); logout(); }
+    else toast(e.message, 'error');
   } finally {
     showLoading(false);
   }
@@ -6567,7 +6600,12 @@ async function refreshTrainerEmBackground() {
       invalidateRegistrosCache();
       if (!$('view-trainer').classList.contains('hidden')) renderTrainerDashboard();
     }
-  } catch (e) { /* silencioso */ }
+  } catch (e) {
+    // v30.9.0: so desloga se a credencial foi recusada de verdade (chave
+    // trocada) - erro de rede fica quieto como sempre, e confere que nao
+    // trocou de identidade no meio do voo antes de deslogar.
+    if (credencialRecusada(e) && identidadeAtual() === 'trainer') { toast('Sua chave mudou — entre de novo', 'error'); logout(); }
+  }
   finally { APP._bgRefresh = false; }
 }
 
@@ -8095,13 +8133,17 @@ async function loadAlunoData(opts) {
     invalidateRegistrosCache(); // OPTIMIZATION: Clear cache on fresh data
     renderAlunoDashboard();
   } catch (e) {
-    toast(e.message, 'error');
+    if (credencialRecusada(e)) { toast('Seu código mudou — entre de novo', 'error'); logout(); }
+    else toast(e.message, 'error');
   } finally {
     showLoading(false);
   }
 }
 
 // Ver comentario em refreshTrainerEmBackground - mesma logica, papel aluno.
+// v30.9.0: alem disso, so desloga por PIN recusado se o aluno nao estiver no
+// meio de um treino guiado (TREINAR.active) - nao vale a pena interromper
+// quem esta na academia por causa de um refresh em segundo plano.
 async function refreshAlunoEmBackground() {
   if (APP._bgRefresh) return;
   APP._bgRefresh = true;
@@ -8117,7 +8159,12 @@ async function refreshAlunoEmBackground() {
       invalidateRegistrosCache();
       if (!$('view-aluno').classList.contains('hidden')) renderAlunoDashboard();
     }
-  } catch (e) { /* silencioso */ }
+  } catch (e) {
+    if (credencialRecusada(e) && identidadeAtual() === identidade && !TREINAR.active) {
+      toast('Seu código mudou — entre de novo', 'error');
+      logout();
+    }
+  }
   finally { APP._bgRefresh = false; }
 }
 
@@ -9387,6 +9434,13 @@ async function _flushBufferInner() {
     let enviouAlgum = false, falhou = false;
     for (const reg of buf) {
       const { _localId, ...payload } = reg;
+      // v30.9.0: com a sessao persistindo, o item pode ter entrado no
+      // buffer com um PIN que ja nao vale mais (o trainer trocou o codigo
+      // entre a gravacao e este flush) - troca pelo PIN da sessao atual,
+      // so para o mesmo aluno_id (nunca mistura sessao de outro aluno).
+      if (APP.alunoSession && String(payload.aluno_id) === String(APP.alunoSession.id)) {
+        payload.pin = APP.alunoSession.pin;
+      }
       // manda o id local como local_id: se essa chamada ja tiver chegado ao
       // servidor numa tentativa anterior (resposta perdida por queda de
       // rede), o backend detecta pelo local_id e nao cria duplicata.
@@ -11948,9 +12002,40 @@ $('treinar-obs-btn').onclick = function () {
   APP.appsScriptUrl = SUPABASE_URL;
   const tk = sessionStorage.getItem('forja-trainer-key');
   if (tk) APP.trainerKey = tk;
-  const as = sessionStorage.getItem('forja-aluno-session');
-  if (as) {
-    try { APP.alunoSession = JSON.parse(as); } catch {}
+  // v30.9.0: sessao do aluno mora em localStorage (sobrevive a fechar o
+  // app). Migracao unica: quem estava com o app aberto na hora do update
+  // ainda tem a sessao antiga em sessionStorage - le de la so essa vez.
+  let as = localStorage.getItem('forja-aluno-session');
+  if (!as) {
+    as = sessionStorage.getItem('forja-aluno-session');
+    if (as) { try { localStorage.setItem('forja-aluno-session', as); } catch (e) {} }
+  }
+  sessionStorage.removeItem('forja-aluno-session');
+  // so restaura o aluno se esta aba nao tiver logado como trainer (chave em
+  // sessionStorage, por aba): sem essa guarda, 2 abas no desktop - uma como
+  // trainer, outra como aluno - fariam esta aba do trainer, ao recarregar,
+  // ficar com as DUAS identidades ativas ao mesmo tempo (a do aluno vindo do
+  // localStorage compartilhado). identidadeAtual() prioriza o aluno, entao o
+  // payload do admin passaria a ser tratado como se fosse do aluno. A chave
+  // do aluno continua no localStorage e volta na proxima abertura do zero.
+  if (as && !APP.trainerKey) {
+    try {
+      const sessaoRestaurada = JSON.parse(as);
+      if (sessaoRestaurada && sessaoRestaurada.id && sessaoRestaurada.pin) APP.alunoSession = sessaoRestaurada;
+      else localStorage.removeItem('forja-aluno-session');
+    } catch (e) { localStorage.removeItem('forja-aluno-session'); }
+  }
+  // Sessao restaurada mas a URL ainda aponta pra tela de login (o
+  // manifest.json abre "./forja.html" sem hash) - manda direto pro
+  // dashboard certo. replaceState (nao navigateTo) pra nao empilhar
+  // historico: senao o botao voltar do Android levaria de volta pra tela de
+  // login, e o hashchange do navigateTo faria o route() rodar em dobro.
+  const hashDeBoot = window.location.hash;
+  if (!hashDeBoot || hashDeBoot === '#home') {
+    let destinoBoot = null;
+    if (APP.alunoSession && APP.alunoSession.id) destinoBoot = '#aluno/' + APP.alunoSession.id;
+    else if (APP.trainerKey) destinoBoot = '#trainer';
+    if (destinoBoot) history.replaceState(null, '', destinoBoot);
   }
 
   // Mostrar modal de versao se versao mudou
