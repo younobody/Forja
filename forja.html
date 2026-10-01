@@ -5479,7 +5479,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v30.9.0';
+const FORJA_VERSION = 'v30.10.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -6655,7 +6655,7 @@ function renderTrainerDashboard() {
     <div class="border ${ativoCor} p-4 bg-zinc-900/30 hover:bg-zinc-900/60 transition-colors cursor-pointer" onclick="navigateTo('#trainer/edit/${a.id}')">
       <div class="flex items-start justify-between mb-3">
         <div class="flex items-center gap-3">
-          <div class="avatar bg-steel text-white">${initials(a.nome)}</div>
+          <div class="avatar bg-steel text-white">${escapeHtml(initials(a.nome))}</div>
           <div>
             <div class="display text-2xl leading-none">${escapeHtml(a.nome || a.id)}</div>
             <div class="mono text-[10px] text-zinc-500">@${a.id}</div>
@@ -6771,7 +6771,7 @@ $('btn-import-validar').onclick = () => {
     p.plano.forEach(x => { porDia[String(x.dia).toUpperCase()]++; });
     const counts = DAYS.filter(d => porDia[d] > 0).map(d => `${d}:${porDia[d]}`).join(' ');
     const nReg = Array.isArray(p.registros) ? p.registros.length : 0;
-    $('import-status').innerHTML = `<span class="text-emerald-500">✓ Valido · ${p.aluno.id} (${p.aluno.nome}) · plano ${counts} · ${nReg} registros no historico</span>`;
+    $('import-status').innerHTML = `<span class="text-emerald-500">✓ Valido · ${escapeHtml(String(p.aluno.id))} (${escapeHtml(p.aluno.nome)}) · plano ${counts} · ${nReg} registros no historico</span>`;
   } catch (e) {
     $('import-status').innerHTML = `<span class="text-red-500">✗ ${e.message}</span>`;
   }

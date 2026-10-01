@@ -110,9 +110,18 @@
  * gerenciador de senhas nativo (Credential Management API). PIN/chave
  * recusados pelo backend agora deslogam com aviso em vez de falhar calado.
  * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
+ * v30.10.0: REFORCOS DE SEGURANCA achados pelo advisor ao revisar o plano de
+ * "Entrar com Google" (backend corrigido direto no Supabase: PIN vazio nao
+ * valida mais contra PIN vazio, e a acao publica listarIds foi removida).
+ * No HTML, so faltava escapeHtml() em 2 lugares que renderizam nome/id de
+ * aluno (card do trainer, status de validar import) pra fechar a mesma
+ * classe de bug — nenhum dos dois era explorável hoje, mas iam virar risco
+ * real assim que nome passasse a vir de fora (login Google, ainda nao
+ * construído). Frontend-only; bump aqui so pra invalidar o cache antigo do
+ * shell.
  */
 
-const CACHE_VERSION = 'forja-v30.9.0';
+const CACHE_VERSION = 'forja-v30.10.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',
