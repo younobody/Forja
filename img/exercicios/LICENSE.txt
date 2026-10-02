@@ -15,4 +15,4 @@ redimensionada (max. 640px) e convertida para WebP.
 Adicionadas em 2026-10-02 (cada uma aparada/redimensionada e convertida para WebP, max. 640px):
 - mesa-flexora-unilateral.webp: wger exercicio 365 "Leg Curls (laying)", autor Everkinetic, CC-BY-SA 3.0
 - graviton.webp: wger exercicio 475 "Pull-ups", autor Imobard, CC-BY-SA 4.0
-- antebraco-excentrico.webp: wger exercicio 1333 "Forearm Curls (underhand grip)", CC-BY-SA 4.0 (1 quadro do WebP animado original)
+- antebraco-excentrico.webp: wger exercicio 1333 "Forearm Curls (underhand grip)", CC-BY-SA 4.0, autor nao informado no wger (1 quadro do WebP animado original)
