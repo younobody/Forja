@@ -7,3 +7,7 @@ branco aplicado sobre transparencia. Atribuicao tambem exibida dentro do app
 FORJA, no modal FICHA DO EXERCICIO ("DADOS/IMAGEM: WGER.DE (CC-BY-SA)").
 
 Baixadas em 2026-07-19 da API publica https://wger.de/api/v2/exerciseinfo/.
+
+Adicionada em 2026-10-02: gluteo-4-apoios-ou-chute-na-polia-baixa.webp (wger exercicio 990,
+"Kneeling kickbacks", mesma licenca CC-BY-SA 4.0). Modificacoes: margens aparadas,
+redimensionada (max. 640px) e convertida para WebP.
