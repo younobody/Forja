@@ -119,9 +119,15 @@
  * real assim que nome passasse a vir de fora (login Google, ainda nao
  * construído). Frontend-only; bump aqui so pra invalidar o cache antigo do
  * shell.
+ * v30.10.1: COSMETICO no HTML - as 4 imagens de exercicio novas (gluteo 4
+ * apoios, mesa flexora unilateral, graviton, antebraco excentrico) nao
+ * estavam em IMG_FAMILIA e caiam em 'foto' (chapa bege); agora usam o mesmo
+ * tratamento dos outros desenhos de linha / renders do tema escuro. Bump aqui
+ * so pra invalidar o cache antigo do shell (as imagens em si sao runtime
+ * cache-first e nao mudam).
  */
 
-const CACHE_VERSION = 'forja-v30.10.0';
+const CACHE_VERSION = 'forja-v30.10.1';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const ASSETS = [
   './',

@@ -1612,8 +1612,8 @@
    FORJA · tratamento das imagens de exercicio · tema BRASA ESCURO
    prefixo obrigatorio: img-
    Um componente (.img-ficha) com tres familias:
-     .img-traco   27 desenhos de linha -> invert(1) + screen sobre placa escura
-     .img-render  15 renders 3D        -> chapa quente + multiply
+     .img-traco   30 desenhos de linha -> invert(1) + screen sobre placa escura
+     .img-render  16 renders 3D        -> chapa quente + multiply
      .img-foto     8 fotos de estudio  -> chapa fria + vinheta + duotone
    ARQUITETURA (mudou nesta revisao):
      .img-palco  -> caixa, raio, recorte. NUNCA recebe filter/mask/transform.
@@ -5479,7 +5479,7 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v30.10.0';
+const FORJA_VERSION = 'v30.10.1';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -8597,19 +8597,26 @@ function musculosDoExercicio(nome) {
 // Cores via style inline (Tailwind pre-compilado, classe nova nao existe).
 // ===================================================================
 // v30: TRATAMENTO DAS ILUSTRACOES NO TEMA ESCURO
-// As 50 ilustracoes do banco tem fundo BRANCO, que no escuro vira um
+// As 54 ilustracoes do banco tem fundo BRANCO, que no escuro vira um
 // bloco de luz no meio do card. Elas nao sao todas iguais, entao o
 // tratamento e por familia (classificacao feita medindo saturacao,
 // fracao de branco e rampa de cinza de cada arquivo):
-//   t = traco  (27) desenho de linha preto no branco -> invert + screen:
+//   t = traco  (30) desenho de linha preto no branco -> invert + screen:
 //                   o fundo some por completo e sobra o traco aceso.
-//   r = render (15) render 3D cinza com musculo vermelho -> chapa clara.
+//   r = render (16) render 3D cinza com musculo vermelho -> chapa clara.
 //                   NAO inverter: o corpo some e o vermelho vira ciano.
 //   f = foto   (8)  fotografia real -> chapa + vinheta.
 // Arquivo desconhecido cai em 'foto', que e o tratamento seguro: uma
 // chapa nunca destroi a imagem, o invert pode.
+// v30.10.1: imagem nova SEM entrada aqui cai em 'foto' (chapa bege com vinheta):
+// legivel, mas destoa dos desenhos de linha. A familia de cada imagem nova e
+// decidida OLHANDO a ficha no tema escuro, nao pelo classificador
+// (_pecas_v30/classificar_imagens.py erra nas bordas: disse render pro desenho
+// de linha do gluteo e traco pro render 3D do antebraco - com 'traco' o invert
+// apaga o corpo cinza e sobra um negativo fantasma). Abra a ficha com cada
+// classe candidata e escolha; nao confie so no script.
 // ===================================================================
-const IMG_FAMILIA = {"abdominal-infra-elevacao-pernas":"t","abdominal-remador":"r","abducao-maquina":"t","agachamento-halter-livre":"f","agachamento-smith":"f","cadeira-adutora":"t","cadeira-extensora":"r","cadeira-flexora":"t","crucifixo-invertido":"t","crucifixo-trave":"t","desenvolvimento-halter":"t","desenvolvimento-maquina":"t","elevacao-lateral-halter":"t","elevacao-lateral-maquina-ou-cross":"r","elevacao-pelvica":"t","esteira":"f","extensor-lombar":"r","extensora-unilateral":"r","face-pull":"f","flexora-unilateral":"t","hack-squat":"r","leg-press-45":"f","pallof-press":"r","panturrilha":"t","panturrilha-em-pe":"t","prancha":"f","puxada-frontal":"r","puxada-neutra":"r","remada-baixa-maquina":"r","remada-baixa-v":"r","remada-curvada":"t","remada-serrote":"r","rosca-alternada-halter":"f","rosca-alternada-martelo":"t","rosca-barra-w":"r","rosca-polia-baixa":"t","rosca-scott-maquina":"t","squat":"t","stiff-halter":"t","supino-declinado-barra":"t","supino-inclinado-barra":"t","supino-inclinado-halter":"t","supino-maquina":"r","supino-reto-barra":"t","terra":"f","triceps-corda":"r","triceps-frances":"t","triceps-maquina-paralela":"t","triceps-testa-no-cross":"t","voador-peck-deck":"t"};
+const IMG_FAMILIA = {"abdominal-infra-elevacao-pernas":"t","abdominal-remador":"r","abducao-maquina":"t","agachamento-halter-livre":"f","agachamento-smith":"f","cadeira-adutora":"t","cadeira-extensora":"r","cadeira-flexora":"t","crucifixo-invertido":"t","crucifixo-trave":"t","desenvolvimento-halter":"t","desenvolvimento-maquina":"t","elevacao-lateral-halter":"t","elevacao-lateral-maquina-ou-cross":"r","elevacao-pelvica":"t","esteira":"f","extensor-lombar":"r","extensora-unilateral":"r","face-pull":"f","flexora-unilateral":"t","hack-squat":"r","leg-press-45":"f","pallof-press":"r","panturrilha":"t","panturrilha-em-pe":"t","prancha":"f","puxada-frontal":"r","puxada-neutra":"r","remada-baixa-maquina":"r","remada-baixa-v":"r","remada-curvada":"t","remada-serrote":"r","rosca-alternada-halter":"f","rosca-alternada-martelo":"t","rosca-barra-w":"r","rosca-polia-baixa":"t","rosca-scott-maquina":"t","squat":"t","stiff-halter":"t","supino-declinado-barra":"t","supino-inclinado-barra":"t","supino-inclinado-halter":"t","supino-maquina":"r","supino-reto-barra":"t","terra":"f","triceps-corda":"r","triceps-frances":"t","triceps-maquina-paralela":"t","triceps-testa-no-cross":"t","voador-peck-deck":"t","gluteo-4-apoios-ou-chute-na-polia-baixa":"t","mesa-flexora-unilateral":"t","graviton":"t","antebraco-excentrico":"r"};
 const IMG_CLASSE = { t: 'img-traco', r: 'img-render', f: 'img-foto' };
 
 function familiaDaIlustracao(url) {
