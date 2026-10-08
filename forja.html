@@ -627,7 +627,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#F6F7F9" />
+<meta name="theme-color" content="#0B0E13" />
 <title>FORJA — Coach Dashboard</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23FFFFFF'/%3E%3Cg fill='none' stroke='%23EE5622' stroke-width='4' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M14 26 h30 a8 8 0 0 1 -8 8 h-6 l-2 0 a10 10 0 0 0 14 0'/%3E%3Cpath d='M28 34 v10'/%3E%3Cpath d='M20 46 h16'/%3E%3C/g%3E%3C/svg%3E" />
 <link rel="manifest" href="./manifest.json" />
@@ -3256,6 +3256,49 @@
   .obs-fold[hidden] { display: none; }
   .obs-fold b { color: var(--text); font-weight: 600; }
 
+  /* ==================================================================
+     v30.12.0 — fim dos estouros horizontais + cabecalho do aluno enxuto
+     Medido em 375x812 (preview/medir.js, BASE v30.11.0 no HANDOFF): home +201px,
+     EVOLUCAO +131px, painel do trainer +367px; cabecalho sticky do aluno 141px.
+     O blob Tailwind e de jul/2026 e nao e recompilado: min-w-0, pointer-events-none,
+     flex-none e tracking-[0.2em] NAO existem nele — por isso CSS proprio, aqui.
+     ================================================================== */
+  .min0 { min-width: 0; }
+
+  /* linha "COACH DASHBOARD · v · backend ..." do login: antes era tudo &nbsp; + 0.4em
+     e nao quebrava (576px). Agora quebra nos separadores " · ". */
+  .sub-login { letter-spacing: 0.2em; }
+
+  /* EVOLUCAO: o select toma a largura da MAIOR opcao e empurra a pagina inteira. */
+  #evo-select-aluno, #evo-select-trainer { max-width: 100%; min-width: 0; text-overflow: ellipsis; }
+
+  /* painel do trainer: a coluna implicita do grid e 'auto' e cresce ate o texto .truncate
+     (nowrap) do objetivo do aluno. minmax(0,1fr) deixa o card encolher e truncar de verdade. */
+  #trainer-alunos-list > * { min-width: 0; }
+  @media (max-width: 767px) { #trainer-alunos-list { grid-template-columns: minmax(0, 1fr); } }
+
+  /* toast: do canto superior direito (cobria SYNC/SAIR) para largura total, abaixo da
+     safe-area, e sem capturar toque (o toque passa para o botao que estiver embaixo). */
+  #toast-container { top: calc(env(safe-area-inset-top, 0px) + 8px); left: 12px; right: 12px; pointer-events: none; }
+
+  /* cabecalho do aluno: nome em 1 linha com reticencias; em tela estreita sem folga de sobra. */
+  #aluno-nome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 639px) {
+    #view-aluno > header { padding-top: 9px; padding-bottom: 9px; } /* lateral fica nos 24px do px-6: alinha com o corpo da pagina */
+    #view-aluno > header .btn { padding-left: 12px; padding-right: 12px; }
+
+    /* cabecalho do TRAINER: SYNC + IMPORTAR JSON + + NOVO ALUNO + SAIR somam 537px e nao cabem
+       em uma linha (o estouro estava escondido atras dos cards). Em tela estreita os botoes
+       quebram para uma linha propria e o cabecalho deixa de ser sticky (com a 2a linha ele
+       passaria de 150px = 20% da tela); e a tela do Marcos, rolar ate o topo e barato. */
+    #view-trainer > header { position: static; padding-top: 10px; padding-bottom: 10px; }
+    #view-trainer > header > div { flex-wrap: wrap; row-gap: 10px; }
+    #view-trainer > header > div > .flex.gap-2 { flex-wrap: wrap; width: 100%; }
+  }
+  /* celular estreito (360px): "MARCOS R. ABATI" em 24px nao cabe ao lado de SYNC + SAIR e virava
+     "MARCOS R. A..."; em 20px cabe. */
+  @media (max-width: 380px) { #aluno-nome { font-size: 1.25rem; } }
+
 
 </style>
 
@@ -4224,7 +4267,7 @@
         <div class="display text-7xl md:text-8xl leading-none">FORJA<span style="color:var(--acc)">.</span></div>
       </div>
       <div class="hero-badge mono text-[10px] mb-3 inline-block">FORJANDO A SAUDE · FICA FORTE. FICA FORJA.</div>
-      <div class="mono text-xs text-zinc-500 tracking-[0.4em] mt-1">COACH&nbsp;DASHBOARD&nbsp;·&nbsp;<span class="forja-ver">v?</span>&nbsp;·&nbsp;backend&nbsp;<span class="forja-backend">?</span></div>
+      <div class="mono text-xs text-zinc-500 sub-login mt-1">COACH&nbsp;DASHBOARD · <span class="forja-ver">v?</span> · backend&nbsp;<span class="forja-backend">?</span></div>
     </div>
     <!-- v29.2.0: feed motivacional publico (pre-login) - fica escondido ate o fetch trazer pelo menos 1 destaque -->
     <div id="feed-motivacional" class="hidden mb-6">
@@ -4248,8 +4291,6 @@
     </div>
     <div class="mono text-[10px] text-zinc-600 mt-14 text-center tracking-widest">
       <a href="./manual.html" target="_blank" rel="noopener" class="hover:text-zinc-400 transition-colors">▸ MANUAL DE USO</a>
-      <span class="text-zinc-800"> · </span>
-      <button onclick="resetConfig()" class="hover:text-zinc-400 transition-colors">▸ RECONFIGURAR URL</button>
     </div>
   </div><!-- fecha max-w-3xl -->
   </div><!-- fecha view-home -->
@@ -4461,20 +4502,20 @@
 <section id="view-aluno" class="hidden min-h-screen pb-16">
   <header class="scanbar fx-aco-escovado fx-vidro px-6 py-4 sticky top-0 z-30" style="background:rgba(18,23,31,0.78);backdrop-filter:blur(14px) saturate(125%);border-bottom:1px solid #242C38;box-shadow:0 1px 0 rgba(255,255,255,0.06) inset, 0 6px 20px rgba(0,0,0,0.5)">
     <div class="max-w-4xl mx-auto flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 min0">
         <div id="aluno-avatar" class="avatar bg-steel text-white">—</div>
-        <div>
-          <div id="aluno-nome" class="display text-2xl leading-none">—</div>
-          <div id="aluno-last" class="mono text-[10px] text-zinc-500 tracking-widest">—</div>
-        </div>
+        <div id="aluno-nome" class="display text-2xl leading-none min0">—</div>
       </div>
-      <div class="flex gap-2">
+      <div class="flex gap-2 shrink-0">
         <button id="btn-aluno-refresh" class="btn">SYNC</button>
         <button onclick="logout()" class="btn btn-danger">SAIR</button>
       </div>
     </div>
   </header>
   <main class="max-w-4xl mx-auto px-6 py-8">
+    <!-- v30.12.0: a linha "ULT: ..." saiu do cabecalho sticky (junto com o nome quebrado em 2
+         linhas, deixava ele com 141px = 15% da tela). Mesmo id: renderAlunoDashboard so troca o texto. -->
+    <div id="aluno-last" class="mono text-[10px] text-zinc-500 tracking-widest mb-4">—</div>
     <!-- Tabs (renderizado dinamicamente conforme dias que o aluno tem) -->
     <div id="aluno-day-tabs" class="flex border-b border-zinc-800 mb-6"></div>
     <!-- Objetivo / notas -->
@@ -5484,7 +5525,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.11.0';
+const FORJA_VERSION = 'v30.12.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao

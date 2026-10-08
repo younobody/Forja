@@ -139,9 +139,13 @@
  * ROLLBACK: reverter forja.html e sw.js JUNTOS (git revert do commit de deploy);
  * com este install, repetir um CACHE_VERSION ja visto e inofensivo. Preferir
  * roll-forward (versao nova com o conteudo antigo).
+ * v30.12.0: VISUAL no HTML (fim dos estouros horizontais: login, EVOLUCAO e painel do
+ * trainer; cabecalho do aluno de 141px para 63px; toast no topo sem cobrir SYNC/SAIR; some o
+ * botao RECONFIGURAR URL; theme-color escuro). Frontend-only; bump aqui so pra invalidar o
+ * cache antigo do shell (o install novo da v30.11.0 ja garante que o shell nao fica velho).
  */
 
-const CACHE_VERSION = 'forja-v30.11.0';
+const CACHE_VERSION = 'forja-v30.12.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).
