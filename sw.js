@@ -125,27 +125,58 @@
  * tratamento dos outros desenhos de linha / renders do tema escuro. Bump aqui
  * so pra invalidar o cache antigo do shell (as imagens em si sao runtime
  * cache-first e nao mudam).
+ * v30.11.0: SO ESTE ARQUIVO MUDOU (o HTML so subiu a versao). O INSTALL ficou
+ * a prova de shell velho: (1) o Pages manda Cache-Control: max-age=600, e
+ * cache.add() respeita o cache HTTP — um deploy logo depois do outro gravava o
+ * HTML ANTERIOR dentro do shell novo; agora o forja.html e buscado com
+ * cache:'reload'. (2) o corpo buscado TEM que declarar o mesmo FORJA_VERSION
+ * deste CACHE_VERSION (mesma regex do gate verificar_release.py); se nao
+ * bater — borda de CDN atrasada, pagina de login de wifi de academia devolvida
+ * com status 200 — o install FALHA e o SW antigo continua servindo, que e o
+ * modo de falha benigno. (3) o forja.html e obrigatorio; manual, manifest e CSS
+ * das fontes continuam opcionais. (4) './' e 'https://fonts.gstatic.com' sairam
+ * do ASSETS: os dois davam 404 em todo install. Activate e fetch NAO mudaram.
+ * ROLLBACK: reverter forja.html e sw.js JUNTOS (git revert do commit de deploy);
+ * com este install, repetir um CACHE_VERSION ja visto e inofensivo. Preferir
+ * roll-forward (versao nova com o conteudo antigo).
  */
 
-const CACHE_VERSION = 'forja-v30.10.1';
+const CACHE_VERSION = 'forja-v30.11.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
+const SHELL_URL = './forja.html';
+// Opcionais: se falharem, o app continua (so perde o offline desse item).
 const ASSETS = [
-  './',
-  './forja.html',
   './manual.html',
   './manifest.json',
-  'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600;800&display=swap',
-  'https://fonts.gstatic.com'
+  'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600;800&display=swap'
 ];
 
+// Mesma regex do gate (forja/_pecas_v30/verificar_release.py) e do app
+// (`const FORJA_VERSION = '...'` numa linha so no forja.html — nao reformatar).
+function versaoDoHtml(corpo) {
+  const m = /const FORJA_VERSION\s*=\s*'([^']+)'/.exec(corpo);
+  return m ? m[1].trim() : null;
+}
+
+async function instalarShell() {
+  // So abre o cache DEPOIS de validar: install que falha nao deixa cache vazio.
+  const res = await fetch(new Request(SHELL_URL, { cache: 'reload' }));
+  if (!res.ok) throw new Error('shell: HTTP ' + res.status);
+  const versao = versaoDoHtml(await res.clone().text());
+  if (!versao || 'forja-' + versao !== CACHE_VERSION) {
+    throw new Error('shell: o forja.html declara ' + versao + ' e este sw e ' + CACHE_VERSION);
+  }
+  const cache = await caches.open(SHELL_CACHE);
+  await cache.put(SHELL_URL, res);
+  await Promise.allSettled(ASSETS.map(url => {
+    const mesmaOrigem = new URL(url, self.location.href).origin === self.location.origin;
+    return cache.add(mesmaOrigem ? new Request(url, { cache: 'reload' }) : url)
+      .catch(() => console.log('Skip cache:', url));
+  }));
+}
+
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(SHELL_CACHE).then(cache => {
-      return Promise.allSettled(
-        ASSETS.map(url => cache.add(url).catch(() => console.log('Skip cache:', url)))
-      );
-    }).then(() => self.skipWaiting())
-  );
+  e.waitUntil(instalarShell().then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {

@@ -5479,7 +5479,12 @@
 //        dos exercicios conhecidos, mas aceita digitar qualquer nome novo);
 //        reaproveita toda a maquina de estado do TREINAR, entao fecha/salva
 //        igual a qualquer outro exercicio.
-const FORJA_VERSION = 'v30.10.1';
+// v30.11.0: o forja-site/sw.js CONFERE a linha abaixo: o install busca o forja.html
+// e recusa o shell se o corpo nao declarar a mesma versao do CACHE_VERSION.
+// A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
+// arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
+// comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
+const FORJA_VERSION = 'v30.11.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
