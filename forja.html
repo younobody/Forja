@@ -3275,7 +3275,7 @@
   /* painel do trainer: a coluna implicita do grid e 'auto' e cresce ate o texto .truncate
      (nowrap) do objetivo do aluno. minmax(0,1fr) deixa o card encolher e truncar de verdade. */
   #trainer-alunos-list > * { min-width: 0; }
-  @media (max-width: 767px) { #trainer-alunos-list { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 767.98px) { #trainer-alunos-list { grid-template-columns: minmax(0, 1fr); } }
 
   /* toast: do canto superior direito (cobria SYNC/SAIR) para largura total, abaixo da
      safe-area, e sem capturar toque (o toque passa para o botao que estiver embaixo). */
@@ -3283,7 +3283,7 @@
 
   /* cabecalho do aluno: nome em 1 linha com reticencias; em tela estreita sem folga de sobra. */
   #aluno-nome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  @media (max-width: 639px) {
+  @media (max-width: 639.98px) {
     #view-aluno > header { padding-top: 9px; padding-bottom: 9px; } /* lateral fica nos 24px do px-6: alinha com o corpo da pagina */
     #view-aluno > header .btn { padding-left: 12px; padding-right: 12px; }
 
@@ -3295,9 +3295,19 @@
     #view-trainer > header > div { flex-wrap: wrap; row-gap: 10px; }
     #view-trainer > header > div > .flex.gap-2 { flex-wrap: wrap; width: 100%; }
   }
-  /* celular estreito (360px): "MARCOS R. ABATI" em 24px nao cabe ao lado de SYNC + SAIR e virava
-     "MARCOS R. A..."; em 20px cabe. */
-  @media (max-width: 380px) { #aluno-nome { font-size: 1.25rem; } }
+  /* celular estreito: "MARCOS R. ABATI" em 24px nao cabe ao lado de SYNC + SAIR; em 20px cabe com ~23px
+     de folga a 360px (medido; o v30.12.1 NAO muda o tamanho). Breakpoint fracionario, ver nota 3. */
+  @media (max-width: 380.98px) { #aluno-nome { font-size: 1.25rem; } }
+
+  /* ==================================================================
+     v30.12.1 — toast: base opaca + largura maxima
+     .toast-ok/.toast-err tinham fundo com 16% de opacidade (so tingem); em largura total sobre o
+     cabecalho o texto se misturava com o nome/botoes por baixo. Mesmo tom, sobre #12171F opaco.
+     Em >= 640px a faixa tinha ~1256px: no maximo 560px, centralizada (left/right 12px + margin auto).
+     ================================================================== */
+  .toast-ok { background: linear-gradient(rgba(9,166,107,.16), rgba(9,166,107,.16)), #12171F; }
+  .toast-err { background: linear-gradient(rgba(235,77,69,.16), rgba(235,77,69,.16)), #12171F; }
+  @media (min-width: 640px) { #toast-container { max-width: 560px; margin-left: auto; margin-right: auto; } }
 
 
 </style>
@@ -3896,7 +3906,7 @@
 </svg>
 
 <!-- TOAST CONTAINER -->
-<div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+<div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2" role="status" aria-live="polite"></div>
 
 <!-- PWA INSTALL BANNER -->
 <div id="install-banner" class="fixed bottom-6 left-6 right-6 z-40 hidden">
@@ -5525,7 +5535,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.12.0';
+const FORJA_VERSION = 'v30.12.1';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
