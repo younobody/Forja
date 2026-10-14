@@ -828,6 +828,7 @@
   .tab-btn { padding: 0.5rem 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; letter-spacing: 0.1em; border-bottom: 2px solid transparent; color: var(--text-faint); cursor: pointer; text-transform: uppercase; transition: color 0.15s, background 0.15s; border-radius: 9px 9px 0 0; }
   .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
   .tab-btn.active { color: #FFFFFF; background: linear-gradient(180deg,#FF7645,#C54302); border-bottom-color: transparent; border-radius: 9px; box-shadow: 0 8px 18px -10px rgba(255,107,51,0.7); }
+  .series-log-panel { margin-bottom: 0.5rem; padding: 0.5rem; border-radius: 0.5rem; }
 
   /* sombras */
   .shadow-hot { box-shadow: 0 0 0 1px var(--border-hot); }
@@ -4539,6 +4540,7 @@
          APP.alunoDay e o painel do mapa anuncia mapaSugerirDia() — podem
          divergir, e agora o botao esta ACIMA do painel. -->
     <div class="mb-6">
+      <button id="btn-aluno-retomar" class="btn btn-ico py-3 text-sm w-full hidden mb-2" type="button">RETOMAR TREINO INTERROMPIDO</button>
       <button id="btn-aluno-treinar" class="btn btn-ico btn-success py-4 text-base w-full"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-treinar"></use></svg><span id="btn-aluno-treinar-lbl">TREINAR AGORA</span></button>
     </div>
     <!-- v24: Mapa Muscular (heroi do home) -->
@@ -4951,14 +4953,27 @@
         <input id="treinar-input-carga" type="text" inputmode="decimal" autocomplete="off" class="w-full text-2xl py-3 text-center" />
       </div>
       <div>
-        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">REPS</label>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">REPS DA SÉRIE</label>
         <input id="treinar-input-reps" type="text" inputmode="text" autocomplete="off" class="w-full text-2xl py-3 text-center" />
+        <div class="flex justify-center gap-2 mt-1">
+          <button type="button" class="btn px-3 py-1" onclick="ajustarRepsSerie(-1)" aria-label="Diminuir uma repetição">−</button>
+          <button type="button" class="btn px-3 py-1" onclick="ajustarRepsSerie(1)" aria-label="Aumentar uma repetição">+</button>
+        </div>
       </div>
       <div>
-        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">RIR FINAL</label>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">RIR DA SÉRIE</label>
         <input id="treinar-input-rir" type="text" inputmode="numeric" autocomplete="off" class="w-full text-2xl py-3 text-center" />
       </div>
     </div>
+    <section class="p-3 border series-log-panel" style="border-color:rgba(16,147,94,.4);background:rgba(16,147,94,.05)" aria-label="Registro de séries">
+      <div class="flex items-center justify-between gap-2 mb-1">
+        <div class="mono text-[10px] tracking-widest text-emerald-400">SÉRIES DE HOJE <span id="treinar-series-contagem">0</span></div>
+        <button id="btn-treinar-desfazer-serie" type="button" class="btn px-3 py-1 text-xs hidden">DESFAZER ÚLTIMA</button>
+      </div>
+      <div id="treinar-series-lista" class="mono text-[10px] text-zinc-300 mb-1" aria-live="polite">Nenhuma série registrada</div>
+      <button id="btn-treinar-registrar-serie" type="button" class="btn btn-success w-full py-2">✓ REGISTRAR SÉRIE</button>
+      <div id="treinar-series-status" class="mono text-[10px] text-zinc-500 mt-1" aria-live="polite">A série fica salva neste aparelho até você fechar o exercício.</div>
+    </section>
     <div class="mb-3">
       <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">OBS</label>
       <input id="treinar-input-obs" type="text" placeholder="opcional" class="w-full" />
@@ -5535,7 +5550,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.12.1';
+const FORJA_VERSION = 'v30.14.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -6403,6 +6418,7 @@ function show(id) {
 }
 
 function logout() {
+  limparRascunhoTreino();
   APP.trainerKey = null;
   APP.alunoSession = null;
   APP.data = null;
@@ -7389,6 +7405,7 @@ function evoPontosDe(regs, grupoEx) {
       var carga = parseCargaNum(r.carga);
       if (carga == null) return null;
       var lista = repsDaObsDoRegistro(r.obs);
+      var seriesDetalhadas = seriesDetalhadasDoRegistro(r.obs);
       var totalReps = null;
       if (lista && lista.length) {
         totalReps = lista.reduce(function (a, b) { return a + b; }, 0);
@@ -7398,8 +7415,9 @@ function evoPontosDe(regs, grupoEx) {
         carga: carga,
         reps: valorRegistroLimpo(r.reps),
         rir: valorRegistroLimpo(r.rir),
-        vol: totalReps != null ? carga * totalReps : null,
-        series: lista ? lista.length : null,
+        vol: volumeSeriesDoRegistro(r.obs) != null ? volumeSeriesDoRegistro(r.obs) :
+          (totalReps != null ? carga * totalReps : null),
+        series: seriesDetalhadas ? seriesDetalhadas.length : (lista ? lista.length : null),
         dl: /deload/i.test(String(r.obs || '')),
       };
     })
@@ -8225,6 +8243,7 @@ async function refreshAlunoEmBackground() {
 }
 
 function renderAlunoDashboard() {
+  atualizarBotaoRetomarTreino();
   const a = APP.data.aluno;
   $('aluno-avatar').textContent = initials(a.nome);
   $('aluno-nome').textContent = a.nome || a.id;
@@ -9573,7 +9592,58 @@ const TREINAR = {
   _trocaOpcoes: [],   // v26: opcoes montadas para o modal de troca
   ultimoAtual: null,  // v27: {carga,reps,rir} do ultimo treino do exercicio da vez
   sugestaoAtual: null, // v29.6.0: sugestao de progressao do exercicio da vez
+  _restDeadline: null,
+  seriesLog: [],
 };
+
+const TREINO_RASCUNHO_PREFIX = 'forja-treino-rascunho-v1-';
+function chaveRascunhoTreino() {
+  return APP.alunoSession && APP.alunoSession.id ? TREINO_RASCUNHO_PREFIX + String(APP.alunoSession.id) : null;
+}
+function salvarRascunhoTreino() {
+  if (!TREINAR.active) return;
+  const key = chaveRascunhoTreino();
+  if (!key) return;
+  const snap = {
+    schema: 1, alunoId: String(APP.alunoSession.id), dia: APP.alunoDay,
+    dataTreino: TREINAR.dataTreino || '', plano: TREINAR.plano,
+    idx: TREINAR.idx, resultados: TREINAR.resultados,
+    statuses: TREINAR.statuses, localIds: TREINAR.localIds,
+    salvos: TREINAR.salvos, substituto: TREINAR.substituto,
+    seriesLog: TREINAR.seriesLog,
+    sobrescrever: TREINAR.sobrescrever, t0: TREINAR.t0, updatedAt: Date.now(),
+    campos: { carga: $('treinar-input-carga').value, reps: $('treinar-input-reps').value,
+      rir: $('treinar-input-rir').value, obs: $('treinar-input-obs').value,
+      data: $('treinar-input-data').value },
+    restDeadline: $('treinar-rest-overlay').classList.contains('hidden') ? null :
+      (TREINAR._restDeadline || Date.now() + TREINAR.restRemaining * 1000),
+  };
+  try { localStorage.setItem(key, JSON.stringify(snap)); } catch (e) { /* O treino continua em memoria se o armazenamento falhar. */ }
+}
+function lerRascunhoTreino() {
+  const key = chaveRascunhoTreino();
+  if (!key) return null;
+  try {
+    const snap = JSON.parse(localStorage.getItem(key) || 'null');
+    if (!snap || snap.schema !== 1 || String(snap.alunoId) !== String(APP.alunoSession.id) ||
+        !Array.isArray(snap.plano) || !snap.plano.length || !Array.isArray(snap.salvos) || !Array.isArray(snap.statuses) ||
+        snap.plano.length !== snap.salvos.length || !DAYS.includes(String(snap.dia).toUpperCase())) return null;
+    return snap;
+  } catch (e) { return null; }
+}
+function atualizarBotaoRetomarTreino() {
+  const b = $('btn-aluno-retomar');
+  if (!b) return;
+  const snap = lerRascunhoTreino();
+  const mostrar = !!snap && !TREINAR.active;
+  b.classList.toggle('hidden', !mostrar);
+  if (mostrar) b.textContent = `↻ RETOMAR TREINO ${snap.dia} · ${snap.statuses.filter(s => s === 'pending').length} PENDENTE(S)`;
+}
+function limparRascunhoTreino() {
+  const key = chaveRascunhoTreino();
+  if (key) { try { localStorage.removeItem(key); } catch (e) {} }
+  atualizarBotaoRetomarTreino();
+}
 
 // v26: SUBSTITUICAO DE EXERCICIO NA SESSAO ------------------------------------
 // Grupos de exercicios equivalentes. Se o exercicio da vez casar com algum item
@@ -9886,6 +9956,36 @@ function repsDaObsDoRegistro(obs) {
   return nums;
 }
 
+// Séries lançadas na tela de treino ficam em um marcador legível por versões
+// futuras, enquanto a lista de reps antes dele mantém compatibilidade com o
+// histórico e com o cálculo de progressão já existente.
+function seriesDetalhadasDoRegistro(obs) {
+  const m = String(obs == null ? '' : obs).match(/\[\[FORJA_SETS:([^\]]+)\]\]/);
+  if (!m) return null;
+  try {
+    const lista = JSON.parse(decodeURIComponent(m[1]));
+    if (!Array.isArray(lista) || !lista.length) return null;
+    return lista.filter(s => s && /^\d{1,2}$/.test(String(s.reps)) && Number(s.reps) >= 1 && Number(s.reps) <= 60)
+      .map(s => ({ carga: String(s.carga == null ? '' : s.carga), reps: String(s.reps), rir: String(s.rir == null ? '' : s.rir) }));
+  } catch (e) { return null; }
+}
+function volumeSeriesDoRegistro(obs) {
+  const lista = seriesDetalhadasDoRegistro(obs);
+  if (!lista || !lista.length) return null;
+  const cargas = lista.map(s => parseCargaNum(s.carga));
+  if (cargas.some(c => c == null)) return null;
+  return lista.reduce((total, s, i) => total + cargas[i] * Number(s.reps), 0);
+}
+function obsComSeries(obs, series) {
+  const sets = (series || []).filter(s => s && /^\d{1,2}$/.test(String(s.reps)) && Number(s.reps) >= 1 && Number(s.reps) <= 60);
+  if (!sets.length) return String(obs || '').trim();
+  const reps = sets.map(s => s.reps).join('/');
+  const resumo = sets.map(s => String(s.carga || 'peso corporal') + '×' + s.reps + (s.rir ? ' (RIR ' + s.rir + ')' : '')).join(' · ');
+  const base = String(obs || '').trim();
+  const humano = reps + ' · Séries: ' + resumo + (base ? ' · ' + base : '');
+  return humano + ' [[FORJA_SETS:' + encodeURIComponent(JSON.stringify(sets)) + ']]';
+}
+
 // Devolve null (sem historico) ou:
 // { ult, tipo: 'meta'|'sobe'|'mantem'|'so-historico'|'teto'|'teto-acima',
 //   novaCarga: 'Xkg'|null, texto }
@@ -10027,17 +10127,79 @@ function copiarUltimoTreino() {
   if (!u) return;
   if (TREINAR.salvos[TREINAR.idx]) return; // ja registrado nesta sessao — nao mexe
   if (u.carga) $('treinar-input-carga').value = u.carga;
-  if (u.reps) $('treinar-input-reps').value = u.reps;
+  const prev = ultimoRegistroDe(nomeEfetivo(TREINAR.idx)) || {};
+  const setsPrev = seriesDetalhadasDoRegistro(prev.obs);
+  const repsPrev = setsPrev && setsPrev.length ? setsPrev[setsPrev.length - 1].reps :
+    ((repsDaObsDoRegistro(prev.obs) || []).slice(-1)[0] || numMaxDe(u.reps));
+  if (repsPrev != null) $('treinar-input-reps').value = String(repsPrev);
   if (u.rir) $('treinar-input-rir').value = u.rir;
+  salvarRascunhoTreino();
   toast('Copiado do ultimo treino', 'info');
 }
 
 // v29.6.0: toque no card de sugestao aplica a carga sugerida no campo.
+function ajustarRepsSerie(delta) {
+  if (TREINAR.salvos[TREINAR.idx]) return;
+  const inp = $('treinar-input-reps');
+  const n = Number(String(inp.value || '').trim());
+  const base = Number.isInteger(n) ? n : (numMaxDe(inp.value) || 1);
+  inp.value = String(Math.max(1, Math.min(60, base + delta)));
+  salvarRascunhoTreino();
+}
+function renderSeriesTreinar() {
+  const idx = TREINAR.idx;
+  const sets = (TREINAR.seriesLog && TREINAR.seriesLog[idx]) || [];
+  const alvo = numMaxDe(TREINAR.plano[idx] && TREINAR.plano[idx].series);
+  $('treinar-series-contagem').textContent = String(sets.length) + (alvo ? ' / ' + alvo : '');
+  $('treinar-series-lista').textContent = sets.length
+    ? sets.map(s => (s.carga || 'corp.') + '×' + s.reps + (s.rir ? ' r' + s.rir : '')).join(' · ')
+    : 'Nenhuma série registrada';
+  const salvo = !!TREINAR.salvos[idx];
+  $('btn-treinar-desfazer-serie').classList.toggle('hidden', !sets.length || salvo);
+  $('btn-treinar-registrar-serie').disabled = salvo;
+  $('btn-treinar-registrar-serie').style.opacity = salvo ? '.4' : '1';
+  $('treinar-series-status').textContent = salvo
+    ? 'Exercício já salvo no histórico.'
+    : sets.length
+      ? 'Série ' + sets.length + ' guardada neste aparelho. Segure FECHEI para salvar o exercício no histórico.'
+      : 'A série fica guardada neste aparelho até você fechar o exercício.';
+}
+function registrarSerieAtual() {
+  const idx = TREINAR.idx;
+  if (TREINAR.salvos[idx]) return;
+  const reps = String($('treinar-input-reps').value || '').trim();
+  if (!/^\d{1,2}$/.test(reps) || Number(reps) < 1 || Number(reps) > 60) {
+    toast('Digite reps da série entre 1 e 60', 'error');
+    $('treinar-input-reps').focus();
+    return;
+  }
+  if (!TREINAR.seriesLog[idx]) TREINAR.seriesLog[idx] = [];
+  TREINAR.seriesLog[idx].push({
+    carga: String($('treinar-input-carga').value || '').trim(), reps,
+    rir: String($('treinar-input-rir').value || '').trim(),
+  });
+  renderSeriesTreinar();
+  salvarRascunhoTreino();
+  if (navigator.vibrate) navigator.vibrate(20);
+}
+function desfazerUltimaSerie() {
+  const idx = TREINAR.idx;
+  if (TREINAR.salvos[idx] || !TREINAR.seriesLog[idx] || !TREINAR.seriesLog[idx].length) return;
+  const ultima = TREINAR.seriesLog[idx].pop();
+  if (ultima) {
+    $('treinar-input-carga').value = ultima.carga || '';
+    $('treinar-input-reps').value = ultima.reps || '';
+    $('treinar-input-rir').value = ultima.rir || '';
+  }
+  renderSeriesTreinar();
+  salvarRascunhoTreino();
+}
 function aplicarSugestaoTreinar() {
   const s = TREINAR.sugestaoAtual;
   if (!s || !s.novaCarga) return;
   if (TREINAR.salvos[TREINAR.idx]) return; // ja registrado — nao mexe
   $('treinar-input-carga').value = s.novaCarga;
+  salvarRascunhoTreino();
   toast('Carga sugerida aplicada: ' + s.novaCarga, 'success');
 }
 
@@ -10192,6 +10354,9 @@ function setDataTreinarTravada(travada) {
 }
 
 function iniciarTreinar() {
+  const rascunho = lerRascunhoTreino();
+  if (rascunho && !confirm('Existe um treino interrompido. Começar outro treino vai apagar esse rascunho. Deseja continuar?')) return;
+  if (rascunho) { const key = chaveRascunhoTreino(); try { localStorage.removeItem(key); } catch (e) {} }
   const day = APP.alunoDay;
   const plano = (APP.data.plano || []).filter(p => String(p.dia).toUpperCase() === day);
   if (plano.length === 0) {
@@ -10209,6 +10374,7 @@ function iniciarTreinar() {
   TREINAR.localIds = plano.map(() => null);
   TREINAR.salvos = plano.map(() => null);
   TREINAR.substituto = plano.map(() => null);  // v26: sem trocas no inicio
+  TREINAR.seriesLog = plano.map(() => []);
   // v28.4: cronometro comeca no toque em "TREINAR AGORA", nao mais so depois
   // do 1o exercicio salvo - antes ficava em branco ate o primeiro save, dando
   // a impressao de que nao estava contando o tempo real do treino.
@@ -10230,6 +10396,62 @@ function iniciarTreinar() {
   $('view-treinar').classList.remove('hidden');
   $('treinar-summary').classList.add('hidden');
   mostrarExercicioAtual();
+  salvarRascunhoTreino();
+}
+
+function retomarTreinoInterrompido() {
+  const s = lerRascunhoTreino();
+  if (!s) { atualizarBotaoRetomarTreino(); toast('Não encontrei um treino interrompido para retomar', 'info'); return; }
+  if (Date.now() - Number(s.updatedAt || 0) > 30 * 24 * 60 * 60 * 1000 &&
+      !confirm('Este rascunho tem mais de 30 dias. Deseja retomá-lo mesmo assim?')) return;
+  APP.alunoDay = String(s.dia).toUpperCase();
+  TREINAR.active = true;
+  TREINAR.dataTreino = s.dataTreino || '';
+  TREINAR.sobrescrever = Array.isArray(s.sobrescrever) ? s.sobrescrever : [];
+  TREINAR.plano = s.plano;
+  TREINAR.idx = Math.max(0, Math.min(Number(s.idx) || 0, s.plano.length - 1));
+  TREINAR.resultados = Array.isArray(s.resultados) ? s.resultados : [];
+  TREINAR.statuses = s.plano.map((_, i) => ['pending','saved','failed','skipped'].includes(s.statuses && s.statuses[i]) ? s.statuses[i] : 'pending');
+  TREINAR.localIds = s.plano.map((_, i) => s.localIds && s.localIds[i] || null);
+  TREINAR.salvos = s.plano.map((_, i) => s.salvos[i] || null);
+  TREINAR.substituto = s.plano.map((_, i) => s.substituto && s.substituto[i] || null);
+  TREINAR.seriesLog = s.plano.map((_, i) => Array.isArray(s.seriesLog && s.seriesLog[i]) ? s.seriesLog[i] : []);
+  TREINAR.t0 = Number(s.t0) || Date.now();
+  if (TREINAR.statuses[TREINAR.idx] !== 'pending') {
+    const proximo = TREINAR.statuses.findIndex(st => st === 'pending');
+    if (proximo >= 0) TREINAR.idx = proximo;
+  }
+  TREINAR._restDeadline = Number(s.restDeadline) || null;
+  if (TREINAR.timerInt) clearInterval(TREINAR.timerInt);
+  TREINAR.timerInt = setInterval(atualizarTimerTreinar, 30000);
+  $('treinar-input-data').value = (s.campos && s.campos.data) || s.dataTreino || hojeIso();
+  setDataTreinarTravada(!!TREINAR.dataTreino);
+  $('treinar-input-carga').value = s.campos && s.campos.carga || '';
+  $('treinar-input-reps').value = s.campos && s.campos.reps || '';
+  $('treinar-input-rir').value = s.campos && s.campos.rir || '';
+  $('treinar-input-obs').value = s.campos && s.campos.obs || '';
+  $('treinar-day-badge').textContent = APP.alunoDay;
+  $('treinar-day-badge').className = 'display text-3xl leading-none ' + dayColorText(APP.alunoDay);
+  $('view-aluno').classList.add('hidden');
+  $('view-treinar').classList.remove('hidden');
+  $('treinar-summary').classList.add('hidden');
+  $('treinar-rest-overlay').classList.add('hidden');
+  atualizarTimerTreinar();
+  mostrarExercicioAtual();
+  // mostrarExercicioAtual aplica os valores padrão/salvos do exercício; restaura
+  // por cima os campos que estavam sendo editados quando o app foi fechado.
+  $('treinar-input-carga').value = s.campos && s.campos.carga || '';
+  $('treinar-input-reps').value = s.campos && s.campos.reps || '';
+  $('treinar-input-rir').value = s.campos && s.campos.rir || '';
+  $('treinar-input-obs').value = s.campos && s.campos.obs || '';
+  atualizarBotaoRetomarTreino();
+  if (!TREINAR.statuses.some(st => st === 'pending')) { mostrarSummary(); return; }
+  if (TREINAR._restDeadline) {
+    const restante = Math.ceil((TREINAR._restDeadline - Date.now()) / 1000);
+    TREINAR._restDeadline = null;
+    if (restante > 0) iniciarRest(restante);
+  }
+  salvarRascunhoTreino();
 }
 
 function mostrarExercicioAtual() {
@@ -10360,9 +10582,18 @@ function mostrarExercicioAtual() {
   // salvo (em vez de voltar pro padrao do plano) e bloqueia salvar de novo.
   const salvo = TREINAR.salvos[TREINAR.idx];
   $('treinar-input-carga').value = salvo ? (salvo.carga || '') : (p.carga || '');
-  $('treinar-input-reps').value = salvo ? (salvo.reps || '') : (p.reps || '');
-  $('treinar-input-rir').value = salvo ? (salvo.rir != null ? salvo.rir : '') : (p.rir != null ? p.rir : '');
+  const seriesAtuais = (TREINAR.seriesLog && TREINAR.seriesLog[TREINAR.idx]) || [];
+  const seriesHistorico = seriesDetalhadasDoRegistro(ult && ult.obs);
+  const repsHistorico = (repsDaObsDoRegistro(ult && ult.obs) || []).slice(-1)[0];
+  const repsCampo = salvo
+    ? ((seriesAtuais.slice(-1)[0] || (seriesHistorico && seriesHistorico.slice(-1)[0]) || {}).reps || numMaxDe(salvo.reps) || '')
+    : ((seriesAtuais.slice(-1)[0] || (seriesHistorico && seriesHistorico.slice(-1)[0]) || {}).reps || repsHistorico || numMaxDe(p.reps) || '');
+  $('treinar-input-reps').value = String(repsCampo);
+  $('treinar-input-rir').value = salvo
+    ? (salvo.rir != null ? salvo.rir : '')
+    : ((seriesAtuais.slice(-1)[0] || {}).rir || (p.rir != null ? p.rir : ''));
   $('treinar-input-obs').value = salvo ? (salvo.obs || '') : '';
+  renderSeriesTreinar();
   $('treinar-ja-salvo').classList.toggle('hidden', !salvo);
   ['btn-treinar-fechei', 'btn-treinar-faltei'].forEach(id => {
     const b = $(id);
@@ -10399,6 +10630,7 @@ function mostrarExercicioAtual() {
     indEl.classList.add('hidden');
   }
   atualizarStatusBar();
+  salvarRascunhoTreino();
   window.scrollTo(0, 0);
 }
 
@@ -10419,8 +10651,12 @@ function marcarExistentesComoSalvos(existentes) {
     if (!r) return;
     TREINAR.salvos[idx] = { carga: r.carga || '', reps: r.reps || '', rir: r.rir != null ? r.rir : '', obs: r.obs || '', completou: !!r.completou };
     TREINAR.statuses[idx] = 'saved';
+    const detalhadas = seriesDetalhadasDoRegistro(r.obs);
+    const reps = repsDaObsDoRegistro(r.obs) || [];
+    TREINAR.seriesLog[idx] = detalhadas || reps.map(n => ({ carga: String(r.carga || ''), reps: String(n), rir: String(r.rir || '') }));
   });
   atualizarStatusBar();
+  salvarRascunhoTreino();
 }
 
 // v30.2.0: nota automatica de troca na obs do registro. O nome do substituto
@@ -10511,11 +10747,19 @@ async function salvarRegistroAtual(completou) {
     pin: APP.alunoSession.pin,
     dia: APP.alunoDay,
     exercicio: nomeReg,
-    carga: $('treinar-input-carga').value || '',
-    reps: $('treinar-input-reps').value || '',
-    rir: $('treinar-input-rir').value || '',
+    carga: (TREINAR.seriesLog[idx] && TREINAR.seriesLog[idx].length
+      ? TREINAR.seriesLog[idx][TREINAR.seriesLog[idx].length - 1].carga
+      : $('treinar-input-carga').value) || '',
+    reps: TREINAR.seriesLog[idx] && TREINAR.seriesLog[idx].length
+      ? TREINAR.seriesLog[idx].map(s => s.reps).join('/')
+      : ($('treinar-input-reps').value || ''),
+    rir: (TREINAR.seriesLog[idx] && TREINAR.seriesLog[idx].length
+      ? TREINAR.seriesLog[idx][TREINAR.seriesLog[idx].length - 1].rir
+      : $('treinar-input-rir').value) || '',
     completou,
-    obs: obsComNotaDeTroca($('treinar-input-obs').value || '', idx),  // v30.2.0
+    obs: (TREINAR.seriesLog[idx] && TREINAR.seriesLog[idx].length
+      ? obsComSeries(obsComNotaDeTroca($('treinar-input-obs').value || '', idx), TREINAR.seriesLog[idx])
+      : obsComNotaDeTroca($('treinar-input-obs').value || '', idx)),  // v30.2.0
     data_treino: dataTreino,  // YYYY-MM-DD ou vazio
   };
 
@@ -10531,6 +10775,7 @@ async function salvarRegistroAtual(completou) {
   TREINAR.statuses[idx] = 'failed'; // estado inicial pessimista; vira 'saved' se enviar
   TREINAR.resultados.push({ exercicio: nomeReg, completou });
   atualizarStatusBar();
+  salvarRascunhoTreino();
 
   // v26: PASSO 2 — NAO espera o servidor. O dado ja esta seguro no buffer, entao
   // retorna na hora e o FECHEI avanca instantaneo. O envio acontece em segundo
@@ -10553,8 +10798,10 @@ function ajustarPadraoDescanso(d) {
 }
 function iniciarRest(sec) {
   TREINAR.restRemaining = sec || restSecAtual();
+  TREINAR._restDeadline = Date.now() + TREINAR.restRemaining * 1000;
   $('treinar-rest-seconds').textContent = TREINAR.restRemaining;
   $('treinar-rest-overlay').classList.remove('hidden');
+  salvarRascunhoTreino();
   if (TREINAR.restTimer) clearInterval(TREINAR.restTimer);
   TREINAR.restTimer = setInterval(tickRest, 1000);
 }
@@ -10565,15 +10812,21 @@ function tickRest() {
     pararRest();  // v20: so fecha — segue no MESMO exercicio pra proxima serie
     return;
   }
+  TREINAR._restDeadline = Date.now() + TREINAR.restRemaining * 1000;
   $('treinar-rest-seconds').textContent = TREINAR.restRemaining;
+  salvarRascunhoTreino();
 }
 function pararRest() {
   if (TREINAR.restTimer) { clearInterval(TREINAR.restTimer); TREINAR.restTimer = null; }
+  TREINAR._restDeadline = null;
   $('treinar-rest-overlay').classList.add('hidden');
+  salvarRascunhoTreino();
 }
 function ajustarRest(d) {  // ajuste so do descanso ATUAL (nao mexe no padrao)
   TREINAR.restRemaining = Math.max(5, TREINAR.restRemaining + d);
+  TREINAR._restDeadline = Date.now() + TREINAR.restRemaining * 1000;
   $('treinar-rest-seconds').textContent = TREINAR.restRemaining;
+  salvarRascunhoTreino();
 }
 function pularRest() { pararRest(); }  // v20: PRONTO — volta pro mesmo exercicio
 
@@ -10643,6 +10896,7 @@ async function faltei() {
 function pularExercicio() {
   if (!confirm('Pular este exercicio sem registrar nada?')) return;
   TREINAR.statuses[TREINAR.idx] = 'skipped';
+  salvarRascunhoTreino();
   atualizarStatusBar();
   proximoExercicio();
 }
@@ -10945,10 +11199,12 @@ function confirmarExercicioExtra() {
   TREINAR.localIds.push(null);
   TREINAR.salvos.push(null);
   TREINAR.substituto.push(null);
+  TREINAR.seriesLog.push([]);
   gravarExtraLocal(nome);   // v30.2.0: lembra o nome AGORA, antes de qualquer rede
   TREINAR.idx = TREINAR.plano.length - 1;
   fecharModalExtra();
   mostrarExercicioAtual();
+  salvarRascunhoTreino();
   toast('Exercicio extra adicionado — preencha e feche normalmente', 'info');
 }
 
@@ -10972,6 +11228,7 @@ function removerExercicioIdx(i) {
   TREINAR.localIds.splice(i, 1);
   TREINAR.salvos.splice(i, 1);
   TREINAR.substituto.splice(i, 1);
+  TREINAR.seriesLog.splice(i, 1);
   // idx: saiu um ANTES do atual -> anda um pra tras (senao a tela pula de
   // exercicio sozinha); saiu o ATUAL -> o indice fica igual e passa a apontar
   // pro que era o proximo; saiu um DEPOIS -> nao mexe. Em qualquer um dos tres
@@ -11064,6 +11321,7 @@ async function limparSobrescritos() {
 }
 
 async function mostrarSummary() {
+  salvarRascunhoTreino();
   // Tenta dar flush no buffer antes de mostrar o sumario — assim qualquer
   // exercicio que estava em "failed" pode virar "saved" se a conexao voltou.
   const pendingAntes = countBuffer();
@@ -11082,10 +11340,12 @@ async function mostrarSummary() {
         (s === 'failed' && TREINAR.localIds[i] && !noBuffer.has(TREINAR.localIds[i])) ? 'saved' : s
       );
       atualizarStatusBar();
+      salvarRascunhoTreino();
     }
   }
 
   await limparSobrescritos();
+  salvarRascunhoTreino();
 
   const total = TREINAR.resultados.length;
   const fech = TREINAR.resultados.filter(r => r.completou).length;
@@ -11108,10 +11368,12 @@ async function mostrarSummary() {
   $('treinar-summary-stats').innerHTML = html;
   $('treinar-progress-bar').style.width = '100%';
   $('treinar-summary').classList.remove('hidden');
+  salvarRascunhoTreino();
 }
 
 async function finalizarTreinar() {
   TREINAR.active = false;
+  limparRascunhoTreino();
   if (TREINAR.timerInt) { clearInterval(TREINAR.timerInt); TREINAR.timerInt = null; }
   if (TREINAR.restTimer) { clearInterval(TREINAR.restTimer); TREINAR.restTimer = null; }
   // v26: garante que uma sessao sobrescrita seja limpa mesmo saindo pelo ◂ SAIR,
@@ -11127,18 +11389,34 @@ async function finalizarTreinar() {
 
 function encerrarTreinar() {
   try {
-    if (TREINAR.resultados.length > 0 &&
-        !confirm('Sair do modo TREINAR AGORA? Os registros ja salvos sao mantidos.')) {
+    if (!confirm('Sair do treino agora? O rascunho será salvo e você poderá retomá-lo no painel do aluno.')) {
       toast('Saida cancelada', 'info');
       return;
     }
   } catch (e) {
     // confirm() suprimido pelo navegador: sai assim mesmo em vez de travar
   }
-  finalizarTreinar().catch(e => { console.error('finalizarTreinar', e); toast('Erro ao sair: ' + e.message, 'error'); });
+  salvarRascunhoTreino();
+  TREINAR.active = false;
+  if (TREINAR.timerInt) { clearInterval(TREINAR.timerInt); TREINAR.timerInt = null; }
+  if (TREINAR.restTimer) { clearInterval(TREINAR.restTimer); TREINAR.restTimer = null; }
+  $('treinar-rest-overlay').classList.add('hidden');
+  $('treinar-summary').classList.add('hidden');
+  $('view-treinar').classList.add('hidden');
+  $('view-aluno').classList.remove('hidden');
+  atualizarBotaoRetomarTreino();
 }
 
 $('btn-aluno-treinar').onclick = iniciarTreinar;
+$('btn-aluno-retomar').onclick = retomarTreinoInterrompido;
+$('btn-treinar-registrar-serie').onclick = registrarSerieAtual;
+$('btn-treinar-desfazer-serie').onclick = desfazerUltimaSerie;
+['treinar-input-carga','treinar-input-reps','treinar-input-rir','treinar-input-obs','treinar-input-data'].forEach(id => {
+  const el = $(id);
+  if (!el) return;
+  el.addEventListener('input', salvarRascunhoTreino);
+  el.addEventListener('change', salvarRascunhoTreino);
+});
 // v26.1: FECHEI por PRESSAO — segurar ~0,5s (nao mais clique simples).
 (function ligarFecheiHold() {
   const b = $('btn-treinar-fechei');

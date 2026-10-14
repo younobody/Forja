@@ -148,7 +148,7 @@
  * invalidar o cache antigo do shell.
  */
 
-const CACHE_VERSION = 'forja-v30.12.1';
+const CACHE_VERSION = 'forja-v30.14.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).
