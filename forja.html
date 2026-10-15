@@ -10327,7 +10327,17 @@ function trocarExercicioIdx(i) {
   if (nome == null) return;
   const idx = TREINAR.idx;
   const original = (TREINAR.plano[idx] || {}).exercicio || '';
-  TREINAR.substituto[idx] = (slugify(nome) === slugify(original)) ? null : nome;
+  // Trocar para um exercicio que ja esta PENDENTE mais adiante no mesmo dia
+  // gera o mesmo nome duas vezes na LISTA DO DIA (caso real: Remada baixa V
+  // trocada no item 05 com o item 06 do plano ainda a fazer). Avisa antes.
+  const sNovo = slugify(nome);
+  if (sNovo !== slugify(original)) {
+    const outro = TREINAR.plano.findIndex((_, j) => j !== idx && !TREINAR.salvos[j] &&
+                                                  slugify(nomeEfetivo(j)) === sNovo);
+    if (outro >= 0 && !confirm(nome + ' ja esta pendente no item ' + (outro + 1) +
+                               ' do treino de hoje.\n\nOK = trocar assim mesmo. Cancelar = manter o exercicio do plano.')) return;
+  }
+  TREINAR.substituto[idx] = (sNovo === slugify(original)) ? null : nome;
   $('modal-trocar').classList.add('hidden');
   mostrarExercicioAtual();
   if (TREINAR.substituto[idx]) toast('⇄ Trocado para ' + nome + ' (so nesta sessao)', 'success');
@@ -10643,12 +10653,22 @@ function mostrarExercicioAtual() {
 // plano que NAO batem com nenhum existente continuam 'pending' normalmente -
 // e assim que o "+ EXERCICIO EXTRA" novo entra sem barreira.
 function marcarExistentesComoSalvos(existentes) {
+  // Um registro do servidor casa com NO MAXIMO um item do plano. Antes, dois
+  // itens com o mesmo nome (ex.: troca + item original) eram ambos marcados
+  // como FEITO com o mesmo registro.
   const porSlug = new Map();
-  existentes.forEach(r => { porSlug.set(slugify(r.exercicio), r); });
+  existentes.forEach(r => {
+    const k = slugify(r.exercicio);
+    if (!porSlug.has(k)) porSlug.set(k, []);
+    porSlug.get(k).push(r);
+  });
+  const usados = new Set();
+  const achar = (nome) => (porSlug.get(slugify(nome)) || []).find(r => !usados.has(r));
   TREINAR.plano.forEach((p, idx) => {
     if (TREINAR.salvos[idx]) return; // ja registrado nesta propria sessao
-    const r = porSlug.get(slugify(nomeEfetivo(idx))) || porSlug.get(slugify(p.exercicio));
+    const r = achar(nomeEfetivo(idx)) || achar(p.exercicio);
     if (!r) return;
+    usados.add(r);
     TREINAR.salvos[idx] = { carga: r.carga || '', reps: r.reps || '', rir: r.rir != null ? r.rir : '', obs: r.obs || '', completou: !!r.completou };
     TREINAR.statuses[idx] = 'saved';
     const detalhadas = seriesDetalhadasDoRegistro(r.obs);
