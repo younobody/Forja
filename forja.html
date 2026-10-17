@@ -2483,16 +2483,30 @@
     padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
   }
 
-  /* --- 3. NOME DO EXERCICIO ESPREMIDO CONTRA OS BOTOES ---
-     O nome e .display .text-4xl (36px) e divide a linha com TROCAR e, desde a
-     v30.2.0, tambem com REMOVER. Em 360px sobra pouco pro nome: "Elevacao
-     lateral maquina ou cross" virava uma coluna de silabas. Abaixo de 430px o
-     nome ocupa a linha inteira e os botoes descem pra linha de baixo. */
+  /* v30.15.0: TREINAR por ID para que o markup da linha do nome possa evoluir sem quebrar CSS. */
   @media (max-width: 429px) {
     #treinar-exercicio-nome { font-size: 1.875rem; line-height: 1.1; }
-    #view-treinar .flex.items-start.justify-between.gap-3.mb-2 { flex-wrap: wrap; }
-    #view-treinar .flex.items-start.justify-between.gap-3.mb-2 > div:first-child { flex: 1 1 100%; }
+    #treinar-linha-nome { flex-wrap: wrap; }
+    #treinar-linha-nome > div:first-child { flex: 1 1 100%; }
   }
+  .tr-ficha { border-color: rgba(232,86,22,.42); border-radius: 12px; }
+  .tr-ficha__top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .tr-ficha__top .img-ficha { width: 76px; flex: 0 0 76px; }
+  .tr-ficha__top .img-ficha.hidden { display: none; }
+  .tr-ficha__top .img-palco { border-radius: 8px; }
+  .tr-ficha__toggle { flex: 1 1 180px; min-height: 48px; text-align: left; color: #FF7645; }
+  .tr-ficha--open .tr-ficha__top .img-ficha { width: 100%; flex-basis: 100%; }
+  .tr-ficha--open .tr-ficha__toggle { flex-basis: 100%; }
+  .tr-ficha__detalhes { padding-top: 4px; }
+  .tr-fields { margin: .75rem 0; }
+
+  /* v30.15.0: observacao do plano em previa de 4 linhas (ver patch25). A regra [hidden] do preflight vem
+     ANTES deste bloco e display:-webkit-box venceria: por isso o [hidden] explicito. */
+  .tr-obs--curta {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4;
+    overflow: hidden;
+  }
+  .tr-obs--curta[hidden] { display: none; }
 
   /* --- 4. MODAL SUMINDO ATRAS DO TECLADO ---
      Os modais centralizam com flex align-items:center dentro de inset:0. Com o
@@ -4886,7 +4900,7 @@
             onclick="abrirListaDia()" aria-expanded="false"
             aria-controls="treinar-lista" title="Ver todos os exercicios do dia"></button>
 
-    <div class="flex items-start justify-between gap-3 mb-2">
+    <div id="treinar-linha-nome" class="flex items-start justify-between gap-3 mb-2">
       <div id="treinar-exercicio-nome" class="display text-4xl text-zinc-100 leading-tight">—</div>
       <!-- v30.2.0: TROCAR e REMOVER dividem a coluna da direita. O wrapper
            existe porque o pai e justify-between: com 3 filhos diretos o nome
@@ -4906,48 +4920,15 @@
     </div>
     <div id="treinar-substituido" class="hidden mono text-[10px] text-cyan-400 tracking-widest mb-2"></div>
     <div id="treinar-ja-salvo" class="hidden mono text-[10px] text-emerald-400 tracking-widest mb-2">✓ JÁ REGISTRADO NESTA SESSÃO — mostrando o que você salvou</div>
-    <!-- v29.8.1: FICHA embutida (COMO FAZER) — sempre visivel quando o exercicio
-         tem cadastro na tabela exercicios; some quando nao tem. -->
-    <div id="treinar-ficha" class="hidden mb-4 mt-2 p-3 border" style="border-color:rgba(232,86,22,.5);border-radius:12px;">
-      <div class="mono text-[10px] tracking-widest mb-2" style="color:#FF7645;">COMO FAZER</div>
-      <!-- SEM loading="lazy": dentro de container position:fixed o Chrome pode
-           nunca disparar o load lazy (calcula proximidade pelo scroller raiz)
-           — a imagem ficava pendente pra sempre. O src so e setado quando o
-           bloco aparece, entao eager aqui nao custa nada. -->
-      <figure id="treinar-ficha-fig" class="img-ficha hidden">
-        <div class="img-palco">
-          <div class="img-placa"><img id="treinar-ficha-img" class="img-arte" decoding="async" alt="ilustracao do exercicio"></div>
-          <div class="img-carga" aria-hidden="true"><svg class="img-glifo" viewBox="0 0 64 32"><use href="#img-glifo-halter"></use></svg><span class="img-faisca"></span></div>
-          <button class="img-falha" type="button" data-img-tentar><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#img-glifo-falha"></use></svg>Sem imagem<b>tocar pra tentar</b></button>
-        </div>
-      </figure>
-      <div id="treinar-ficha-chips" class="flex flex-wrap gap-2 mt-2"></div>
-      <div id="treinar-ficha-instrucoes" class="text-sm text-zinc-300 leading-relaxed mt-2"></div>
-      <div id="treinar-ficha-fonte" class="hidden mono text-[9px] text-zinc-600 tracking-widest mt-2">DADOS/IMAGEM: WGER.DE (CC-BY-SA)</div>
-    </div>
+    <!-- D: regras permanecem abertas e o aviso de conflito fica junto da carga. -->
     <div id="treinar-alvo" class="mono text-xs text-zinc-500 mb-1 tracking-widest">—</div>
-    <!-- v30.8.0: aqui a obs continua ABERTA por padrao, ao contrario da home.
-         Esta e a tela onde a decisao acontece, e a regra ("TETO DE CARGA em
-         30kg", "NAO subir carga enquanto ombro > 0") nao pode depender de ele
-         lembrar de abrir. O botao existe pra FECHAR depois de ler — com a obs
-         fechada os campos e o FECHEI sobem ~330px.
-         Markup estatico + $(id).onclick no parse: #treinar-obs so recebe
-         textContent, entao nao existe caminho de innerHTML nesta regiao. -->
     <div id="treinar-obs" class="mono text-[11px] text-amber-500/90 mt-3 leading-relaxed"></div>
     <button id="treinar-obs-btn" type="button" class="obs-fold-btn mb-2" hidden
             aria-expanded="true" aria-controls="treinar-obs">▾ FECHAR OBSERVAÇÕES</button>
 
-    <!-- v27: lembrete do ULTIMO TREINO deste exercicio (data + carga/reps/rir + a
-         obs que voce anotou da ultima vez). Toque no card copia os valores pros campos. -->
-    <div id="treinar-ultimo" class="hidden glass mono text-[11px] p-3 mb-4" onclick="copiarUltimoTreino()" style="cursor:pointer;">
-      <div class="text-[9px] text-zinc-500 tracking-widest mb-1"><span id="treinar-ultimo-head">ÚLTIMO TREINO</span> <span class="text-zinc-600">· toque pra copiar</span></div>
-      <div id="treinar-ultimo-nums" class="text-zinc-200"></div>
-      <div id="treinar-ultimo-obs" class="hidden text-amber-400/90 mt-1 leading-relaxed"></div>
-    </div>
-    <!-- v29.6.0: sugestao de progressao (toque aplica a carga sugerida) -->
-    <div id="treinar-sugestao" class="hidden mono text-[11px] p-3 mb-4 border tracking-wider" style="cursor:pointer;" onclick="aplicarSugestaoTreinar()"></div>
-
-    <div class="grid grid-cols-3 gap-3 my-6">
+    <!-- Sugestão e conflito ficam imediatamente antes dos campos de carga. -->
+    <div id="treinar-sugestao" class="hidden mono text-[11px] p-3 mb-3 border tracking-wider" style="cursor:pointer;" onclick="aplicarSugestaoTreinar()"></div>
+    <div class="grid grid-cols-3 gap-3 tr-fields">
       <div>
         <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">CARGA</label>
         <input id="treinar-input-carga" type="text" inputmode="decimal" autocomplete="off" class="w-full text-2xl py-3 text-center" />
@@ -4974,38 +4955,52 @@
       <button id="btn-treinar-registrar-serie" type="button" class="btn btn-success w-full py-2">✓ REGISTRAR SÉRIE</button>
       <div id="treinar-series-status" class="mono text-[10px] text-zinc-500 mt-1" aria-live="polite">A série fica salva neste aparelho até você fechar o exercício.</div>
     </section>
-    <div class="mb-3">
-      <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">OBS</label>
-      <input id="treinar-input-obs" type="text" placeholder="opcional" class="w-full" />
-    </div>
-
-    <!-- Data do treino: pre-preenchida com hoje. Sobrepoe o timestamp do servidor
-         pra fins de agrupamento na Evolucao. Util pra corrigir manualmente o dia. -->
-    <div class="mb-6">
-      <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DATA DO TREINO (opcional, padrao hoje)</label>
-      <input id="treinar-input-data" type="date" class="w-full text-sm" />
-    </div>
-
-    <!-- v20: descanso ENTRE SERIES — toca DESCANSAR entre uma serie e outra. -/+ ajustam o padrao. -->
-    <div class="flex items-center justify-center gap-2 mb-3">
-      <button type="button" onclick="ajustarPadraoDescanso(-15)" class="btn px-4 py-3 text-lg">−</button>
-      <!-- v30: o ⏱ vira icone. Este botao NAO leva .btn-ico de proposito: ele
-           tem um <span> filho (o contador) e virar flex meteria o gap entre o
-           rotulo e o contador. Icone inline + espaco preserva o layout exato. -->
+    <div class="flex items-center justify-center gap-2 mt-3 mb-3">
+      <button type="button" onclick="ajustarPadraoDescanso(-15)" class="btn px-4 py-3 text-lg" aria-label="Diminuir descanso em 15 segundos">−</button>
       <button id="btn-treinar-descansar" type="button" onclick="iniciarRest(restSecAtual())" class="btn flex-1 py-3 text-cyan-300 border-cyan-700/50"><svg class="icn icn--16 icn--mid" aria-hidden="true" focusable="false"><use href="#icn-cronometro"></use></svg> DESCANSAR <span id="treinar-rest-label">120s</span></button>
-      <button type="button" onclick="ajustarPadraoDescanso(15)" class="btn px-4 py-3 text-lg">+</button>
+      <button type="button" onclick="ajustarPadraoDescanso(15)" class="btn px-4 py-3 text-lg" aria-label="Aumentar descanso em 15 segundos">+</button>
     </div>
     <div class="grid grid-cols-2 gap-3">
       <button id="btn-treinar-faltei" class="btn btn-danger py-6 text-lg">✗ FALTEI</button>
-      <!-- v26.1: FECHEI por PRESSAO — segure ~0,5s pra confirmar. A barra enche
-           enquanto segura; soltar antes cancela. Toque solto (bolso/desbloqueio)
-           nao completa, entao nao salva. -->
       <button id="btn-treinar-fechei" class="btn btn-success py-6 text-lg relative overflow-hidden" style="touch-action:manipulation;user-select:none;-webkit-user-select:none;">
         <span id="fechei-fill" class="absolute inset-y-0 left-0" style="width:0;background:rgba(255,255,255,.28);pointer-events:none;"></span>
         <span class="relative leading-tight" style="pointer-events:none;">✓ FECHEI<span class="block mono text-[9px] font-normal mt-0.5" style="opacity:.85;">segure pra fechar</span></span>
       </button>
     </div>
 
+    <!-- Ficha reduzida: toque em COMO FAZER para ampliar a imagem e ler os detalhes. -->
+    <div id="treinar-ficha" class="hidden tr-ficha mt-4 p-3 border">
+      <div class="tr-ficha__top">
+        <figure id="treinar-ficha-fig" class="img-ficha hidden">
+          <div class="img-palco">
+            <div class="img-placa"><img id="treinar-ficha-img" class="img-arte" decoding="async" alt="ilustração do exercício"></div>
+            <div class="img-carga" aria-hidden="true"><svg class="img-glifo" viewBox="0 0 64 32"><use href="#img-glifo-halter"></use></svg><span class="img-faisca"></span></div>
+            <button class="img-falha" type="button" data-img-tentar><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#img-glifo-falha"></use></svg>Sem imagem<b>toque para tentar</b></button>
+          </div>
+        </figure>
+        <button id="treinar-ficha-toggle" type="button" class="btn tr-ficha__toggle" aria-expanded="false" aria-controls="treinar-ficha-detalhes">COMO FAZER · toque para ampliar</button>
+      </div>
+      <div id="treinar-ficha-detalhes" class="hidden tr-ficha__detalhes">
+        <div id="treinar-ficha-chips" class="flex flex-wrap gap-2 mt-2"></div>
+        <div id="treinar-ficha-instrucoes" class="text-sm text-zinc-300 leading-relaxed mt-2"></div>
+        <div id="treinar-ficha-fonte" class="hidden mono text-[9px] text-zinc-600 tracking-widest mt-2">DADOS/IMAGEM: WGER.DE (CC-BY-SA)</div>
+      </div>
+    </div>
+
+    <!-- Apoio e campos auxiliares continuam completos, depois da ação principal. -->
+    <div id="treinar-ultimo" class="hidden glass mono text-[11px] p-3 mt-4 mb-4" onclick="copiarUltimoTreino()" style="cursor:pointer;">
+      <div class="text-[9px] text-zinc-500 tracking-widest mb-1"><span id="treinar-ultimo-head">ÚLTIMO TREINO</span> <span class="text-zinc-600">· toque pra copiar</span></div>
+      <div id="treinar-ultimo-nums" class="text-zinc-200"></div>
+      <div id="treinar-ultimo-obs" class="hidden text-amber-400/90 mt-1 leading-relaxed"></div>
+    </div>
+    <div class="mb-3">
+      <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">OBS</label>
+      <input id="treinar-input-obs" type="text" placeholder="opcional" class="w-full" />
+    </div>
+    <div class="mb-6">
+      <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DATA DO TREINO (opcional, padrão hoje)</label>
+      <input id="treinar-input-data" type="date" class="w-full text-sm" />
+    </div>
     <!-- Navegacao livre: pula pro proximo/anterior SEM registrar. Util quando
          o equipamento esta ocupado e voce quer trocar a ordem. -->
     <div class="grid grid-cols-2 gap-3 mt-3">
@@ -5550,7 +5545,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.14.0';
+const FORJA_VERSION = 'v30.15.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -10466,9 +10461,15 @@ function mostrarExercicioAtual() {
   nomeElTr.textContent = nomeTr;
   nomeElTr.style.cursor = '';
   nomeElTr.onclick = null;
-  // v29.8.1: bloco COMO FAZER — ilustracao + chips + instrucoes sempre na tela.
-  // Some quando o exercicio nao tem cadastro na tabela exercicios.
+  // v30.15.0: recolhe apenas a ficha explicativa ao trocar de exercicio.
+  // Regras do plano ficam abertas; o botao de COMO FAZER controla os detalhes.
   const elFicha = $('treinar-ficha');
+  const fichaDetalhes = $('treinar-ficha-detalhes');
+  const fichaToggle = $('treinar-ficha-toggle');
+  elFicha.classList.remove('tr-ficha--open');
+  fichaDetalhes.classList.add('hidden');
+  fichaToggle.setAttribute('aria-expanded', 'false');
+  fichaToggle.textContent = 'COMO FAZER · toque para ampliar';
   if (infoTr) {
     $('treinar-ficha-chips').innerHTML = fichaChipsHtml(infoTr);
     const instrEl = $('treinar-ficha-instrucoes');
@@ -10488,16 +10489,19 @@ function mostrarExercicioAtual() {
     (tiEx ? ` · ${tiEx.label} (${tiEx.desc})` : '');
   // v15: timer removido — tira "Descanso: Xs" do obs, mantem o resto (ex: MONITORAR)
   const obsLimpa = String(p.obs || '').replace(/descanso\s*:?\s*\d+(?:\s*-\s*\d+)?\s*s\s*\|?\s*/ig, '').replace(/^\s*\|\s*/, '').trim();
-  // v30.8.0: aberta por padrao a cada exercicio (a regra tem que chegar nos
-  // olhos sem ele pedir); o botao so aparece quando ha o que fechar.
+  // v30.8.0: a regra tem que chegar nos olhos sem ele pedir. v30.15.0: observacao LONGA abre em
+  // PREVIA de 4 linhas (o inicio, com o alerta e a regra principal) + "LER TUDO"; a curta aparece
+  // inteira e sem botao. Nunca some: o texto completo esta a um toque.
   const elObsTr = $('treinar-obs');
   const btnObsTr = $('treinar-obs-btn');
+  const obsLonga = obsLimpa.length > OBS_PREVIA_MIN;
   elObsTr.textContent = obsLimpa ? '⚠ ' + obsLimpa : '';
   elObsTr.hidden = !obsLimpa;
+  elObsTr.classList.toggle('tr-obs--curta', obsLonga);
   if (btnObsTr) {
-    btnObsTr.hidden = !obsLimpa;
-    btnObsTr.setAttribute('aria-expanded', 'true');
-    btnObsTr.textContent = '\u25be FECHAR OBSERVA\u00c7\u00d5ES';
+    btnObsTr.hidden = !obsLonga;
+    btnObsTr.setAttribute('aria-expanded', 'false');
+    btnObsTr.textContent = OBS_ROTULO_LER;
   }
   // v27: card "ULTIMO TREINO" — carga/reps/rir + a obs da ultima vez neste
   // exercicio (respeita substituicao via nomeEfetivo). Some se nao ha historico.
@@ -12325,12 +12329,23 @@ $('btn-aluno-console').onclick = () => navigateTo('#console');
 
 // v30.8.0: fechar/abrir a obs do exercicio no TREINAR AGORA. Bind por id no
 // parse (o markup e estatico), sem delegacao e sem innerHTML.
+// v30.15.0: o botao alterna PREVIA <-> texto completo (nao esconde mais a obs inteira).
+const OBS_PREVIA_MIN = 240;
+const OBS_ROTULO_LER = '\u25be LER TUDO \u00b7 REGRA E OBSERVA\u00c7\u00d5ES';
 $('treinar-obs-btn').onclick = function () {
   const box = $('treinar-obs');
-  const abrir = box.hidden;
-  box.hidden = !abrir;
+  const expandir = box.classList.contains('tr-obs--curta');
+  box.classList.toggle('tr-obs--curta', !expandir);
+  this.setAttribute('aria-expanded', expandir ? 'true' : 'false');
+  this.textContent = expandir ? '\u25b4 RECOLHER OBSERVA\u00c7\u00d5ES' : OBS_ROTULO_LER;
+};
+$('treinar-ficha-toggle').onclick = function () {
+  const abrir = this.getAttribute('aria-expanded') !== 'true';
+  const detalhes = $('treinar-ficha-detalhes');
+  detalhes.classList.toggle('hidden', !abrir);
+  $('treinar-ficha').classList.toggle('tr-ficha--open', abrir);
   this.setAttribute('aria-expanded', abrir ? 'true' : 'false');
-  this.textContent = obsFoldRotulo(box.textContent, abrir);
+  this.textContent = abrir ? 'FECHAR DETALHES DO EXERCÍCIO' : 'COMO FAZER · toque para ampliar';
 };
 
 (function init() {

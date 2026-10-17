@@ -146,9 +146,10 @@
  * v30.12.1: ACABAMENTO no HTML (CSS: nome do aluno em 18px abaixo de 380px, toast com base opaca e
  * largura maxima, breakpoints fracionarios; aria-live no toast). Frontend-only; bump aqui so pra
  * invalidar o cache antigo do shell.
+ * v30.15.0: TREINAR com acoes junto aos campos, ficha ampliavel e botoes acessiveis.
  */
 
-const CACHE_VERSION = 'forja-v30.14.0';
+const CACHE_VERSION = 'forja-v30.15.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).
