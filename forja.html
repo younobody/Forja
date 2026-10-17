@@ -693,6 +693,36 @@
     --ok: #09A66B; --cardio: #0598CE; --falta: #EB4D45; --vazio: #2A3340;
     --cat-1: #E85616; --cat-2: #0598CE; --cat-3: #09A66B;
     --cat-4: #BE7C05; --cat-5: #9276E2; --cat-6: #EB4D45;
+
+    /* ===== v30.13 · ESCALAS DA CAMADA BASE =====
+       So .btn / .glass / input / .chip / .tab-btn leem isto. As pecas (map- chr- frq- fg- img- tl- fc-)
+       NAO migram sem prova de 0 px de diferenca.
+       Tipografia (rem acompanha a fonte do sistema; piso de conteudo = 11px):
+         ate 11,99px -> micro | 12-12,5 -> label | 13,5-15,2 -> body | 16-16,8 -> lead | 18-21 -> h3 | 23-28 -> h2 | 30-32 -> h1 | 40+ -> hero */
+    --fs-micro: 0.6875rem; --fs-label: 0.75rem; --fs-body: 0.875rem; --fs-lead: 1rem;
+    --fs-h3: 1.25rem; --fs-h2: 1.5rem; --fs-h1: 2rem; --fs-hero: 2.75rem;
+    /* Raios: controle = md (11px, o que .btn/input ja tinham), cartao = lg, chip = pill */
+    --r-xs: 4px; --r-sm: 8px; --r-md: 11px; --r-lg: 16px; --r-pill: 999px;
+    /* Sombras: poco, 3 niveis, pressionado, 2 brilhos de CTA. --sh-inset/--sh-1/--sh-glow-* = valores que ja existiam;
+       --sh-2/--sh-3 trocam o blur de 40/48px por 26/34px (mais barato no Android de entrada) e ganham sombra de contato. */
+    --sh-inset: 0 2px 6px rgba(0,0,0,0.35) inset;
+    --sh-1: 0 1px 0 rgba(255,255,255,0.07) inset, 0 6px 14px -8px #000;
+    --sh-2: 0 1px 0 rgba(255,255,255,0.06) inset, 0 1px 2px rgba(0,0,0,0.45), 0 14px 26px -18px #000;
+    --sh-3: 0 1px 0 rgba(255,255,255,0.09) inset, 0 2px 4px rgba(0,0,0,0.5), 0 20px 34px -20px #000;
+    --sh-press: 0 1px 0 rgba(255,255,255,0.04) inset, 0 2px 6px -4px #000;
+    --sh-glow-brasa: 0 14px 30px -12px rgba(255,107,51,0.75);
+    --sh-glow-ok: 0 14px 30px -14px rgba(9,166,107,0.8);
+    /* CTA com rotulo BRANCO: todo stop passa 4.5:1 (razao calculada).
+       antes: laranja #FF7645 2.65 / #E85616 3.64 / #C54302 5.03 ; verde #2FD79A 1.86 / #09A66B 3.14 / #067A4E 5.38 */
+    --on-cta: #FFFFFF;
+    --cta-1: #CC4806; --cta-2: #C24100; --cta-3: #A33400;   /* 4.67 / 5.19 / 6.89 */
+    --ok-1: #08825A;  --ok-2: #067A4E;  --ok-3: #05603F;    /* 4.83 / 5.38 / 7.63 */
+    /* texto vermelho sobre fundo escuro: 5.66 em surface-3 (o #EB4D45 dava 4.17) */
+    --falta-ink: #F27872; --falta-soft: #F5938D;
+    --line-strong: #46536A;
+    /* campo: borda #66718A = 3.43 em surface-2, 3.68 em surface-1, 3.81 no poco (era 1.50, WCAG 1.4.11 pede 3) */
+    --field-bg: #0E131A; --field-line: #66718A;
+    --focus: #FF7645;       /* anel de foco: 5.83 em surface-3 */
   }
   * { box-sizing: border-box; }
   html, body {
@@ -748,32 +778,70 @@
   input[type="number"] { -moz-appearance: textfield; }
   input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-  /* BOTOES v30: placa de metal com fio de luz; CTA em brasa incandescente */
+  /* BOTOES v30.13: 4 papeis. primario = brasa (.btn-primary) · ok = verde (.btn-success) ·
+     secundario = metal (.btn sozinho) · perigo = vermelho SO para apagar/faltar (.btn-danger).
+     Rotulo branco 12px/600: TODOS os stops passam 4.5:1 (tokens --cta-* e --ok-*).
+     Ordem de proposito: base -> hover (so ponteiro) -> :active -> :disabled; mesma especificidade,
+     o ultimo vence: o toque pressionado sempre ganha do hover. */
   .btn {
     position: relative;
     padding: 0.65rem 1.05rem;
     min-height: 44px;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
+    font-size: var(--fs-label);
+    font-weight: 600;
     letter-spacing: 0.12em;
     border: 1px solid var(--border-hot);
     background: linear-gradient(180deg, var(--surface-3), #141A23);
     color: var(--text-dim);
     cursor: pointer;
-    transition: transform 0.12s ease, border-color 0.18s, color 0.18s;
+    transition: transform 0.12s ease, border-color 0.18s, color 0.18s, box-shadow 0.18s;
     text-transform: uppercase;
-    border-radius: 11px;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.07) inset, 0 6px 14px -8px #000;
+    border-radius: var(--r-md);
+    box-shadow: var(--sh-1);
+    touch-action: manipulation;
+    -webkit-user-select: none; user-select: none;
   }
-  .btn:hover { border-color: var(--line-hot); color: var(--text); }
-  .btn:active { transform: translateY(1px); }
-  .btn-primary { background: linear-gradient(180deg,#FF7645,#E85616 48%,#C54302); color: #FFFFFF; border-color: transparent;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.35) inset, 0 0 0 1px rgba(255,107,51,0.35), 0 14px 30px -12px rgba(255,107,51,0.75); }
-  .btn-primary:hover { background: linear-gradient(180deg,#FF8A5C,#F05E1C 48%,#D24A05); color: #FFFFFF; }
-  .btn-danger:hover { border-color: var(--accent-a); color: var(--accent-a); }
-  .btn-success { background: linear-gradient(180deg,#2FD79A,#09A66B 50%,#067A4E); color: #FFFFFF; border-color: transparent;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.30) inset, 0 14px 30px -14px rgba(9,166,107,0.8); }
-  .btn-success:hover { background: linear-gradient(180deg,#45E3AB,#0BBA79 50%,#078A58); color: #FFFFFF; }
+  .btn--lg { min-height: 56px; padding: 1rem 1.25rem; font-size: var(--fs-body); }   /* CTA da home: .py-4/.text-base perdiam pro .btn */
+  .btn--xl { min-height: 64px; padding: 1rem 1.25rem; font-size: var(--fs-h3); letter-spacing: 0.1em; }   /* reservado: a TREINAR usa em FECHEI/FALTEI se a spec dela pedir (py-6/text-lg nao valem) */
+
+  .btn-primary { background: linear-gradient(180deg, var(--cta-1), var(--cta-2) 52%, var(--cta-3)); color: var(--on-cta); border-color: transparent;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.35) inset, 0 0 0 1px rgba(255,107,51,0.35), var(--sh-glow-brasa); }
+  .btn-success { background: linear-gradient(180deg, var(--ok-1), var(--ok-2) 50%, var(--ok-3)); color: var(--on-cta); border-color: transparent;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.30) inset, var(--sh-glow-ok); }
+  .btn-danger { color: var(--falta-ink); border-color: rgba(235,77,69,0.55);
+    background: linear-gradient(180deg, rgba(235,77,69,0.16), rgba(235,77,69,0.07)), #141A23; }   /* texto 5.7:1 sobre o topo */
+
+  /* hover so onde existe ponteiro (no celular o :hover gruda depois do toque). Os fundos dos CTAs NAO
+     clareiam no hover (derrubaria o branco abaixo de 4.5): o realce vem do anel e do brilho. */
+  @media (hover: hover) {
+    .btn:hover { border-color: var(--line-strong); color: var(--text); }
+    .btn-primary:hover { color: var(--on-cta); border-color: transparent;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.35) inset, 0 0 0 1px rgba(255,138,76,0.7), 0 16px 34px -12px rgba(255,107,51,0.95); }
+    .btn-success:hover { color: var(--on-cta); border-color: transparent;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.30) inset, 0 0 0 1px rgba(63,217,160,0.55), 0 16px 34px -14px rgba(9,166,107,0.95); }
+    .btn-danger:hover { color: var(--falta-soft); border-color: var(--falta);
+      background: linear-gradient(180deg, rgba(235,77,69,0.24), rgba(235,77,69,0.11)), #141A23; }
+  }
+
+  /* pressionado: o -webkit-tap-highlight esta zerado no preflight, entao este :active E o unico retorno do toque */
+  .btn:active { transform: translateY(1px); box-shadow: var(--sh-press); }
+  .btn-primary:active { background: linear-gradient(180deg, var(--cta-2), var(--cta-3));
+    box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 0 0 1px rgba(255,107,51,0.35), 0 6px 14px -10px rgba(255,107,51,0.7); }
+  .btn-success:active { background: linear-gradient(180deg, var(--ok-2), var(--ok-3));
+    box-shadow: 0 1px 0 rgba(255,255,255,0.16) inset, 0 6px 14px -10px rgba(9,166,107,0.7); }
+  .btn-danger:active { background: linear-gradient(180deg, rgba(235,77,69,0.26), rgba(235,77,69,0.12)), #141A23; }
+  /* FECHEI e por pressao longa (pointerleave cancela): a caixa nao anda sob o dedo (id 1,1,0 vence .btn:active) */
+  #btn-treinar-fechei:active { transform: none; }
+
+  /* desabilitado: antes NAO tinha estilo (SALVAR durante o envio ficava igual ao normal) */
+  .btn:disabled, .btn:disabled:hover { opacity: 0.55; cursor: default; box-shadow: none; filter: saturate(0.6); }
+  .btn:disabled:active { transform: none; }
+
+  /* foco de teclado/leitor (so campos tinham). Especificidade 0,1,1: pecas com :focus-visible proprio (0,2,0) seguem ganhando */
+  a:focus-visible, button:focus-visible, summary:focus-visible, [role='button']:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
   .chip { padding: 0.14rem 0.55rem; font-size: 0.625rem; letter-spacing: 0.1em; border: 1px solid var(--border-hot); border-radius: 999px; background: rgba(255,255,255,0.04); color: var(--text-dim); }
 
@@ -825,10 +893,14 @@
   /* avatars */
   .avatar { width: 2.5rem; height: 2.5rem; flex: none; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 1.125rem; border-radius: 10px; box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 18px -10px rgba(255,107,51,0.8); }
 
-  /* tabs (v29: ativa = pill escura solida, sem glow por dia) */
-  .tab-btn { padding: 0.5rem 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; letter-spacing: 0.1em; border-bottom: 2px solid transparent; color: var(--text-faint); cursor: pointer; text-transform: uppercase; transition: color 0.15s, background 0.15s; border-radius: 9px 9px 0 0; }
-  .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
-  .tab-btn.active { color: #FFFFFF; background: linear-gradient(180deg,#FF7645,#C54302); border-bottom-color: transparent; border-radius: 9px; box-shadow: 0 8px 18px -10px rgba(255,107,51,0.7); }
+  /* tabs v30.13: alvo 44x44 (era 40x36); ativa = placa de brasa com rotulo branco >= 4.67:1 (o topo antigo dava 2.65);
+     inativa em --text-dim (7.49:1 no fundo; --text-faint dava 5.31). Ordem: base -> hover -> ativa -> :active (nao reordenar) */
+  .tab-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0 1rem; font-family: 'JetBrains Mono', monospace; font-size: var(--fs-body); font-weight: 600; letter-spacing: 0.1em; border-bottom: 2px solid transparent; color: var(--text-dim); cursor: pointer; text-transform: uppercase; transition: color 0.15s, background 0.15s, transform 0.12s; border-radius: var(--r-md); touch-action: manipulation; }
+  .tab-btn + .tab-btn { margin-left: 4px; }
+  @media (hover: hover) { .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); } }
+  .tab-btn.active { color: var(--on-cta); background: linear-gradient(180deg, var(--cta-1), var(--cta-3)); border-bottom-color: transparent; border-radius: var(--r-md); box-shadow: 0 8px 18px -10px rgba(255,107,51,0.7); }
+  .tab-btn:active { transform: translateY(1px); color: var(--text); background: rgba(255,255,255,0.08); }
+  .tab-btn.active:active { color: var(--on-cta); background: linear-gradient(180deg, var(--cta-2), var(--cta-3)); }
   .series-log-panel { margin-bottom: 0.5rem; padding: 0.5rem; border-radius: 0.5rem; }
 
   /* sombras */
@@ -5546,7 +5618,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.16.0';
+const FORJA_VERSION = 'v30.17.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
