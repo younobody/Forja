@@ -756,24 +756,36 @@
   .toast { animation: slideIn 0.2s ease-out; }
   @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
 
-  /* inputs v30: poco escuro com sombra interna */
+  /* inputs v30.18: poco escuro com sombra interna; borda de dado a 3.43:1 (era 1.50:1); alvo >= 44px
+     (menos tabela densa do editor de plano e checkbox/radio/file/hidden/range/color) */
   input, textarea, select {
-    background: #0E131A;
-    border: 1.5px solid var(--border-hot);
+    background: var(--field-bg);
+    border: 1.5px solid var(--field-line);
     color: var(--text);
     padding: 0.55rem 0.8rem;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.875rem;
+    font-size: var(--fs-body);
     outline: none;
     transition: border-color 0.15s, box-shadow 0.2s, background 0.2s;
-    border-radius: 11px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.35) inset;
+    border-radius: var(--r-md);
+    box-shadow: var(--sh-inset);
+    caret-color: var(--acc-ink);
   }
+  /* :where zera a especificidade (0,0,1): utilitarias e table.editable (0,1,2) sempre ganham */
+  input:where(:not([type='checkbox'], [type='radio'], [type='file'], [type='hidden'], [type='range'], [type='color'])), select { min-height: 44px; }
+  table.editable input, table.editable select { min-height: 0; }
   input::placeholder, textarea::placeholder { color: var(--text-faint); }
   input:focus, textarea:focus, select:focus {
     border-color: var(--acc);
-    box-shadow: 0 0 0 3px var(--acc-soft), 0 2px 6px rgba(0,0,0,0.35) inset;
-    background: #0E131A;
+    box-shadow: 0 0 0 3px var(--acc-soft), var(--sh-inset);
+    background: var(--field-bg);
+  }
+  /* autofill do Chrome (ID/PIN) pintava o campo de claro */
+  input:-webkit-autofill, input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--text);
+    caret-color: var(--text);
+    box-shadow: 0 0 0 1000px var(--field-bg) inset;
+    transition: background-color 9999s ease-out;
   }
   input[type="number"] { -moz-appearance: textfield; }
   input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -845,15 +857,14 @@
 
   .chip { padding: 0.14rem 0.55rem; font-size: 0.625rem; letter-spacing: 0.1em; border: 1px solid var(--border-hot); border-radius: 999px; background: rgba(255,255,255,0.04); color: var(--text-dim); }
 
-  /* CARDS v30: placa de metal — fio de luz no topo, sombra funda embaixo */
+  /* CARDS v30.18: placa de metal em 2 niveis de profundidade. Nivel 1 = --sh-2 (contato + sombra ampla, blur 26px em vez de 40px).
+     Cartao DENTRO de cartao fica chapado (superficie mais funda, sem sombra projetada). Hover so com ponteiro. */
   .glass {
     position: relative;
     background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
     border: 1px solid var(--border);
-    border-radius: 16px;
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.05) inset,
-      0 18px 40px -24px #000;
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-2);
     transition: box-shadow 0.25s, border-color 0.25s;
   }
   .glass::after {
@@ -861,11 +872,11 @@
     pointer-events: none;
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16) 25%, rgba(255,255,255,0.16) 75%, transparent);
   }
-  .glass:hover {
-    border-color: var(--border-hot);
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.08) inset,
-      0 22px 48px -24px #000;
+  .glass .glass { background: var(--surface-1); box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset; }
+  .glass[onclick]:active { border-color: var(--border-hot); box-shadow: var(--sh-press); transform: translateY(1px); }
+  @media (hover: hover) {
+    .glass:hover { border-color: var(--border-hot); box-shadow: var(--sh-3); }
+    .glass .glass:hover { box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset; }
   }
 
   /* v29: panel-ctx agora e um realce sutil */
@@ -888,7 +899,7 @@
   table.editable { width: 100%; border-collapse: collapse; }
   table.editable th { font-family: 'JetBrains Mono', monospace; font-size: 0.625rem; letter-spacing: 0.1em; color: var(--text-faint); text-transform: uppercase; text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--border); }
   table.editable td { padding: 0.25rem; border-bottom: 1px solid var(--border); }
-  table.editable input { width: 100%; }
+  table.editable input { width: 100%; border-color: var(--border-hot); }   /* tabela densa do trainer: borda calma */
 
   /* avatars */
   .avatar { width: 2.5rem; height: 2.5rem; flex: none; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 1.125rem; border-radius: 10px; box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 18px -10px rgba(255,107,51,0.8); }
@@ -1181,7 +1192,7 @@
 
 /* --- quadro parado: sem movimento, cena continua legivel ----------------- */
 @media (prefers-reduced-motion:reduce){
-  .hero-forge *{animation:none!important;transition:none!important}
+  .hero-forge *, .forge-wrap *{animation:none!important;transition:none!important}
   .hero-hammer{transform:rotate(14deg)}
   .hero-flash,.hero-ring,.hero-sy{opacity:0}
   .hero-breathe{opacity:.66}
@@ -3397,6 +3408,29 @@
   .toast-err { background: linear-gradient(rgba(235,77,69,.16), rgba(235,77,69,.16)), #12171F; }
   @media (min-width: 640px) { #toast-container { max-width: 560px; margin-left: auto; margin-right: auto; } }
 
+  /* ==================================================================
+     v30.18 - alvos de toque, SIM do registro, movimento reduzido
+     ================================================================== */
+
+  /* link inline (manual): alvo visivel era 13px de altura. Padding + margem negativa IGUAL ampliam a area
+     (45px) SEM mexer no fluxo do texto (alturaDoc nao muda). */
+  .foot-link { display: inline-block; padding: 16px 12px; margin: -16px -12px; }
+
+  /* botao de texto dentro de flex (SAIR do TREINAR 50x16, ALUNOS, X dos modais): caixa de 44px, a margem devolve o espaco. */
+  .tap-44 { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; margin: -10px; padding: 0 10px; }
+
+  /* SIM / FALTOU do modal de registro (gerado em JS, so tem data-f): ~36px de altura */
+  button[data-f='completou'] { min-height: 44px; border-radius: var(--r-md); }
+
+  /* movimento reduzido: a base animava .rise/.fade-in/.toast/.pulse-ctx sem checar a preferencia.
+     .rise nasce com opacity:0 e so a animacao o acende: sem ela tem que ir a 1. */
+  @media (prefers-reduced-motion: reduce) {
+    .btn, .tab-btn, .glass, input, textarea, select { transition: none; }
+    .btn:active, .tab-btn:active, .glass[onclick]:active { transform: none; }
+    .fade-in, .toast, .pulse-ctx { animation: none; }
+    .rise { animation: none; opacity: 1; }
+  }
+
 
 </style>
 
@@ -4388,7 +4422,7 @@
       </div>
     </div>
     <div class="mono text-[10px] text-zinc-600 mt-14 text-center tracking-widest">
-      <a href="./manual.html" target="_blank" rel="noopener" class="hover:text-zinc-400 transition-colors">▸ MANUAL DE USO</a>
+      <a href="./manual.html" target="_blank" rel="noopener" class="foot-link hover:text-zinc-400 transition-colors">▸ MANUAL DE USO</a>
     </div>
   </div><!-- fecha max-w-3xl -->
   </div><!-- fecha view-home -->
@@ -4428,7 +4462,7 @@
         <button id="btn-trainer-refresh" class="btn">SYNC</button>
         <button id="btn-trainer-import" class="btn">IMPORTAR JSON</button>
         <button id="btn-trainer-novo" class="btn btn-primary">+ NOVO ALUNO</button>
-        <button onclick="logout()" class="btn btn-danger">SAIR</button>
+        <button onclick="logout()" class="btn">SAIR</button>
       </div>
     </div>
   </header>
@@ -4459,7 +4493,7 @@
 <section id="view-edit-aluno" class="hidden min-h-screen pb-16">
   <header class="scanbar fx-aco-escovado fx-vidro px-6 py-4 sticky top-0 z-30" style="background:rgba(18,23,31,0.78);backdrop-filter:blur(14px) saturate(125%);border-bottom:1px solid #242C38;box-shadow:0 1px 0 rgba(255,255,255,0.06) inset, 0 6px 20px rgba(0,0,0,0.5)">
     <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
-      <button onclick="navigateTo('#trainer')" class="mono text-xs text-zinc-400 hover:text-white tracking-widest">◂ ALUNOS</button>
+      <button onclick="navigateTo('#trainer')" class="tap-44 mono text-xs text-zinc-400 hover:text-white tracking-widest">◂ ALUNOS</button>
       <div id="edit-aluno-title" class="display text-2xl"></div>
       <div class="flex gap-2">
         <button id="btn-export-aluno" class="btn">EXPORTAR</button>
@@ -4606,7 +4640,7 @@
       </div>
       <div class="flex gap-2 shrink-0">
         <button id="btn-aluno-refresh" class="btn">SYNC</button>
-        <button onclick="logout()" class="btn btn-danger">SAIR</button>
+        <button onclick="logout()" class="btn">SAIR</button>
       </div>
     </div>
   </header>
@@ -4628,7 +4662,7 @@
          divergir, e agora o botao esta ACIMA do painel. -->
     <div class="mb-6">
       <button id="btn-aluno-retomar" class="btn btn-ico py-3 text-sm w-full hidden mb-2" type="button">RETOMAR TREINO INTERROMPIDO</button>
-      <button id="btn-aluno-treinar" class="btn btn-ico btn-success py-4 text-base w-full"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-treinar"></use></svg><span id="btn-aluno-treinar-lbl">TREINAR AGORA</span></button>
+      <button id="btn-aluno-treinar" class="btn btn--lg btn-ico btn-success py-4 text-base w-full"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-treinar"></use></svg><span id="btn-aluno-treinar-lbl">TREINAR AGORA</span></button>
     </div>
     <!-- v24: Mapa Muscular (heroi do home) -->
     <!-- v30.3.0: o desenho e ESTATICO aqui (SVG de ~17 KB que nunca muda).
@@ -4927,7 +4961,7 @@
     <div class="mt-10 text-center mono text-[10px] text-zinc-700 tracking-widest">
       FORJA · <span class="forja-ver">v?</span> · backend <span class="forja-backend">?</span>
       <br class="sm:hidden" />
-      <a href="./manual.html" target="_blank" rel="noopener" class="hover:text-zinc-500 transition-colors">MANUAL DE USO</a>
+      <a href="./manual.html" target="_blank" rel="noopener" class="foot-link hover:text-zinc-500 transition-colors">MANUAL DE USO</a>
     </div>
   </main>
 </section>
@@ -4946,7 +4980,7 @@
 <section id="view-treinar" class="hidden fixed inset-0 bg-zinc-950 z-30 overflow-y-auto">
   <header class="border-b border-zinc-800 px-4 py-3 sticky top-0 bg-zinc-950 z-10">
     <div class="max-w-2xl mx-auto flex items-center justify-between gap-3">
-      <button onclick="encerrarTreinar()" class="mono text-xs text-zinc-500 hover:text-zinc-100 tracking-widest">◂ SAIR</button>
+      <button onclick="encerrarTreinar()" class="tap-44 mono text-xs text-zinc-500 hover:text-zinc-100 tracking-widest">◂ SAIR</button>
       <div class="flex items-center gap-2">
         <span id="treinar-day-badge" class="display text-3xl leading-none">A</span>
         <span class="mono text-[10px] text-zinc-500 tracking-widest">TREINANDO</span>
@@ -5036,7 +5070,7 @@
     <div class="grid grid-cols-2 gap-3">
       <button id="btn-treinar-faltei" class="btn btn-danger py-6 text-lg">✗ FALTEI</button>
       <button id="btn-treinar-fechei" class="btn btn-success py-6 text-lg relative overflow-hidden" style="touch-action:manipulation;user-select:none;-webkit-user-select:none;">
-        <span id="fechei-fill" class="absolute inset-y-0 left-0" style="width:0;background:rgba(255,255,255,.28);pointer-events:none;"></span>
+        <span id="fechei-fill" class="absolute inset-y-0 left-0" style="width:0;background:rgba(2,28,18,.45);pointer-events:none;"></span>
         <span class="relative leading-tight" style="pointer-events:none;">✓ FECHEI<span class="block mono text-[9px] font-normal mt-0.5" style="opacity:.85;">segure pra fechar</span></span>
       </button>
     </div>
@@ -5158,7 +5192,7 @@
         <div class="display text-4xl">PESO</div>
         <div class="mono text-[10px] text-zinc-500 tracking-widest">REGISTRAR PESAGEM</div>
       </div>
-      <button onclick="document.getElementById('modal-peso').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+      <button onclick="document.getElementById('modal-peso').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -5199,7 +5233,7 @@
         <div class="display text-4xl">CARDIO</div>
         <div class="mono text-[10px] text-zinc-500 tracking-widest">CONDICIONAMENTO · FORA DA FORÇA</div>
       </div>
-      <button onclick="document.getElementById('modal-cardio').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+      <button onclick="document.getElementById('modal-cardio').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -5238,7 +5272,7 @@
         <div class="display text-4xl">TROCAR</div>
         <div class="mono text-[10px] text-zinc-500 tracking-widest">SUBSTITUIR SÓ NESTA SESSÃO</div>
       </div>
-      <button onclick="document.getElementById('modal-trocar').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+      <button onclick="document.getElementById('modal-trocar').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -5270,7 +5304,7 @@
         <div class="display text-4xl">FICHA</div>
         <div id="exinfo-nome" class="mono text-[10px] text-zinc-500 tracking-widest"></div>
       </div>
-      <button onclick="document.getElementById('modal-exinfo').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+      <button onclick="document.getElementById('modal-exinfo').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -5298,7 +5332,7 @@
         <div id="li-exercicio-nome" class="display text-3xl leading-tight">—</div>
         <div class="mono text-[10px] text-zinc-500 tracking-widest">LANÇAR EXECUÇÃO INDIVIDUAL</div>
       </div>
-      <button onclick="document.getElementById('modal-lancar-individual').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+      <button onclick="document.getElementById('modal-lancar-individual').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -5345,7 +5379,7 @@
         <div id="modal-reg-day" class="display text-4xl">—</div>
         <div class="mono text-[10px] text-zinc-500 tracking-widest">REGISTRAR EXECUÇÃO</div>
       </div>
-      <button onclick="document.getElementById('modal-registrar').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+      <button onclick="document.getElementById('modal-registrar').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -5369,7 +5403,7 @@
   <div class="max-w-xl mx-auto px-6 py-12">
     <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
       <div class="display text-3xl">COMPARTILHAR</div>
-      <button onclick="document.getElementById('modal-share').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+      <button onclick="document.getElementById('modal-share').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -5401,7 +5435,7 @@
   <div class="max-w-md mx-auto px-6 py-12">
     <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
       <div class="display text-3xl">NOVO ALUNO</div>
-      <button onclick="document.getElementById('modal-novo').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+      <button onclick="document.getElementById('modal-novo').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -5445,7 +5479,7 @@
         <div class="display text-3xl">IMPORTAR ALUNO</div>
         <div class="mono text-[10px] text-zinc-500 tracking-widest">VIA JSON</div>
       </div>
-      <button onclick="document.getElementById('modal-import').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+      <button onclick="document.getElementById('modal-import').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -5618,7 +5652,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.17.0';
+const FORJA_VERSION = 'v30.18.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -10636,8 +10670,8 @@ function mostrarExercicioAtual() {
       meta:         { c: '#C77400', b: 'rgba(199,116,0,.45)',  bg: 'rgba(199,116,0,.07)' },
       teto:         { c: '#C77400', b: 'rgba(199,116,0,.45)',  bg: 'rgba(199,116,0,.07)' },
       'teto-acima': { c: '#EB4D45', b: 'rgba(235,77,69,.55)',  bg: 'rgba(235,77,69,.10)' },
-      mantem:       { c: '#6E7683', b: 'rgba(110,118,131,.35)', bg: 'transparent' },
-    }[sug.tipo] || { c: '#6E7683', b: 'rgba(110,118,131,.35)', bg: 'transparent' };
+      mantem:       { c: '#98A2B1', b: 'rgba(110,118,131,.35)', bg: 'transparent' },
+    }[sug.tipo] || { c: '#98A2B1', b: 'rgba(110,118,131,.35)', bg: 'transparent' };
     // v30.7.0: conflito repinta o card no vermelho de 'teto-acima', mesmo
     // quando o tipo e 'sobe' (verde). O verde diria "pode ir" a um passo que o
     // plano contesta. A sugestao continua la e continua aplicavel — muda so a
