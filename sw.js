@@ -153,9 +153,11 @@
  * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  * v30.18.0: SISTEMA VISUAL 2 no HTML (CSS/markup): campos com borda de 3:1 e 44px, cards em 2 niveis, alvos de toque de 44px,
  * movimento reduzido de verdade. Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
+ * v30.19.0: TREINAR com peso e series primeiro (regra e sugestao no fim da tela; REGISTRAR SERIE em destaque).
+ * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  */
 
-const CACHE_VERSION = 'forja-v30.18.0';
+const CACHE_VERSION = 'forja-v30.19.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).

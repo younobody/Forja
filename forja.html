@@ -3431,6 +3431,69 @@
     .rise { animation: none; opacity: 1; }
   }
 
+  /* ==================================================================
+     v30.19.0 — TREINAR: PESO E SERIES PRIMEIRO (regra e sugestao no fim)
+     Reordenado por CSS (order); nenhum no muda de lugar no DOM. :where() zera a especificidade do "resto no fim"
+     para os ids abaixo vencerem sem !important (exceto onde ha style inline no markup).
+     ================================================================== */
+  #view-treinar > main { display: flex; flex-direction: column; }
+  :where(#view-treinar > main > *) { order: 50; }
+  #treinar-status-bar { order: 0; }
+  #treinar-linha-nome { order: 1; }
+  #treinar-substituido { order: 2; }
+  #treinar-ja-salvo { order: 3; }
+  #treinar-alvo { order: 4; }
+  #treinar-ultimo { order: 5; }
+  .tr-fields { order: 6; }
+  .series-log-panel { order: 7; }
+  #tr-descanso { order: 8; }
+  #tr-fim { order: 9; }
+  #tr-nav { order: 10; }
+  #treinar-sugestao { order: 20; }
+  #treinar-obs { order: 21; }
+  #treinar-obs-btn { order: 22; }
+  #treinar-ficha { order: 23; }
+  #tr-obs-linha { order: 24; }
+  #tr-data-linha { order: 25; }
+  #tr-extra { order: 26; }
+
+  /* nome + icone TROCAR na mesma linha (antes o botao descia para uma linha propria abaixo de 430px) */
+  #treinar-linha-nome { flex-wrap: nowrap; align-items: center; }
+  #treinar-linha-nome > div:first-child { flex: 1 1 auto; min-width: 0; }
+  #btn-treinar-trocar { min-width: 44px; padding: 0 12px; font-size: 18px; }
+  .tr-troca-txt { display: none; }
+  #treinar-alvo { font-size: 14px; font-weight: 600; letter-spacing: .04em; color: var(--text); margin-bottom: 10px; }
+
+  /* ULTIMO TREINO: uma linha compacta (:not(.hidden) para nao vencer o .hidden do app) */
+  #treinar-ultimo { margin: 0 0 12px; padding: 10px 12px; }
+  #treinar-ultimo:not(.hidden) { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
+  #treinar-ultimo > div:first-child { font-size: 11px; margin: 0; }
+  #treinar-ultimo-nums { font-size: 12px; font-weight: 600; }
+
+  /* campos: numeros grandes em Bebas; rotulo curto */
+  .tr-fields { grid-template-columns: 1.15fr 1.15fr .8fr; margin: 0 0 4px; }
+  .tr-fields label { font-size: 11px; letter-spacing: .1em; }
+  .tr-fields input { font-family: 'Bebas Neue', 'DM Sans', sans-serif; font-size: 2.5rem; line-height: 1; padding: .2rem 0; letter-spacing: .02em; }
+  .tr-fields .btn { background: none; box-shadow: none; }
+  .tr-alerta > div:first-child label::after { content: " \26A0"; color: #EB4D45; font-weight: 700; }
+
+  /* REGISTRAR SERIE: o botao principal da tela (o painel perde a moldura; o markup tem style inline, dai o !important) */
+  .series-log-panel { border-color: transparent !important; background: none !important; padding: 0 !important; margin: 14px 0 0 !important; }
+  #btn-treinar-registrar-serie { min-height: 60px; font-size: 15px; letter-spacing: .14em; }
+  #treinar-series-lista { font-size: 12px; margin: 10px 0 2px; }
+  #treinar-series-status { font-size: 11px; }
+
+  /* descanso discreto; FALTEI pequeno e contornado; FECHAR EXERCICIO contornado em verde (ainda por pressao longa) */
+  #tr-descanso { margin: 8px 0 14px; }
+  #tr-descanso .btn { background: none; box-shadow: none; }
+  #tr-fim { grid-template-columns: 1fr 2fr; }
+  #btn-treinar-faltei { background: none; box-shadow: none; min-height: 56px; padding: 0; font-size: 13px; }
+  #btn-treinar-fechei { background: rgba(9,166,107,.10); border: 1.5px solid var(--ok-1); color: #3FD9A0; box-shadow: none; min-height: 56px; padding: 0; font-size: 13px; text-shadow: none; }
+  #fechei-fill { background: rgba(9,166,107,.55) !important; }
+  #tr-nav { margin: 12px 0 18px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+  #tr-nav .btn { background: none; box-shadow: none; min-height: 48px; }
+  #tr-extra { background: none; box-shadow: none; }
+
 
 </style>
 
@@ -5015,7 +5078,7 @@
            wrapper - mesmo efeito visual, um filho so. -->
       <div class="flex items-center gap-2 shrink-0 mt-1">
         <!-- v26: trocar exercicio flexivel por equivalente (so nesta sessao) -->
-        <button id="btn-treinar-trocar" type="button" onclick="abrirTrocaExercicio()" class="btn hidden px-3 py-2 text-xs text-cyan-300 border-cyan-700/50 whitespace-nowrap">⇄ TROCAR</button>
+        <button id="btn-treinar-trocar" aria-label="Trocar exercício" type="button" onclick="abrirTrocaExercicio()" class="btn hidden px-3 py-2 text-xs text-cyan-300 border-cyan-700/50 whitespace-nowrap"><span aria-hidden="true">⇄</span><span class="tr-troca-txt"> TROCAR</span></button>
         <!-- v30.2.0: REMOVER so aparece em exercicio EXTRA (mostrarExercicioAtual
              liga/desliga pelo p._extra). Zero classe inventada: text-red-400 e
              border-red-700 existem no bundle Tailwind PRE-compilado E na camada
@@ -5041,7 +5104,7 @@
         <input id="treinar-input-carga" type="text" inputmode="decimal" autocomplete="off" class="w-full text-2xl py-3 text-center" />
       </div>
       <div>
-        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">REPS DA SÉRIE</label>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">REPS</label>
         <input id="treinar-input-reps" type="text" inputmode="text" autocomplete="off" class="w-full text-2xl py-3 text-center" />
         <div class="flex justify-center gap-2 mt-1">
           <button type="button" class="btn px-3 py-1" onclick="ajustarRepsSerie(-1)" aria-label="Diminuir uma repetição">−</button>
@@ -5049,7 +5112,7 @@
         </div>
       </div>
       <div>
-        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">RIR DA SÉRIE</label>
+        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">RIR</label>
         <input id="treinar-input-rir" type="text" inputmode="numeric" autocomplete="off" class="w-full text-2xl py-3 text-center" />
       </div>
     </div>
@@ -5060,18 +5123,18 @@
       </div>
       <div id="treinar-series-lista" class="mono text-[10px] text-zinc-300 mb-1" aria-live="polite">Nenhuma série registrada</div>
       <button id="btn-treinar-registrar-serie" type="button" class="btn btn-success w-full py-2">✓ REGISTRAR SÉRIE</button>
-      <div id="treinar-series-status" class="mono text-[10px] text-zinc-500 mt-1" aria-live="polite">A série fica salva neste aparelho até você fechar o exercício.</div>
+      <div id="treinar-series-status" class="mono text-[10px] text-zinc-500 mt-1" aria-live="polite">Salva neste aparelho até você fechar o exercício.</div>
     </section>
-    <div class="flex items-center justify-center gap-2 mt-3 mb-3">
+    <div id="tr-descanso" class="flex items-center justify-center gap-2 mt-3 mb-3">
       <button type="button" onclick="ajustarPadraoDescanso(-15)" class="btn px-4 py-3 text-lg" aria-label="Diminuir descanso em 15 segundos">−</button>
       <button id="btn-treinar-descansar" type="button" onclick="iniciarRest(restSecAtual())" class="btn flex-1 py-3 text-cyan-300 border-cyan-700/50"><svg class="icn icn--16 icn--mid" aria-hidden="true" focusable="false"><use href="#icn-cronometro"></use></svg> DESCANSAR <span id="treinar-rest-label">120s</span></button>
       <button type="button" onclick="ajustarPadraoDescanso(15)" class="btn px-4 py-3 text-lg" aria-label="Aumentar descanso em 15 segundos">+</button>
     </div>
-    <div class="grid grid-cols-2 gap-3">
+    <div id="tr-fim" class="grid grid-cols-2 gap-3">
       <button id="btn-treinar-faltei" class="btn btn-danger py-6 text-lg">✗ FALTEI</button>
       <button id="btn-treinar-fechei" class="btn btn-success py-6 text-lg relative overflow-hidden" style="touch-action:manipulation;user-select:none;-webkit-user-select:none;">
         <span id="fechei-fill" class="absolute inset-y-0 left-0" style="width:0;background:rgba(2,28,18,.45);pointer-events:none;"></span>
-        <span class="relative leading-tight" style="pointer-events:none;">✓ FECHEI<span class="block mono text-[9px] font-normal mt-0.5" style="opacity:.85;">segure pra fechar</span></span>
+        <span class="relative leading-tight" style="pointer-events:none;">✓ FECHAR EXERCÍCIO<span class="block mono text-[10px] font-normal mt-0.5" style="opacity:.85;">segure pra fechar</span></span>
       </button>
     </div>
 
@@ -5100,23 +5163,23 @@
       <div id="treinar-ultimo-nums" class="text-zinc-200"></div>
       <div id="treinar-ultimo-obs" class="hidden text-amber-400/90 mt-1 leading-relaxed"></div>
     </div>
-    <div class="mb-3">
+    <div id="tr-obs-linha" class="mb-3">
       <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">OBS</label>
       <input id="treinar-input-obs" type="text" placeholder="opcional" class="w-full" />
     </div>
-    <div class="mb-6">
+    <div id="tr-data-linha" class="mb-6">
       <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DATA DO TREINO (opcional, padrão hoje)</label>
       <input id="treinar-input-data" type="date" class="w-full text-sm" />
     </div>
     <!-- Navegacao livre: pula pro proximo/anterior SEM registrar. Util quando
          o equipamento esta ocupado e voce quer trocar a ordem. -->
-    <div class="grid grid-cols-2 gap-3 mt-3">
+    <div id="tr-nav" class="grid grid-cols-2 gap-3 mt-3">
       <button onclick="exercicioAnterior()" class="btn py-3">◂ ANTERIOR</button>
       <button onclick="exercicioProximo()" class="btn py-3">PRÓXIMO ▸</button>
     </div>
 
     <!-- v28.6: exercicio extra fora do plano (fez algo a mais na sessao) -->
-    <button onclick="abrirModalExtra()" class="btn w-full mt-3">+ EXERCÍCIO EXTRA</button>
+    <button id="tr-extra" onclick="abrirModalExtra()" class="btn w-full mt-3">+ EXERCÍCIO EXTRA</button>
 
     <!-- v26: link "FINALIZAR TREINO AGORA" removido — a sessao encerra sozinha
          quando todo exercicio esta fechado; pra sair antes, use ◂ SAIR no topo. -->
@@ -5652,7 +5715,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.18.0';
+const FORJA_VERSION = 'v30.19.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -10592,8 +10655,8 @@ function mostrarExercicioAtual() {
   // v18: tipo composto/isolado com sugestao de descanso no alvo
   const tiEx = tipoInfo(p.tipo);
   $('treinar-alvo').textContent =
-    `ALVO: ${p.series || '?'}x${p.reps || '?'} · carga sugerida ${p.carga || '—'} · RIR ${p.rir != null && p.rir !== '' ? p.rir : '—'}` +
-    (tiEx ? ` · ${tiEx.label} (${tiEx.desc})` : '');
+    `${p.series || '?'}×${p.reps || '?'} · ${p.carga || '—'} · RIR ${p.rir != null && p.rir !== '' ? p.rir : '—'}` +
+    (tiEx ? ` · ${tiEx.label}` : '');
   // v15: timer removido — tira "Descanso: Xs" do obs, mantem o resto (ex: MONITORAR)
   const obsLimpa = String(p.obs || '').replace(/descanso\s*:?\s*\d+(?:\s*-\s*\d+)?\s*s\s*\|?\s*/ig, '').replace(/^\s*\|\s*/, '').trim();
   // v30.8.0: a regra tem que chegar nos olhos sem ele pedir. v30.15.0: observacao LONGA abre em
@@ -10643,6 +10706,8 @@ function mostrarExercicioAtual() {
   const jaSalvoSug = TREINAR.salvos[TREINAR.idx];
   const sug = (!jaSalvoSug && ult) ? sugestaoProgressao(nomeEfetivo(TREINAR.idx), p) : null;
   TREINAR.sugestaoAtual = sug;
+  // v30.19.0: a sugestao/regra foram para o fim da tela; quando a sugestao CONTRARIA o plano o rotulo CARGA ganha ⚠.
+  document.querySelector('.tr-fields').classList.toggle('tr-alerta', !!(sug && sug.conflitos && sug.conflitos.length));
   const elSug = $('treinar-sugestao');
   if (sug && sug.texto) {
     // v30.7.0: quando a sugestao conflita com uma regra escrita no plano, o
