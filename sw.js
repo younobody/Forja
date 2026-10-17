@@ -147,9 +147,11 @@
  * largura maxima, breakpoints fracionarios; aria-live no toast). Frontend-only; bump aqui so pra
  * invalidar o cache antigo do shell.
  * v30.15.0: TREINAR com acoes junto aos campos, ficha ampliavel e botoes acessiveis.
+ * v30.16.0: IDENTIDADE INSTALADA. Manifest escuro (theme/background #0B0E13), 3 icones PNG em img/ e favicon
+ * novo. Nada neste arquivo alem da versao: o bump e o que faz o celular trocar o manifest guardado no cache.
  */
 
-const CACHE_VERSION = 'forja-v30.15.0';
+const CACHE_VERSION = 'forja-v30.16.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).
