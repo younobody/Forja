@@ -159,9 +159,11 @@
  * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  * v30.21.0: TREINAR com REABRIR EXERCICIO (desfaz o FECHEI/FALTEI; apaga o registro do servidor por local_id/pk).
  * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
+ * v30.22.0: letras cinza mais claras fora da home (escala de texto zinc-300..700 e tokens irmaos; contraste minimo 6:1).
+ * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  */
 
-const CACHE_VERSION = 'forja-v30.21.0';
+const CACHE_VERSION = 'forja-v30.22.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).

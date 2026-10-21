@@ -665,8 +665,9 @@
     --border: #242C38;
     --border-hot: #323C4B;
     --text: #E9EDF3;
-    --text-dim: #98A2B1;
-    --text-faint: #7C8797;     /* v30: era #6B7686 = 3.90:1, reprovava texto pequeno */
+    --text-dim: #AEB7C3;       /* v30.22.0: era #98A2B1 */
+    --text-faint: #98A2B1;     /* v30.22.0: era #7C8797 (v30: #6B7686 = 3.90:1, reprovava texto pequeno) */
+    --text-mute: #98A2B1;      /* v30.22.0: o que PRECISA parecer apagado (lista: feito/pulado) — o antigo --text-dim */
     /* dias: passos re-calculados pra superficie escura.
        ATENCAO: dia A x dia B reprovam o piso de visao normal (dE 13.8 < 15) e
        somem sob deuteranopia (dE 2.9) — por isso identidade de dia SEMPRE
@@ -774,7 +775,7 @@
   /* :where zera a especificidade (0,0,1): utilitarias e table.editable (0,1,2) sempre ganham */
   input:where(:not([type='checkbox'], [type='radio'], [type='file'], [type='hidden'], [type='range'], [type='color'])), select { min-height: 44px; }
   table.editable input, table.editable select { min-height: 0; }
-  input::placeholder, textarea::placeholder { color: var(--text-faint); }
+  input::placeholder, textarea::placeholder { color: #7C8797; }  /* v30.22.0: fixo — vazio tem que parecer vazio */
   input:focus, textarea:focus, select:focus {
     border-color: var(--acc);
     box-shadow: 0 0 0 3px var(--acc-soft), var(--sh-inset);
@@ -1006,13 +1007,13 @@
      =================================================================== */
   .text-zinc-100 { color: #E9EDF3; }
   .text-zinc-200 { color: #DCE2EA; }
-  .text-zinc-300 { color: #C3CBD6; }
-  .text-zinc-400, .text-zinc-500 { color: #98A2B1; }
-  .text-zinc-600 { color: #7C8797; }
-  .text-zinc-700 { color: #6B7686; }
+  .text-zinc-300 { color: #D2D9E2; }
+  .text-zinc-400, .text-zinc-500 { color: #AEB7C3; }
+  .text-zinc-600 { color: #98A2B1; }
+  .text-zinc-700 { color: #8C96A5; }
   .hover\:text-zinc-100:hover, .hover\:text-white:hover { color: #FFFFFF; }
-  .hover\:text-zinc-400:hover { color: #98A2B1; }
-  .hover\:text-zinc-500:hover { color: #98A2B1; }
+  .hover\:text-zinc-400:hover { color: #AEB7C3; }
+  .hover\:text-zinc-500:hover { color: #AEB7C3; }
   .border-zinc-800, .border-zinc-900\/60 { border-color: #242C38; }
   .border-zinc-500, .border-zinc-600, .border-zinc-700 { border-color: #323C4B; }
   .hover\:border-zinc-500:hover, .hover\:border-zinc-600:hover { border-color: #46536A; }
@@ -1717,8 +1718,8 @@
   --img-line:#242C38;
   --img-line-hot:#323C4B;
   --img-text:#E9EDF3;
-  --img-dim:#98A2B1;
-  --img-faint:#7C8797;
+  --img-dim:#AEB7C3;
+  --img-faint:#98A2B1;
   --img-brasa-1:#973101;
   --img-brasa-2:#C54302;
   --img-brasa-3:#E85616;
@@ -2124,7 +2125,7 @@
   --fg-bg:#0B0E13; --fg-s1:#12171F; --fg-s2:#171E28; --fg-s3:#1D2531;
   --fg-line:#242C38; --fg-line-hot:#323C4B;
   /* tinta */
-  --fg-text:#E9EDF3; --fg-dim:#98A2B1; --fg-faint:#7C8797;
+  --fg-text:#E9EDF3; --fg-dim:#AEB7C3; --fg-faint:#98A2B1;
   /* rampa brasa */
   --fg-b1:#973101; --fg-b2:#C54302; --fg-b3:#E85616; --fg-b4:#FF7645; --fg-glow:#FF8A4C;
   /* status */
@@ -2324,7 +2325,7 @@
 .fg-topo{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
 .fg-nome{ margin:0; font-family:'Bebas Neue',Impact,sans-serif; font-size:23px;
   line-height:1.04; letter-spacing:.03em; color:var(--fg-text); }
-.fg-feito .fg-nome{ color:var(--fg-dim); }
+.fg-feito .fg-nome{ color:var(--text-mute); }
 .fg-tag{ flex:0 0 auto; display:inline-flex; align-items:center; gap:4px;
   font-family:'JetBrains Mono',ui-monospace,monospace; font-size:10px;
   letter-spacing:.12em; padding:4px 7px; border-radius:7px; border:1px solid transparent; }
@@ -2338,7 +2339,7 @@
   font-family:'JetBrains Mono',ui-monospace,monospace; }
 .fg-dado b{ font-size:14px; font-weight:600; color:var(--fg-text); line-height:1.1; }
 .fg-dado small{ font-size:10px; letter-spacing:.1em; color:var(--fg-dim); }
-.fg-feito .fg-dado b{ color:var(--fg-dim); }
+.fg-feito .fg-dado b{ color:var(--text-mute); }
 
 .fg-series{ display:grid; grid-template-columns:repeat(auto-fit,minmax(64px,1fr));
   gap:6px; margin-top:11px; }
@@ -2509,8 +2510,8 @@
   /* glifo + palavra andam juntos: o estado nunca depende so da cor */
   .tl-e-fez    .tl-marca { color: var(--ok-ink); }
   .tl-e-faltou .tl-marca { color: var(--falta); }
-  .tl-e-pulou  .tl-marca { color: var(--text-faint); }
-  .tl-e-fez    .tl-nome  { color: var(--text-dim); }
+  .tl-e-pulou  .tl-marca { color: var(--text-mute); }
+  .tl-e-fez    .tl-nome  { color: var(--text-mute); }
   .tl-e-atual  { background: var(--acc-soft); }
   .tl-e-atual .tl-nome { color: var(--acc-ink); }
   .tl-selo {
@@ -2636,7 +2637,7 @@
   --map-linha:#242C38;
   --map-linha2:#323C4B;
   --map-txt:#E9EDF3;
-  --map-dim:#98A2B1;
+  --map-dim:#AEB7C3;
   --map-fraco:#7C8797;
   --map-b1:#973101;   /* so sombra/relevo: 2.4:1 sobre #12171F, nao carrega dado */
   --map-b2:#C54302;   /* 3.6:1 */
@@ -2811,7 +2812,7 @@
   /* tokens do tema, escopados no bloco pra nao vazar */
   --chr-bg:#0B0E13; --chr-s1:#12171F; --chr-s2:#171E28;
   --chr-line:#242C38; --chr-lineHot:#323C4B;
-  --chr-text:#E9EDF3; --chr-dim:#98A2B1; --chr-faint:#7C8797;
+  --chr-text:#E9EDF3; --chr-dim:#AEB7C3; --chr-faint:#98A2B1;
   --chr-b1:#973101; --chr-b2:#C54302; --chr-b3:#E85616; --chr-b4:#FF7645; --chr-glow:#FF8A4C;
   --chr-ok:#09A66B; --chr-cardio:#0598CE; --chr-miss:#EB4D45; --chr-void:#2A3340;
   --chr-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -3003,8 +3004,8 @@
   --frq-line:var(--line,#242C38);
   --frq-line-hot:var(--line-hot,#323C4B);
   --frq-tx:var(--text,#E9EDF3);
-  --frq-dim:var(--text-dim,#98A2B1);
-  --frq-faint:var(--text-faint,#7C8797);
+  --frq-dim:var(--text-dim,#AEB7C3);
+  --frq-faint:var(--text-faint,#98A2B1);
   --frq-e1:#973101; --frq-e2:#C54302; --frq-e3:#E85616; --frq-e4:#FF7645; --frq-glow:#FF8A4C;
   --frq-ok:#09A66B; --frq-car:#0598CE; --frq-bad:#EB4D45; --frq-null:#2A3340;
   --frq-disp:'Bebas Neue',Impact,sans-serif;
@@ -5739,7 +5740,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.21.0';
+const FORJA_VERSION = 'v30.22.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -10771,8 +10772,8 @@ function mostrarExercicioAtual() {
       meta:         { c: '#C77400', b: 'rgba(199,116,0,.45)',  bg: 'rgba(199,116,0,.07)' },
       teto:         { c: '#C77400', b: 'rgba(199,116,0,.45)',  bg: 'rgba(199,116,0,.07)' },
       'teto-acima': { c: '#EB4D45', b: 'rgba(235,77,69,.55)',  bg: 'rgba(235,77,69,.10)' },
-      mantem:       { c: '#98A2B1', b: 'rgba(110,118,131,.35)', bg: 'transparent' },
-    }[sug.tipo] || { c: '#98A2B1', b: 'rgba(110,118,131,.35)', bg: 'transparent' };
+      mantem:       { c: '#AEB7C3', b: 'rgba(110,118,131,.35)', bg: 'transparent' },
+    }[sug.tipo] || { c: '#AEB7C3', b: 'rgba(110,118,131,.35)', bg: 'transparent' };
     // v30.7.0: conflito repinta o card no vermelho de 'teto-acima', mesmo
     // quando o tipo e 'sobe' (verde). O verde diria "pode ir" a um passo que o
     // plano contesta. A sugestao continua la e continua aplicavel — muda so a
