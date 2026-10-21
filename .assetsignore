@@ -1,0 +1,9 @@
+# Fora do site publicado: o SQL do banco e arquivos de configuracao.
+supabase/
+.git
+.gitignore
+.assetsignore
+wrangler.jsonc
+node_modules
+.wrangler
+coverage
