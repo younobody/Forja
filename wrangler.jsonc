@@ -3,5 +3,7 @@
 	// Sem bindings (sem KV, D1, R2): so serve arquivos estaticos desta pasta.
 	"name": "forja",
 	"compatibility_date": "2026-10-21",
-	"assets": { "directory": "./" }
+	// html_handling "none": serve /forja.html direto (200), sem redirecionar para /forja.
+	// O sw.js cacheia './forja.html' e uma resposta redirecionada nao serve navegacao offline.
+	"assets": { "directory": "./", "html_handling": "none" }
 }
