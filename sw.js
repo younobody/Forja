@@ -161,9 +161,11 @@
  * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  * v30.22.0: letras cinza mais claras fora da home (escala de texto zinc-300..700 e tokens irmaos; contraste minimo 6:1).
  * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
+ * v30.23.0: aviso "o FORJA mudou de endereco" (so no github.io; leva o aluno ao Worker da Cloudflare sem perder serie pendente).
+ * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  */
 
-const CACHE_VERSION = 'forja-v30.22.0';
+const CACHE_VERSION = 'forja-v30.23.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).

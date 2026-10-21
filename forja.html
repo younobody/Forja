@@ -3788,6 +3788,17 @@
   @media (prefers-reduced-motion: reduce) {
     .frc *, .frc *:before, .frc *:after { transition:none !important; animation:none !important; }
   }
+
+  /* v30.23.0 · aviso de mudanca de endereco (so no endereco antigo). Faixa NO FLUXO: sem fixed e sem z-index,
+     entao nao cobre o TREINAR (fixed inset-0 z-30), o toast nem o convite de instalar. */
+  #aviso-endereco { background:#2A1F0B; border-bottom:1px solid #C58A1E; color:#FBE7BE; padding:12px 16px; }
+  #aviso-endereco .ae-corpo { max-width:42rem; margin:0 auto; }
+  #aviso-endereco .ae-tit { font-size:1.35rem; line-height:1.1; letter-spacing:.04em; color:#FFD27A; }
+  #aviso-endereco .ae-linha { margin:6px 0 0; font-size:.78rem; line-height:1.45; overflow-wrap:anywhere; }
+  #aviso-endereco .ae-pend { font-weight:700; color:#FFD27A; }
+  #aviso-endereco .ae-acoes { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  #aviso-endereco .ae-acoes .btn { flex:1 1 auto; min-height:44px; }
+  #aviso-endereco .ae-dica { margin-top:8px; font-size:.7rem; line-height:1.45; color:#E8CFA0; overflow-wrap:anywhere; }
 </style>
 </head>
 <body>
@@ -4146,6 +4157,21 @@
 <div id="loading-overlay" class="fixed inset-0 bg-zinc-950/70 backdrop-blur-sm z-40 hidden items-center justify-center">
   <div class="loader"></div>
 </div>
+
+<!-- v30.23.0: AVISO DE MUDANCA DE ENDERECO. Escondido por padrao; so aparece em HOSTS_ANTIGOS (ver JS). -->
+<aside id="aviso-endereco" class="hidden" role="region" aria-label="Aviso: o FORJA mudou de endereço">
+  <div class="ae-corpo">
+    <div class="ae-tit display">O FORJA MUDOU DE ENDEREÇO</div>
+    <p class="ae-linha mono"><span id="ae-pend" class="ae-pend"></span></p>
+    <p class="ae-linha mono">Novo endereço: <b id="ae-host" class="ae-pend"></b>. Abra no Chrome, instale o app de novo e entre com seu código de acesso (o login não é copiado).</p>
+    <div class="ae-acoes">
+      <button id="ae-sync" type="button" class="btn text-xs hidden">ENVIAR PENDENTES</button>
+      <button id="ae-abrir" type="button" class="btn btn-primary text-xs">ABRIR ENDEREÇO NOVO</button>
+      <button id="ae-depois" type="button" class="btn text-xs">DEPOIS</button>
+    </div>
+    <div class="ae-dica mono">Abriu dentro do app? Toque em ⋮ → “Abrir no Chrome” → “Instalar”. Só apague o ícone antigo quando seus treinos aparecerem no app novo.</div>
+  </div>
+</aside>
 
 <!-- =========================================== -->
 <!-- TELA: CONFIGURACAO INICIAL                  -->
@@ -5740,7 +5766,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.22.0';
+const FORJA_VERSION = 'v30.23.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -11795,6 +11821,104 @@ async function tentarSincronizarPendentes() {
   }
 }
 
+/* ============ v30.23.0 · aviso de mudanca de endereco ============
+   O app tambem roda na Cloudflare; o endereco do GitHub Pages vai ser desligado. Origem nova = localStorage novo,
+   entao o aviso leva o aluno pra la SEM perder serie guardada neste aparelho. So aparece em HOSTS_ANTIGOS.
+   Numa proxima mudanca: acrescente o host atual em HOSTS_ANTIGOS e troque ENDERECO_NOVO (sempre terminando em /forja.html:
+   o Worker nao tem index, a raiz da 404). Este bloco SO LE o buffer; quem envia e o flushBuffer() de sempre. */
+const ENDERECO_NOVO = 'https://forja.imovelmedia.workers.dev/forja.html';
+const HOSTS_ANTIGOS = ['younobody.github.io'];
+const AVISO_END_KEY = 'forja-aviso-endereco';
+const AVISO_END_ESCONDE_MS = 24 * 60 * 60 * 1000;   // sem pendente
+const AVISO_END_ESCONDE_PEND_MS = 60 * 60 * 1000;   // com pendente: volta em 1 h (sem "nao mostrar mais")
+
+function enderecoAntigo() {
+  try { return HOSTS_ANTIGOS.indexOf(location.hostname) !== -1 && new URL(ENDERECO_NOVO).hostname !== location.hostname; }
+  catch (_) { return false; }
+}
+
+// Soma TODAS as chaves forja-pending-* (aluno atual, outros alunos deste aparelho e 'anon'). So le.
+function contarPendentesTodos() {
+  let total = 0;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || k.indexOf('forja-pending-') !== 0) continue;
+      try {
+        const lista = JSON.parse(localStorage.getItem(k) || '[]');
+        if (Array.isArray(lista)) total += lista.length;
+      } catch (_) { /* chave corrompida: ignora */ }
+    }
+  } catch (_) { /* localStorage indisponivel */ }
+  return total;
+}
+
+function avisoEnderecoDispensado(pend) {
+  try {
+    const t = Number(localStorage.getItem(AVISO_END_KEY));
+    if (!isFinite(t) || t <= 0) return false;
+    return (Date.now() - t) < (pend > 0 ? AVISO_END_ESCONDE_PEND_MS : AVISO_END_ESCONDE_MS);
+  } catch (_) { return false; }
+}
+
+function atualizarAvisoEndereco() {
+  const el = document.getElementById('aviso-endereco');
+  if (!el) return;
+  if (!enderecoAntigo()) { el.classList.add('hidden'); return; }
+  const pend = contarPendentesTodos();
+  if (avisoEnderecoDispensado(pend)) { el.classList.add('hidden'); return; }
+  const logado = !!(APP.alunoSession && APP.alunoSession.id);
+  const txt = document.getElementById('ae-pend');
+  if (pend > 0) {
+    txt.textContent = pend + ' treino(s) ainda NÃO enviado(s): ficam só neste aparelho.' +
+      (logado ? ' Toque em ENVIAR PENDENTES.' : ' Entre na sua conta para enviar.');
+  } else {
+    txt.textContent = 'nenhum treino pendente neste aparelho.';
+  }
+  document.getElementById('ae-host').textContent = new URL(ENDERECO_NOVO).hostname;
+  document.getElementById('ae-sync').classList.toggle('hidden', !(pend > 0 && logado));
+  el.classList.remove('hidden');
+}
+
+async function avisoEnderecoSincronizar() {
+  if (!APP.alunoSession) { toast('Entre na sua conta para enviar os treinos pendentes', 'info'); return; }
+  const btn = document.getElementById('ae-sync');
+  if (btn) btn.disabled = true;
+  // pendente "anonimo" (gravado sem sessao) so migrava no LOGIN; com sessao restaurada ficava preso e o flush nao o via.
+  try { migrarBufferAnonimo(); } catch (_) { /* funcao existente da v28.8; se falhar, o flush segue com o que ha */ }
+  try { await flushBuffer(); } catch (_) { /* o flush ja trata falha de rede; segue pra recontar */ }
+  if (btn) btn.disabled = false;
+  atualizarAvisoEndereco();
+  const resto = contarPendentesTodos();
+  toast(resto === 0 ? '✓ Tudo enviado' : resto + ' treino(s) ainda não enviado(s) — tente de novo com internet', resto === 0 ? 'success' : 'info');
+}
+
+function avisoEnderecoAbrir() {
+  const pend = contarPendentesTodos();
+  if (pend > 0 && !confirm(pend + ' treino(s) ainda não enviado(s) ficam guardados SÓ neste aparelho (endereço antigo). Abrir o endereço novo mesmo assim?')) return;
+  window.open(ENDERECO_NOVO, '_blank', 'noopener');
+}
+
+function avisoEnderecoDepois() {
+  try { localStorage.setItem(AVISO_END_KEY, String(Date.now())); } catch (_) { /* sem storage: some so ate recarregar */ }
+  const el = document.getElementById('aviso-endereco');
+  if (el) el.classList.add('hidden');
+}
+
+function iniciarAvisoEndereco() {
+  if (!enderecoAntigo()) return;
+  const sync = document.getElementById('ae-sync');
+  const abrir = document.getElementById('ae-abrir');
+  const depois = document.getElementById('ae-depois');
+  if (sync) sync.addEventListener('click', avisoEnderecoSincronizar);
+  if (abrir) abrir.addEventListener('click', avisoEnderecoAbrir);
+  if (depois) depois.addEventListener('click', avisoEnderecoDepois);
+  atualizarAvisoEndereco();
+  setTimeout(atualizarAvisoEndereco, 2500);   // depois do tentarSincronizarPendentes do init (1,5 s)
+  window.addEventListener('online', atualizarAvisoEndereco);
+  window.addEventListener('hashchange', atualizarAvisoEndereco);
+}
+
 // Anima um numero de 0 ate o valor final (efeito futurista)
 function countUp(el, target, dur = 900) {
   const end = Number(target);
@@ -12741,7 +12865,7 @@ $('treinar-ficha-toggle').onclick = function () {
     e.preventDefault();
     deferredPrompt = e;
     const banner = document.getElementById('install-banner');
-    if (banner) banner.classList.remove('hidden');
+    if (banner && !enderecoAntigo()) banner.classList.remove('hidden');   // v30.23.0: nao se instala o endereco que vai morrer
   });
   window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
@@ -12764,6 +12888,7 @@ $('treinar-ficha-toggle').onclick = function () {
   }
 
   route();
+  iniciarAvisoEndereco();   // v30.23.0
   // v29.4.1: ping do rodape (cosmetico) atrasado ~2.5s - medido ao vivo que
   // disparar ping JUNTO com o feedMotivacional do #home (route() acima, se
   // for a rota inicial) faz as duas chamadas competirem pelo Apps Script,
