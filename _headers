@@ -1,0 +1,5 @@
+# Cloudflare (Worker forja, assets estaticos). O GitHub Pages ignora este arquivo.
+# O forja.html so declara <meta charset> no byte ~43 KB (fora dos primeiros 1024 bytes que os navegadores
+# examinam) e o Worker nao manda charset no Content-Type: sem isto, Safari/Firefox podem decodificar errado.
+/*.html
+  Content-Type: text/html; charset=utf-8

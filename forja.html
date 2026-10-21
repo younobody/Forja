@@ -4163,13 +4163,13 @@
   <div class="ae-corpo">
     <div class="ae-tit display">O FORJA MUDOU DE ENDEREÇO</div>
     <p class="ae-linha mono"><span id="ae-pend" class="ae-pend"></span></p>
-    <p class="ae-linha mono">Novo endereço: <b id="ae-host" class="ae-pend"></b>. Abra no Chrome, instale o app de novo e entre com seu código de acesso (o login não é copiado).</p>
+    <p class="ae-linha mono">Novo endereço: <b id="ae-host" class="ae-pend"></b>. Abra no Chrome (Android) ou no Safari (iPhone), instale o app de novo e entre com seu código de acesso (o login não é copiado).</p>
     <div class="ae-acoes">
       <button id="ae-sync" type="button" class="btn text-xs hidden">ENVIAR PENDENTES</button>
       <button id="ae-abrir" type="button" class="btn btn-primary text-xs">ABRIR ENDEREÇO NOVO</button>
       <button id="ae-depois" type="button" class="btn text-xs">DEPOIS</button>
     </div>
-    <div class="ae-dica mono">Abriu dentro do app? Toque em ⋮ → “Abrir no Chrome” → “Instalar”. Só apague o ícone antigo quando seus treinos aparecerem no app novo.</div>
+    <div class="ae-dica mono">Abriu dentro do app? Android: ⋮ → “Abrir no Chrome” → “Instalar”. iPhone: no Safari, Compartilhar → “Adicionar à Tela de Início”. Só apague o ícone antigo quando seus treinos aparecerem no app novo.</div>
   </div>
 </aside>
 
@@ -5766,7 +5766,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.23.0';
+const FORJA_VERSION = 'v30.24.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -11819,6 +11819,7 @@ async function tentarSincronizarPendentes() {
   if (r.fail > 0) {
     toast(`${r.fail} registro(s) ainda no buffer local — vai tentar de novo depois`, 'info');
   }
+  try { atualizarAvisoEndereco(); } catch (_) { /* v30.24.0: o aviso e acessorio */ }
 }
 
 /* ============ v30.23.0 · aviso de mudanca de endereco ============
@@ -11837,20 +11838,25 @@ function enderecoAntigo() {
   catch (_) { return false; }
 }
 
-// Soma TODAS as chaves forja-pending-* (aluno atual, outros alunos deste aparelho e 'anon'). So le.
-function contarPendentesTodos() {
-  let total = 0;
+// Pendentes deste aparelho, separados em "meus" (o que o ENVIAR consegue mandar: buffer da sessao atual + anonimo) e "outros"
+// (de OUTRO codigo de acesso neste aparelho; deslogado, tudo cai aqui). So le; nunca escreve nas chaves do buffer.
+function contarPendentesAviso() {
+  const sessao = (APP.alunoSession && APP.alunoSession.id) ? String(APP.alunoSession.id) : null;
+  let meus = 0, outros = 0;
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (!k || k.indexOf('forja-pending-') !== 0) continue;
+      let n = 0;
       try {
         const lista = JSON.parse(localStorage.getItem(k) || '[]');
-        if (Array.isArray(lista)) total += lista.length;
+        if (Array.isArray(lista)) n = lista.length;
       } catch (_) { /* chave corrompida: ignora */ }
+      const dono = k.slice('forja-pending-'.length);
+      if (sessao && (dono === sessao || dono === 'anon')) meus += n; else outros += n;
     }
   } catch (_) { /* localStorage indisponivel */ }
-  return total;
+  return { meus: meus, outros: outros, total: meus + outros };
 }
 
 function avisoEnderecoDispensado(pend) {
@@ -11865,18 +11871,23 @@ function atualizarAvisoEndereco() {
   const el = document.getElementById('aviso-endereco');
   if (!el) return;
   if (!enderecoAntigo()) { el.classList.add('hidden'); return; }
-  const pend = contarPendentesTodos();
-  if (avisoEnderecoDispensado(pend)) { el.classList.add('hidden'); return; }
+  const p = contarPendentesAviso();
+  if (avisoEnderecoDispensado(p.total)) { el.classList.add('hidden'); return; }
   const logado = !!(APP.alunoSession && APP.alunoSession.id);
-  const txt = document.getElementById('ae-pend');
-  if (pend > 0) {
-    txt.textContent = pend + ' treino(s) ainda NÃO enviado(s): ficam só neste aparelho.' +
-      (logado ? ' Toque em ENVIAR PENDENTES.' : ' Entre na sua conta para enviar.');
+  let msg;
+  if (p.total === 0) {
+    msg = 'nenhum treino pendente neste aparelho.';
+  } else if (!logado) {
+    msg = p.total + ' treino(s) ainda NÃO enviado(s): ficam só neste aparelho. Entre na sua conta para enviar.';
   } else {
-    txt.textContent = 'nenhum treino pendente neste aparelho.';
+    const partes = [];
+    if (p.meus > 0) partes.push(p.meus + ' treino(s) ainda NÃO enviado(s): ficam só neste aparelho. Toque em ENVIAR PENDENTES.');
+    if (p.outros > 0) partes.push(p.outros + ' treino(s) de outro código de acesso: entre com ele para enviar.');
+    msg = partes.join(' ');
   }
+  document.getElementById('ae-pend').textContent = msg;
   document.getElementById('ae-host').textContent = new URL(ENDERECO_NOVO).hostname;
-  document.getElementById('ae-sync').classList.toggle('hidden', !(pend > 0 && logado));
+  document.getElementById('ae-sync').classList.toggle('hidden', !(logado && p.meus > 0));
   el.classList.remove('hidden');
 }
 
@@ -11889,14 +11900,20 @@ async function avisoEnderecoSincronizar() {
   try { await flushBuffer(); } catch (_) { /* o flush ja trata falha de rede; segue pra recontar */ }
   if (btn) btn.disabled = false;
   atualizarAvisoEndereco();
-  const resto = contarPendentesTodos();
-  toast(resto === 0 ? '✓ Tudo enviado' : resto + ' treino(s) ainda não enviado(s) — tente de novo com internet', resto === 0 ? 'success' : 'info');
+  const r = contarPendentesAviso();
+  if (r.meus > 0) toast(r.meus + ' treino(s) ainda não enviado(s) — tente de novo com internet', 'info');
+  else if (r.outros > 0) toast('✓ Seus treinos foram enviados. Restam treinos de outro código de acesso neste aparelho.', 'success');
+  else toast('✓ Tudo enviado', 'success');
 }
 
 function avisoEnderecoAbrir() {
-  const pend = contarPendentesTodos();
-  if (pend > 0 && !confirm(pend + ' treino(s) ainda não enviado(s) ficam guardados SÓ neste aparelho (endereço antigo). Abrir o endereço novo mesmo assim?')) return;
-  window.open(ENDERECO_NOVO, '_blank', 'noopener');
+  const p = contarPendentesAviso();
+  if (p.total > 0 && !confirm(p.total + ' treino(s) ainda não enviado(s) ficam guardados SÓ neste aparelho (endereço antigo). Abrir o endereço novo mesmo assim?')) return;
+  // O confirm() pode demorar: sem toque recente o Chrome bloqueia window.open e devolve null (com 'noopener' devolveria null
+  // SEMPRE e nao daria pra saber). Abre sem noopener, zera o opener, e se foi bloqueado navega nesta aba.
+  const w = window.open(ENDERECO_NOVO, '_blank');
+  if (w) { try { w.opener = null; } catch (_) { /* aba de outra origem: ja sem acesso */ } }
+  else location.href = ENDERECO_NOVO;
 }
 
 function avisoEnderecoDepois() {
@@ -11914,9 +11931,10 @@ function iniciarAvisoEndereco() {
   if (abrir) abrir.addEventListener('click', avisoEnderecoAbrir);
   if (depois) depois.addEventListener('click', avisoEnderecoDepois);
   atualizarAvisoEndereco();
-  setTimeout(atualizarAvisoEndereco, 2500);   // depois do tentarSincronizarPendentes do init (1,5 s)
+  setTimeout(atualizarAvisoEndereco, 2500);   // 1a recontagem; o tentarSincronizarPendentes recalcula ao terminar (cold start pode levar segundos)
   window.addEventListener('online', atualizarAvisoEndereco);
   window.addEventListener('hashchange', atualizarAvisoEndereco);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) atualizarAvisoEndereco(); });
 }
 
 // Anima um numero de 0 ate o valor final (efeito futurista)
