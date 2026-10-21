@@ -3507,6 +3507,13 @@
   #view-treinar.tr-flash, #view-treinar.tr-flash > header { animation: trFlash .9s ease-out; }
   @media (prefers-reduced-motion: reduce) { #view-treinar.tr-flash, #view-treinar.tr-flash > header { animation: none; } }
 
+  /* v30.21.0 — REABRIR EXERCICIO: no exercicio fechado nesta sessao o REABRIR ocupa o lugar do FALTEI + FECHAR (ids vencem o .btn) */
+  #btn-treinar-reabrir { display: none; }
+  #tr-fim.tr-reabrir { grid-template-columns: 1fr; }
+  #tr-fim.tr-reabrir > #btn-treinar-faltei, #tr-fim.tr-reabrir > #btn-treinar-fechei { display: none; }
+  #tr-fim.tr-reabrir > #btn-treinar-reabrir { display: block; background: none; box-shadow: none; border: 1.5px solid #FF7645; color: #FF7645; min-height: 56px; padding: 0; font-size: 13px; }
+  #btn-summary-corrigir { background: none; box-shadow: none; }
+
 
 </style>
 
@@ -5149,6 +5156,7 @@
         <span id="fechei-fill" class="absolute inset-y-0 left-0" style="width:0;background:rgba(2,28,18,.45);pointer-events:none;"></span>
         <span class="relative leading-tight" style="pointer-events:none;">✓ FECHAR EXERCÍCIO<span class="block mono text-[10px] font-normal mt-0.5" style="opacity:.85;">segure pra fechar</span></span>
       </button>
+      <button id="btn-treinar-reabrir" type="button" onclick="reabrirExercicio()" class="btn py-6 text-lg">↶ REABRIR EXERCÍCIO<span class="block mono text-[10px] font-normal mt-0.5" style="opacity:.85;">corrige e fecha de novo</span></button>
     </div>
 
     <!-- Ficha reduzida: toque em COMO FAZER para ampliar a imagem e ler os detalhes. -->
@@ -5252,7 +5260,10 @@
       <div class="display text-7xl text-emerald-400 mb-2">FECHADO</div>
       <div class="mono text-xs text-zinc-500 tracking-widest mb-8">SESSÃO REGISTRADA</div>
       <div id="treinar-summary-stats" class="mono text-sm text-zinc-300 mb-8"></div>
-      <button onclick="finalizarTreinar()" class="btn btn-success py-4 px-12 text-base">VOLTAR</button>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+        <button onclick="finalizarTreinar()" class="btn btn-success py-4 px-12 text-base">VOLTAR</button>
+        <button id="btn-summary-corrigir" type="button" onclick="voltarDoResumo()" class="btn py-3 px-8 text-sm">↶ CORRIGIR UM EXERCÍCIO</button>
+      </div>
     </div>
   </div>
 </section>
@@ -5728,7 +5739,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.20.0';
+const FORJA_VERSION = 'v30.21.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -9651,6 +9662,16 @@ function countBuffer() {
   return loadBuffer().length;
 }
 
+// v30.21.0 (REABRIR EXERCICIO): item que o flush JA TENTOU enviar pode estar no servidor mesmo que a resposta tenha se
+// perdido; item nunca tentado nunca saiu do aparelho. A marca e gravada ANTES do apiPost.
+function marcarTentado(localId) {
+  const buf = loadBuffer();
+  const r = buf.find(x => x._localId === localId);
+  if (r && !r._tentado) { r._tentado = true; saveBuffer(buf); }
+}
+// ids que NENHUM flush pode enviar agora (o REABRIR esta conferindo o servidor)
+const _bloqueadosFlush = new Set();
+
 // v28.8: buffer gravado antes do login (sessao perdida/anonima) ficava preso
 // para sempre em "forja-pending-anon" — _flushBufferInner exige alunoSession
 // e nunca tocava nesses registros. Ao logar, se havia algo pendente sob a
@@ -9693,7 +9714,8 @@ async function _flushBufferInner() {
     if (buf.length === 0) break;
     let enviouAlgum = false, falhou = false;
     for (const reg of buf) {
-      const { _localId, ...payload } = reg;
+      const { _localId, _tentado, ...payload } = reg;
+      if (_bloqueadosFlush.has(_localId)) continue;   // v30.21.0: o REABRIR esta conferindo este item no servidor
       // v30.9.0: com a sessao persistindo, o item pode ter entrado no
       // buffer com um PIN que ja nao vale mais (o trainer trocou o codigo
       // entre a gravacao e este flush) - troca pelo PIN da sessao atual,
@@ -9704,6 +9726,7 @@ async function _flushBufferInner() {
       // manda o id local como local_id: se essa chamada ja tiver chegado ao
       // servidor numa tentativa anterior (resposta perdida por queda de
       // rede), o backend detecta pelo local_id e nao cria duplicata.
+      if (!_tentado && navigator.onLine !== false) marcarTentado(_localId);   // v30.21.0: pode ter chegado ao servidor
       try {
         await apiPost({ ...payload, local_id: _localId });
         removeFromBuffer(_localId);
@@ -10807,6 +10830,10 @@ function mostrarExercicioAtual() {
     b.style.opacity = salvo ? '0.35' : '1';
   });
   fecheiHoldReset(); // v26.1: zera a barra de "segurar" ao entrar no exercicio
+  // v30.21.0: exercicio fechado NESTA sessao troca FALTEI/FECHAR pelo REABRIR; o de outra sessao segue pelo historico.
+  const reabre = !!salvo && !!TREINAR.localIds[TREINAR.idx];
+  $('tr-fim').classList.toggle('tr-reabrir', reabre);
+  if (salvo && !reabre) $('treinar-ja-salvo').textContent += ' \u00b7 de uma sess\u00e3o anterior (corrija pelo hist\u00f3rico)';
   // v30.2.0: TROCAR aparece em TODO exercicio, nao so nos que tem equivalente
   // cadastrado. GRUPOS_EQUIV so tem 2 grupos escritos a mao, entao na pratica
   // quase nenhum exercicio mostrava o botao — e trocar virava "adicionar extra
@@ -10979,7 +11006,10 @@ async function salvarRegistroAtual(completou) {
   if (!TREINAR.t0) { TREINAR.t0 = Date.now(); atualizarTimerTreinar(); }
   // v17: memoriza o que foi registrado — revisitar o exercicio mostra isso
   // e o re-save fica bloqueado.
-  TREINAR.salvos[idx] = { carga: payload.carga, reps: payload.reps, rir: payload.rir, obs: payload.obs, completou };
+  TREINAR.salvos[idx] = { carga: payload.carga, reps: payload.reps, rir: payload.rir, obs: payload.obs, completou,
+    // v30.21.0: o que foi DIGITADO (a obs salva tem blocos automaticos que nao podem voltar ao campo)
+    cargaCampo: $('treinar-input-carga').value || '', repsCampo: $('treinar-input-reps').value || '',
+    rirCampo: $('treinar-input-rir').value || '', obsDigitada: $('treinar-input-obs').value || '' };
   TREINAR.statuses[idx] = 'failed'; // estado inicial pessimista; vira 'saved' se enviar
   TREINAR.resultados.push({ exercicio: nomeReg, completou });
   atualizarStatusBar();
@@ -11097,6 +11127,87 @@ function fecheiHoldCancel(avisar) {
   if (!_fecheiHolding) return;      // ja completou ou nunca comecou
   fecheiHoldReset();
   if (avisar) toast('Segure o botao pra fechar', 'info');
+}
+
+// v30.21.0: REABRIR EXERCICIO — desfaz o FECHEI/FALTEI de um exercicio fechado NESTA sessao.
+// Devolve 'apagado' (estava no servidor e foi apagado) ou 'ausente' (o servidor nao o tem). Lanca se nao deu para saber.
+async function apagarRegistroDoServidor(localId) {
+  const d = await apiGet({ action: 'getAluno', id: APP.alunoSession.id, pin: APP.alunoSession.pin }); // NAO atribui a APP.data
+  if (!d || !Array.isArray(d.registros)) throw new Error('o servidor nao devolveu os registros');
+  const r = d.registros.find(x => x && x.local_id === localId);
+  if (!r) return 'ausente';
+  const res = await apiPost({
+    action: 'removerRegistroAluno',
+    aluno_id: APP.alunoSession.id,
+    pin: APP.alunoSession.pin,
+    pk: r.pk == null ? '' : String(r.pk),
+    timestamp: String(r.timestamp),
+  });
+  if (!res || !(res.removidos >= 1)) throw new Error('o servidor nao apagou o registro');
+  if (APP.data && Array.isArray(APP.data.registros)) {
+    APP.data.registros = APP.data.registros.filter(x => !(x && x.local_id === localId));
+    invalidateRegistrosCache();
+  }
+  return 'apagado';
+}
+
+let _reabrindo = false;
+async function reabrirExercicio() {
+  if (_reabrindo) return;
+  const idx = TREINAR.idx;
+  const antigo = TREINAR.salvos[idx];
+  const localId = TREINAR.localIds[idx];
+  if (!antigo || !localId) {
+    toast('Registrado em outra sessão — corrija pelo histórico (✕)', 'info');
+    return;
+  }
+  const nome = nomeEfetivo(idx);
+  const fez = registroFechou(antigo);
+  const temSeries = !!(TREINAR.seriesLog[idx] && TREINAR.seriesLog[idx].length);
+  if (!confirm('Reabrir "' + nome + '"' + (fez ? '' : ' (estava marcado FALTEI)') + '?\n\nO registro salvo é apagado e você corrige e fecha de novo.\n\nSe sair sem fechar de novo, o exercício fica sem registro.' +
+      (temSeries ? '\n\nAs séries lançadas continuam: pra mudar a carga delas, use DESFAZER ÚLTIMA.' : ''))) return;
+  _reabrindo = true;
+  _bloqueadosFlush.add(localId);   // nenhum envio leva este registro enquanto o servidor e conferido
+  showLoading(true);
+  try {
+    while (_flushPromise) { try { await _flushPromise; } catch (e) { /* o flush trata os proprios erros */ } }
+    const noBuffer = loadBuffer().find(r => r._localId === localId);
+    if (!(noBuffer && !noBuffer._tentado)) {
+      // enviado (ou enviado e a resposta se perdeu): so da para desfazer com internet
+      if (navigator.onLine === false) { toast('Sem internet — não dá pra conferir o servidor. Tente de novo com sinal.', 'error'); return; }
+      await apagarRegistroDoServidor(localId);
+    }
+    removeFromBuffer(localId);
+    // so aqui, com o servidor limpo, o estado local muda
+    TREINAR.salvos[idx] = null;
+    TREINAR.statuses[idx] = 'pending';
+    TREINAR.localIds[idx] = null;
+    if (TREINAR.idx === idx) {
+      mostrarExercicioAtual();
+      const poe = (id, v) => { if (v != null && String(v) !== '') $(id).value = String(v); };
+      poe('treinar-input-carga', antigo.cargaCampo != null ? antigo.cargaCampo : antigo.carga);
+      poe('treinar-input-reps', antigo.repsCampo != null ? antigo.repsCampo : (String(antigo.reps).indexOf('/') < 0 ? antigo.reps : ''));
+      poe('treinar-input-rir', antigo.rirCampo != null ? antigo.rirCampo : antigo.rir);
+      $('treinar-input-obs').value = antigo.obsDigitada != null ? antigo.obsDigitada : '';
+    } else {
+      atualizarStatusBar();
+    }
+    salvarRascunhoTreino();
+    toast('↶ ' + nome + ' reaberto — corrija e feche de novo', 'info');
+  } catch (e) {
+    toast('Não consegui reabrir: ' + ((e && e.message) || e), 'error');
+  } finally {
+    _bloqueadosFlush.delete(localId);
+    _reabrindo = false;
+    showLoading(false);
+  }
+}
+
+// o resumo e um overlay: sem isto o ultimo exercicio fechado nao tinha como ser corrigido
+function voltarDoResumo() {
+  $('treinar-summary').classList.add('hidden');
+  mostrarExercicioAtual();
+  toast('Abra o exercício que quer corrigir pela LISTA ▸', 'info');
 }
 
 async function faltei() {
@@ -11561,8 +11672,10 @@ async function mostrarSummary() {
   await limparSobrescritos();
   salvarRascunhoTreino();
 
-  const total = TREINAR.resultados.length;
-  const fech = TREINAR.resultados.filter(r => r.completou).length;
+  // v30.21.0: conta pelos registros desta sessao (assim o REABRIR ajusta a contagem sozinho)
+  const feitos = TREINAR.salvos.filter((s, i) => s && TREINAR.localIds[i]);
+  const total = feitos.length;
+  const fech = feitos.filter(s => registroFechou(s)).length;
   const falt = total - fech;
   const failedCount = TREINAR.statuses.filter(s => s === 'failed').length;
   const skippedCount = TREINAR.statuses.filter(s => s === 'skipped').length;

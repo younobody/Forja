@@ -157,9 +157,11 @@
  * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  * v30.20.0: TREINAR volta ao topo ao fechar (a section rola, nao a janela) e a tela inteira mostra fechado/faltei.
  * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
+ * v30.21.0: TREINAR com REABRIR EXERCICIO (desfaz o FECHEI/FALTEI; apaga o registro do servidor por local_id/pk).
+ * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  */
 
-const CACHE_VERSION = 'forja-v30.20.0';
+const CACHE_VERSION = 'forja-v30.21.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).
