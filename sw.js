@@ -155,9 +155,11 @@
  * movimento reduzido de verdade. Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  * v30.19.0: TREINAR com peso e series primeiro (regra e sugestao no fim da tela; REGISTRAR SERIE em destaque).
  * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
+ * v30.20.0: TREINAR volta ao topo ao fechar (a section rola, nao a janela) e a tela inteira mostra fechado/faltei.
+ * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  */
 
-const CACHE_VERSION = 'forja-v30.19.0';
+const CACHE_VERSION = 'forja-v30.20.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).

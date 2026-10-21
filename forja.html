@@ -3494,6 +3494,19 @@
   #tr-nav .btn { background: none; box-shadow: none; min-height: 48px; }
   #tr-extra { background: none; box-shadow: none; }
 
+  /* ==================================================================
+     v30.20.0 — a tela INTEIRA diz se o exercicio esta fechado. O id + a classe vencem o bg-zinc-950 dos utilitarios (secao e cabecalho).
+     A cor nao carrega o sentido sozinha: a faixa #treinar-ja-salvo traz glifo e texto (FECHADO / FALTEI).
+     ================================================================== */
+  #view-treinar.tr-fechado, #view-treinar.tr-fechado > header { background-color: #0D1F17; }
+  #view-treinar.tr-faltou, #view-treinar.tr-faltou > header { background-color: #221012; }
+  #treinar-ja-salvo { font-size: 12px; font-weight: 700; letter-spacing: .06em; padding: 10px 12px; margin: 0 0 12px; border: 1px solid rgba(9,166,107,.55); border-radius: 10px; background: rgba(9,166,107,.12); }
+  #view-treinar.tr-faltou #treinar-ja-salvo { color: #F27872; border-color: rgba(235,77,69,.55); background: rgba(235,77,69,.10); }
+  /* flash de confirmacao ao fechar: parte do verde e volta sozinho ao fundo normal (sem "to" = o valor do proprio elemento) */
+  @keyframes trFlash { from { background-color: #134B35; } }
+  #view-treinar.tr-flash, #view-treinar.tr-flash > header { animation: trFlash .9s ease-out; }
+  @media (prefers-reduced-motion: reduce) { #view-treinar.tr-flash, #view-treinar.tr-flash > header { animation: none; } }
+
 
 </style>
 
@@ -5715,7 +5728,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.19.0';
+const FORJA_VERSION = 'v30.20.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -10771,6 +10784,23 @@ function mostrarExercicioAtual() {
   $('treinar-input-obs').value = salvo ? (salvo.obs || '') : '';
   renderSeriesTreinar();
   $('treinar-ja-salvo').classList.toggle('hidden', !salvo);
+  {
+    // v30.20.0: a tela INTEIRA diz o estado (fundo verde/vermelho escuro) e a faixa diz com texto e glifo.
+    const vt = $('view-treinar');
+    const fez = !!salvo && registroFechou(salvo);
+    vt.classList.toggle('tr-fechado', fez);
+    vt.classList.toggle('tr-faltou', !!salvo && !fez);
+    if (salvo) {
+      const ps = [];
+      const c = valorRegistroLimpo(salvo.carga), r = valorRegistroLimpo(salvo.reps), rr = valorRegistroLimpo(salvo.rir);
+      if (c) ps.push(c);
+      if (r) ps.push('\u00d7' + r);
+      if (rr) ps.push('RIR ' + rr);
+      $('treinar-ja-salvo').textContent = fez
+        ? '\u2713 FECHADO' + (ps.length ? ' \u00b7 ' + ps.join(' \u00b7 ') : '')
+        : '\u2717 FALTEI neste exerc\u00edcio';
+    }
+  }
   ['btn-treinar-fechei', 'btn-treinar-faltei'].forEach(id => {
     const b = $(id);
     b.disabled = !!salvo;
@@ -10808,6 +10838,8 @@ function mostrarExercicioAtual() {
   atualizarStatusBar();
   salvarRascunhoTreino();
   window.scrollTo(0, 0);
+  // v30.20.0: quem rola no TREINAR e a propria section (fixed + overflow-y-auto), nao a janela.
+  $('view-treinar').scrollTop = 0;
 }
 
 // v29.2.1: usado quando o aluno escolhe ADICIONAR (em vez de SOBRESCREVER) a
@@ -11024,9 +11056,15 @@ async function fechei() {
     toast('Tela recem-desbloqueada — segure de novo pra confirmar', 'info');
     return;
   }
+  const nomeFechado = nomeEfetivo(TREINAR.idx);  // v30.20.0: o nome antes de a tela mudar
   const ok = await salvarRegistroAtual(true);
   if (!ok) return;
   proximoExercicio();            // v26: avanca instantaneo
+  // v30.20.0: a tela mudou para outro exercicio — diz qual fechou e pisca o fundo (sem movimento se o aparelho pede).
+  toast('\u2713 ' + nomeFechado + ' fechado', 'success');
+  const vt = $('view-treinar');
+  vt.classList.remove('tr-flash'); void vt.offsetWidth; vt.classList.add('tr-flash');
+  setTimeout(() => vt.classList.remove('tr-flash'), 1000);
   enviarBufferEmBackground();    // v26: envia sem travar a tela
 }
 
