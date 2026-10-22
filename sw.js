@@ -167,14 +167,17 @@
  * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  * v30.25.0: TREINAR com veu de tela inteira ao fechar/faltar (verde/vermelho + nome do exercicio); sai o flash que ninguem via.
  * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
+ * v30.26.0: link para a POLITICA DE PRIVACIDADE (privacidade.html, nova) no login e no rodape do aluno; entra em ASSETS pra abrir offline.
+ * ATENCAO: o shell e cache-first — toda edicao futura de privacidade.html exige novo bump de CACHE_VERSION (igual ao manual.html).
  */
 
-const CACHE_VERSION = 'forja-v30.25.0';
+const CACHE_VERSION = 'forja-v30.26.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).
 const ASSETS = [
   './manual.html',
+  './privacidade.html',
   './manifest.json',
   'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600;800&display=swap'
 ];
