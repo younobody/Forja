@@ -165,9 +165,11 @@
  * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  * v30.24.0: correcoes do aviso de endereco (ABRIR nao e mais bloqueado como pop-up, contagem separa pendentes de outro codigo, iPhone/Safari).
  * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
+ * v30.25.0: TREINAR com veu de tela inteira ao fechar/faltar (verde/vermelho + nome do exercicio); sai o flash que ninguem via.
+ * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  */
 
-const CACHE_VERSION = 'forja-v30.24.0';
+const CACHE_VERSION = 'forja-v30.25.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).

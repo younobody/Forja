@@ -3503,10 +3503,17 @@
   #view-treinar.tr-faltou, #view-treinar.tr-faltou > header { background-color: #221012; }
   #treinar-ja-salvo { font-size: 12px; font-weight: 700; letter-spacing: .06em; padding: 10px 12px; margin: 0 0 12px; border: 1px solid rgba(9,166,107,.55); border-radius: 10px; background: rgba(9,166,107,.12); }
   #view-treinar.tr-faltou #treinar-ja-salvo { color: #F27872; border-color: rgba(235,77,69,.55); background: rgba(235,77,69,.10); }
-  /* flash de confirmacao ao fechar: parte do verde e volta sozinho ao fundo normal (sem "to" = o valor do proprio elemento) */
-  @keyframes trFlash { from { background-color: #134B35; } }
-  #view-treinar.tr-flash, #view-treinar.tr-flash > header { animation: trFlash .9s ease-out; }
-  @media (prefers-reduced-motion: reduce) { #view-treinar.tr-flash, #view-treinar.tr-flash > header { animation: none; } }
+  /* v30.25.0 — VEU de confirmacao ao fechar/faltar (substitui o .tr-flash da v30.20.0, que ninguem via e re-disparava o fadeIn da section).
+     Dentro da section (fixed z-30 = contexto de empilhamento): z 20 fica acima do cabecalho (10) e abaixo de descanso/resumo (40), gaveta (44/45), modais e toast.
+     Alpha <= .26: o veu cobre o texto, e a .30 o cinza claro cairia a ~4,4:1. Acende na hora (transition so na saida); reduced-motion: some sem transicao. */
+  #tr-veu { position: fixed; inset: 0; z-index: 20; pointer-events: none; opacity: 0; transition: opacity .35s ease-out;
+            display: flex; align-items: center; justify-content: center; padding: 0 28px; text-align: center; }
+  #tr-veu.on { opacity: 1; transition: none; }
+  #tr-veu.tr-veu--ok    { background: rgba(9,166,107,.26);  box-shadow: inset 0 0 0 5px rgba(9,166,107,.95); }
+  #tr-veu.tr-veu--falta { background: rgba(235,77,69,.22);  box-shadow: inset 0 0 0 5px rgba(235,77,69,.95); }
+  #tr-veu-selo { font-size: 40px; line-height: 1.05; color: #3FD9A0; text-shadow: 0 2px 14px rgba(0,0,0,.65); overflow-wrap: anywhere; }
+  #tr-veu.tr-veu--falta #tr-veu-selo { color: #F27872; }
+  @media (prefers-reduced-motion: reduce) { #tr-veu { transition: none; } }
 
   /* v30.21.0 — REABRIR EXERCICIO: no exercicio fechado nesta sessao o REABRIR ocupa o lugar do FALTEI + FECHAR (ids vencem o .btn) */
   #btn-treinar-reabrir { display: none; }
@@ -5088,6 +5095,7 @@
 <!-- TELA: TREINAR AGORA (mobile-first guided)   -->
 <!-- =========================================== -->
 <section id="view-treinar" class="hidden fixed inset-0 bg-zinc-950 z-30 overflow-y-auto">
+  <div id="tr-veu" aria-hidden="true"><span id="tr-veu-selo" class="display"></span></div>
   <header class="border-b border-zinc-800 px-4 py-3 sticky top-0 bg-zinc-950 z-10">
     <div class="max-w-2xl mx-auto flex items-center justify-between gap-3">
       <button onclick="encerrarTreinar()" class="tap-44 mono text-xs text-zinc-500 hover:text-zinc-100 tracking-widest">◂ SAIR</button>
@@ -5766,7 +5774,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.24.0';
+const FORJA_VERSION = 'v30.25.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -11107,6 +11115,18 @@ function pularRest() { pararRest(); }  // v20: PRONTO — volta pro mesmo exerci
 // servidor) ja saiu, segurar meio segundo nao deixa o app lento. Camada extra:
 // ao voltar da tela bloqueada, o botao fica travado ~800ms (_travaPosUnlock). O
 // FALTEI ja tem a pergunta "Marcar como FALTEI?".
+// v30.25.0: veu de tela inteira ao fechar/faltar. Um timer so: dois FECHEI seguidos estendem o veu em vez de cortar.
+let _veuTimer = null;
+function veuTreinar(tipo, nome) {
+  const v = $('tr-veu');
+  if (!v) return;
+  $('tr-veu-selo').textContent = (tipo === 'ok' ? '\u2713 ' : '\u2717 ') + String(nome || '').toUpperCase() + (tipo === 'ok' ? ' FECHADO' : ' FALTEI');
+  v.classList.toggle('tr-veu--ok', tipo === 'ok');
+  v.classList.toggle('tr-veu--falta', tipo !== 'ok');
+  v.classList.add('on');
+  clearTimeout(_veuTimer);
+  _veuTimer = setTimeout(() => v.classList.remove('on'), 1100);
+}
 let _travaPosUnlock = false;
 async function fechei() {
   if (_travaPosUnlock) {
@@ -11117,11 +11137,9 @@ async function fechei() {
   const ok = await salvarRegistroAtual(true);
   if (!ok) return;
   proximoExercicio();            // v26: avanca instantaneo
-  // v30.20.0: a tela mudou para outro exercicio — diz qual fechou e pisca o fundo (sem movimento se o aparelho pede).
+  // v30.20.0: a tela mudou para outro exercicio — diz qual fechou. v30.25.0: o veu acende a tela inteira (o .tr-flash antigo saiu).
   toast('\u2713 ' + nomeFechado + ' fechado', 'success');
-  const vt = $('view-treinar');
-  vt.classList.remove('tr-flash'); void vt.offsetWidth; vt.classList.add('tr-flash');
-  setTimeout(() => vt.classList.remove('tr-flash'), 1000);
+  veuTreinar('ok', nomeFechado);
   enviarBufferEmBackground();    // v26: envia sem travar a tela
 }
 
@@ -11239,9 +11257,12 @@ function voltarDoResumo() {
 
 async function faltei() {
   if (!confirm('Marcar este exercicio como FALTEI?')) return;
+  const nomeFaltei = nomeEfetivo(TREINAR.idx);  // v30.25.0: o nome antes de a tela mudar
   const ok = await salvarRegistroAtual(false);
   if (!ok) return;
   proximoExercicio();
+  toast('\u2717 ' + nomeFaltei + ' marcado como faltei', 'error');
+  veuTreinar('falta', nomeFaltei);
   enviarBufferEmBackground();
 }
 
