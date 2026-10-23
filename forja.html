@@ -4534,6 +4534,11 @@
       <input id="home-pin" type="password" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="32" placeholder="••••••••" autocomplete="current-password" class="w-full text-center text-2xl tracking-[0.3em] mb-4" />
       <button id="btn-home-entrar" class="btn btn-primary w-full">ENTRAR ▸</button>
       <div id="home-login-status" class="mono text-xs mt-3 text-center"></div>
+      <div id="google-login" class="hidden mt-4">
+        <div class="mono text-[10px] text-zinc-600 text-center tracking-widest mb-3">OU</div>
+        <div id="google-login-slot" class="flex justify-center" style="min-height:44px"></div>
+        <div id="google-login-status" class="mono text-xs mt-2 text-center"></div>
+      </div>
       <div class="mono text-[10px] text-zinc-600 mt-4 text-center tracking-wider leading-relaxed">
         Digite o seu codigo. O trainer usa a chave admin.
       </div>
@@ -5774,7 +5779,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.26.0';
+const FORJA_VERSION = 'v30.27.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -6438,7 +6443,7 @@ async function parseApiResponse(res) {
 // continua chegando como { error: '...' } com HTTP 200 (parseApiResponse
 // lanca Error(json.error)), e 4xx/5xx do PostgREST cai em networkError.
 // O cache buster _t morreu (POST nao e cacheado pelo navegador).
-async function sbRpc(fn, payload) {
+async function sbRpc(fn, payload, bearer) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
   try {
@@ -6448,7 +6453,7 @@ async function sbRpc(fn, payload) {
       headers: {
         'Content-Type': 'application/json',
         'apikey': SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + (bearer || SUPABASE_ANON_KEY),   // v30.27.0: bearer so na api_google
       },
       body: JSON.stringify({ payload: payload }),
       signal: controller.signal,
@@ -6639,6 +6644,7 @@ function show(id) {
   $(id).classList.remove('hidden');
   $(id).classList.add('fade-in');
   window.scrollTo(0, 0);
+  if (id === 'view-home') googleLoginInit();   // v30.27.0: no maximo 1 checagem por minuto
 }
 
 function logout() {
@@ -6773,7 +6779,7 @@ function tentarSalvarCredencial(id, senha, nome) {
 // continua so em sessionStorage, de proposito: o payload dele carrega o PIN
 // de todos os alunos, e persistir arriscaria deixar acesso permanente se o
 // Marcos logar como trainer num celular que nao e so dele e esquecer o SAIR.
-function entrarComoAluno(sessao, data) {
+function entrarComoAluno(sessao, data, opc) {
   APP.trainerKey = null;
   sessionStorage.removeItem('forja-trainer-key');
   APP.alunoSession = sessao;
@@ -6783,10 +6789,10 @@ function entrarComoAluno(sessao, data) {
   invalidateRegistrosCache();
   try { localStorage.setItem('forja-aluno-session', JSON.stringify(sessao)); } catch (e) {}
   sessionStorage.removeItem('forja-aluno-session');
-  migrarBufferAnonimo();
+  if (!(opc && opc.novo)) migrarBufferAnonimo();   // v30.27.0: conta Google NOVA nao herda registros pendentes anonimos do aparelho
   showLoading(false);
   navigateTo('#aluno/' + sessao.id);
-  tentarSalvarCredencial(sessao.id, sessao.pin, 'FORJA · ' + sessao.id);
+  if (!sessao.google) tentarSalvarCredencial(sessao.id, sessao.pin, 'FORJA · ' + sessao.id);   // v30.27.0: o PIN da conta Google o aluno nunca ve
 }
 
 function entrarComoTrainer(key, data) {
@@ -6829,6 +6835,123 @@ async function loginCodigoLegado(codigo, st) {
       : '<span class="text-red-500">✗ codigo invalido</span>';
   }
 }
+// ---------- v30.27.0: ENTRAR COM GOOGLE ----------
+// Google Identity Services (so o botao, sem One Tap) -> id_token -> Supabase Auth (grant_type=id_token, com nonce) -> RPC api_google
+// (so `authenticated` executa) -> {id, pin}: a conta vira um aluno normal e o JWT e descartado. O Client ID e publico.
+const GOOGLE_CLIENT_ID = '1038979586658-gbg4qd895udg60dlikco4ams8v4h5iqq.apps.googleusercontent.com';
+// So nesta origem o Client ID tem "origem JavaScript autorizada": no github.io antigo e em localhost o botao nem aparece.
+const GOOGLE_ORIGENS = ['https://forja.imovelmedia.workers.dev'];
+let _googleChecadoEm = 0;
+let _googleNonce = '';
+
+function hexAleatorio(bytes) {
+  const b = new Uint8Array(bytes);
+  crypto.getRandomValues(b);
+  return Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+}
+
+async function sha256Hex(txt) {
+  const buf = await crypto.subtle.digest('SHA-256', new window.TextEncoder().encode(txt));
+  return Array.from(new Uint8Array(buf), x => x.toString(16).padStart(2, '0')).join('');
+}
+
+function googleMsg(texto, erro) {
+  const el = $('google-login-status');
+  if (!el) return;
+  el.innerHTML = texto ? '<span class="' + (erro ? 'text-red-500' : 'text-zinc-500') + '">' + escapeHtml(texto) + '</span>' : '';
+}
+
+function googleCarregarScript() {
+  return new Promise((resolve, reject) => {
+    if (window.google && window.google.accounts && window.google.accounts.id) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true;
+    const t = setTimeout(() => reject(new Error('timeout')), 8000);
+    s.onload = () => { clearTimeout(t); resolve(); };
+    s.onerror = () => { clearTimeout(t); reject(new Error('bloqueado')); };
+    document.head.appendChild(s);
+  });
+}
+
+// Mostra o botao so se tudo estiver pronto; qualquer falha deixa so o login por codigo (que sempre funciona).
+async function googleLoginInit() {
+  if (!GOOGLE_ORIGENS.includes(location.origin) || navigator.onLine === false) return;
+  if (Date.now() - _googleChecadoEm < 60000) return;
+  _googleChecadoEm = Date.now();
+  try {
+    const ctl = new AbortController();
+    const tm = setTimeout(() => ctl.abort(), 6000);
+    const r = await fetch(SUPABASE_URL + '/auth/v1/settings', { headers: { apikey: SUPABASE_ANON_KEY }, cache: 'no-store', signal: ctl.signal });
+    clearTimeout(tm);
+    const j = r.ok ? await r.json() : null;
+    if (!j || !j.external || j.external.google !== true) return;   // provedor ainda desligado no Supabase
+    await googleCarregarScript();
+    await googleRenderizar();
+  } catch (e) { /* sem rede, script bloqueado (Brave/DNS) ou timeout: segue so com o codigo */ }
+}
+
+async function googleRenderizar() {
+  const g = window.google && window.google.accounts && window.google.accounts.id;
+  const slot = $('google-login-slot');
+  if (!g || !slot) return;
+  _googleNonce = hexAleatorio(32);                       // um nonce novo por tentativa
+  const hash = await sha256Hex(_googleNonce);            // o Google recebe o hash; o Supabase recebe o valor cru
+  g.initialize({ client_id: GOOGLE_CLIENT_ID, callback: googleCredencial, nonce: hash, ux_mode: 'popup', auto_select: false, cancel_on_tap_outside: true });
+  slot.innerHTML = '';
+  g.renderButton(slot, { type: 'standard', theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'rectangular', logo_alignment: 'left', width: 240, locale: 'pt-BR' });
+  $('google-login').classList.remove('hidden');
+}
+
+function googleErroAmigavel(e, resposta) {
+  if (e && e.name === 'AbortError') return 'Sem resposta do servidor - tente de novo.';
+  // 401/403 do PostgREST nao ajudam o aluno: mensagem generica (so erros de rede/5xx mostram o texto do app)
+  if (e && e.network) return /Servidor respondeu 4\d\d/.test(String(e.message)) ? 'Nao foi possivel entrar com o Google. Use o seu codigo.' : e.message;
+  const bruto = String((resposta && (resposta.error_description || resposta.msg || resposta.message || resposta.error)) || (e && e.message) || '');
+  if (/provider is not enabled|unsupported provider/i.test(bruto)) return 'O login com Google ainda nao esta ativo. Use o seu codigo.';
+  if (/nonce/i.test(bruto)) return 'Falha de seguranca no login com Google. Tente de novo.';
+  // mensagens em portugues da api_google (conta bloqueada, limite, cadastro fechado...) sao seguras e uteis
+  if (e && e.pt) return e.message;
+  return 'Nao foi possivel entrar com o Google. Use o seu codigo.';
+}
+
+async function googleCredencial(resp) {
+  const cred = resp && resp.credential;
+  const nonce = _googleNonce;
+  if (!cred || !nonce) { googleMsg('Nao foi possivel entrar com o Google. Use o seu codigo.', true); return; }
+  showLoading(true);
+  googleMsg('');
+  let token = null;
+  try {
+    let jt = {};
+    const ctl = new AbortController();
+    const tm = setTimeout(() => ctl.abort(), 15000);   // rede travada nao pode deixar a tela de carregando presa
+    let rt;
+    try {
+      rt = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=id_token', {
+      method: 'POST', cache: 'no-store', signal: ctl.signal,
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+      body: JSON.stringify({ provider: 'google', id_token: cred, nonce: nonce }),
+      });
+    } finally { clearTimeout(tm); }
+    try { jt = await rt.json(); } catch (e) { jt = {}; }
+    if (!rt.ok || !jt.access_token) { const err = new Error('token'); err.resposta = jt; throw err; }
+    token = jt.access_token;
+    let r;
+    try { r = await sbRpc('api_google', {}, token); }
+    catch (e) { if (!e.network) e.pt = true; throw e; }
+    if (!r || r.role !== 'aluno' || !r.id || !r.pin) throw new Error('resposta invalida');
+    entrarComoAluno({ id: r.id, pin: r.pin, google: true }, r, { google: true, novo: !!r.novo });
+  } catch (e) {
+    showLoading(false);
+    googleMsg(googleErroAmigavel(e, e && e.resposta), true);
+  } finally {
+    // o JWT do Supabase nao e guardado em lugar nenhum; alem de descartar, revoga a sessao no servidor
+    if (token) { try { fetch(SUPABASE_URL + '/auth/v1/logout', { method: 'POST', keepalive: true, headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token } }).catch(() => {}); } catch (e2) {} }
+    googleRenderizar();   // nonce novo para a proxima tentativa
+  }
+}
+
 $('btn-home-entrar').onclick = loginCodigo;
 {
   const el = $('home-pin');
@@ -8662,7 +8785,11 @@ function renderAlunoPlano() {
   const plano = (APP.data.plano || []).filter(p => String(p.dia).toUpperCase() === day);
   const div = $('aluno-plano');
   if (plano.length === 0) {
-    div.innerHTML = '<div class="mono text-xs text-zinc-500 py-12 text-center glass">Sem exercicios neste dia ainda. Aguarde seu trainer.</div>';
+    // v30.27.0: conta sem plano nenhum (tipico de quem acabou de entrar com o Google) — diz o que fazer, sem culpar o aluno
+    const semPlanoNenhum = !(APP.data.plano || []).length;
+    div.innerHTML = semPlanoNenhum
+      ? '<div class="mono text-xs text-zinc-500 py-8 px-4 text-center glass leading-relaxed">Voce ainda nao tem um plano de treino. Seu instrutor monta o plano e ele aparece aqui.<br><br>Se voce ja treina com ele e entrou com o Google, avise qual e o seu e-mail Google para ele ligar esta entrada ao seu cadastro.</div>'
+      : '<div class="mono text-xs text-zinc-500 py-12 text-center glass">Sem exercicios neste dia ainda. Aguarde seu trainer.</div>';
     return;
   }
   // v30: a barrinha por card virou um TRILHO continuo de brasa que corre

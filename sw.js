@@ -169,9 +169,11 @@
  * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  * v30.26.0: link para a POLITICA DE PRIVACIDADE (privacidade.html, nova) no login e no rodape do aluno; entra em ASSETS pra abrir offline.
  * ATENCAO: o shell e cache-first — toda edicao futura de privacidade.html exige novo bump de CACHE_VERSION (igual ao manual.html).
+ * v30.27.0: ENTRAR COM GOOGLE. O script do Google Identity Services (accounts.google.com) passa DIRETO pela rede (sem respondWith): o
+ * cache-first congelaria uma versao velha dele. Politica de privacidade atualizada (contas Google comecam fora do painel publico).
  */
 
-const CACHE_VERSION = 'forja-v30.26.0';
+const CACHE_VERSION = 'forja-v30.27.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).
@@ -225,6 +227,9 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const { request } = e;
   const url = new URL(request.url);
+
+  // v30.27.0: Google Identity Services (login com Google): sempre rede, nunca cache. Sem respondWith o navegador trata sozinho.
+  if (url.hostname === 'accounts.google.com') return;
 
   // v29.4.0: fallback pro shell SO em navegacao. Antes, qualquer request que
   // falhasse (script, fetch de API) recebia o forja.html com status 200 -
