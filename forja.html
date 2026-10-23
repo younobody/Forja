@@ -3503,6 +3503,9 @@
   #view-treinar.tr-faltou, #view-treinar.tr-faltou > header { background-color: #221012; }
   #treinar-ja-salvo { font-size: 12px; font-weight: 700; letter-spacing: .06em; padding: 10px 12px; margin: 0 0 12px; border: 1px solid rgba(9,166,107,.55); border-radius: 10px; background: rgba(9,166,107,.12); }
   #view-treinar.tr-faltou #treinar-ja-salvo { color: #F27872; border-color: rgba(235,77,69,.55); background: rgba(235,77,69,.10); }
+  /* v30.27.1 — o botao do Google e um iframe LIGHT; num app color-scheme:dark ele ganharia fundo opaco (moldura branca). So o slot e afetado. */
+  #google-login-slot { color-scheme: light; }
+
   /* v30.25.0 — VEU de confirmacao ao fechar/faltar (substitui o .tr-flash da v30.20.0, que ninguem via e re-disparava o fadeIn da section).
      Dentro da section (fixed z-30 = contexto de empilhamento): z 20 fica acima do cabecalho (10) e abaixo de descanso/resumo (40), gaveta (44/45), modais e toast.
      Alpha <= .26: o veu cobre o texto, e a .30 o cinza claro cairia a ~4,4:1. Acende na hora (transition so na saida); reduced-motion: some sem transicao. */
@@ -5779,7 +5782,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.27.0';
+const FORJA_VERSION = 'v30.27.1';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
