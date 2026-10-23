@@ -172,9 +172,11 @@
  * v30.27.0: ENTRAR COM GOOGLE. O script do Google Identity Services (accounts.google.com) passa DIRETO pela rede (sem respondWith): o
  * cache-first congelaria uma versao velha dele. Politica de privacidade atualizada (contas Google comecam fora do painel publico).
  * v30.27.1: botao do Google sem a moldura branca (color-scheme light no slot). Frontend-only; bump so pra invalidar o cache do shell.
+ * v30.28.0: TREINO LIVRE (conta sem plano treina com + EXERCICIO EXTRA); modal de extra fora do #view-treinar; obs do treino com maxlength.
+ * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  */
 
-const CACHE_VERSION = 'forja-v30.27.1';
+const CACHE_VERSION = 'forja-v30.28.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).

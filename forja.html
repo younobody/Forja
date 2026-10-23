@@ -5102,6 +5102,20 @@
 <!-- =========================================== -->
 <!-- TELA: TREINAR AGORA (mobile-first guided)   -->
 <!-- =========================================== -->
+<!-- v30.28.0: o modal de EXERCICIO EXTRA mora FORA do #view-treinar (hidden): no treino livre ele abre por cima do painel do aluno. -->
+<div id="modal-extra-exercicio" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-50 flex items-center justify-center px-6">
+  <div class="max-w-sm w-full glass p-6 corners">
+    <div id="extra-titulo" class="mono text-[10px] text-zinc-500 tracking-widest mb-3">EXERCÍCIO EXTRA · FORA DO PLANO</div>
+    <input id="extra-exercicio-input" list="lista-exercicios-conhecidos" placeholder="Nome do exercicio..." maxlength="80" class="w-full mb-1" autocomplete="off" />
+    <datalist id="lista-exercicios-conhecidos"></datalist>
+    <div class="mono text-[10px] text-zinc-600 mb-4 leading-relaxed">Digite um nome novo ou escolha um já cadastrado (sugestões aparecem ao digitar).</div>
+    <div class="flex gap-3">
+      <button onclick="fecharModalExtra()" class="btn flex-1">CANCELAR</button>
+      <button onclick="confirmarExercicioExtra()" class="btn btn-primary flex-1">ADICIONAR</button>
+    </div>
+  </div>
+</div>
+
 <section id="view-treinar" class="hidden fixed inset-0 bg-zinc-950 z-30 overflow-y-auto">
   <div id="tr-veu" aria-hidden="true"><span id="tr-veu-selo" class="display"></span></div>
   <header class="border-b border-zinc-800 px-4 py-3 sticky top-0 bg-zinc-950 z-10">
@@ -5164,11 +5178,11 @@
     <div class="grid grid-cols-3 gap-3 tr-fields">
       <div>
         <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">CARGA</label>
-        <input id="treinar-input-carga" type="text" inputmode="decimal" autocomplete="off" class="w-full text-2xl py-3 text-center" />
+        <input id="treinar-input-carga" type="text" inputmode="decimal" autocomplete="off" maxlength="40" class="w-full text-2xl py-3 text-center" />
       </div>
       <div>
         <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">REPS</label>
-        <input id="treinar-input-reps" type="text" inputmode="text" autocomplete="off" class="w-full text-2xl py-3 text-center" />
+        <input id="treinar-input-reps" type="text" inputmode="text" autocomplete="off" maxlength="60" class="w-full text-2xl py-3 text-center" />
         <div class="flex justify-center gap-2 mt-1">
           <button type="button" class="btn px-3 py-1" onclick="ajustarRepsSerie(-1)" aria-label="Diminuir uma repetição">−</button>
           <button type="button" class="btn px-3 py-1" onclick="ajustarRepsSerie(1)" aria-label="Aumentar uma repetição">+</button>
@@ -5176,7 +5190,7 @@
       </div>
       <div>
         <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">RIR</label>
-        <input id="treinar-input-rir" type="text" inputmode="numeric" autocomplete="off" class="w-full text-2xl py-3 text-center" />
+        <input id="treinar-input-rir" type="text" inputmode="numeric" autocomplete="off" maxlength="40" class="w-full text-2xl py-3 text-center" />
       </div>
     </div>
     <section class="p-3 border series-log-panel" style="border-color:rgba(16,147,94,.4);background:rgba(16,147,94,.05)" aria-label="Registro de séries">
@@ -5229,7 +5243,7 @@
     </div>
     <div id="tr-obs-linha" class="mb-3">
       <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">OBS</label>
-      <input id="treinar-input-obs" type="text" placeholder="opcional" class="w-full" />
+      <input id="treinar-input-obs" type="text" placeholder="opcional" maxlength="1500" class="w-full" />
     </div>
     <div id="tr-data-linha" class="mb-6">
       <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DATA DO TREINO (opcional, padrão hoje)</label>
@@ -5253,18 +5267,6 @@
        dia na sessao atual. O input aceita digitar livre OU escolher de um
        autocomplete com exercicios ja conhecidos (datalist = as 2 opcoes numa
        coisa so). -->
-  <div id="modal-extra-exercicio" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-50 flex items-center justify-center px-6">
-    <div class="max-w-sm w-full glass p-6 corners">
-      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-3">EXERCÍCIO EXTRA · FORA DO PLANO</div>
-      <input id="extra-exercicio-input" list="lista-exercicios-conhecidos" placeholder="Nome do exercicio..." class="w-full mb-1" autocomplete="off" />
-      <datalist id="lista-exercicios-conhecidos"></datalist>
-      <div class="mono text-[10px] text-zinc-600 mb-4 leading-relaxed">Digite um nome novo ou escolha um já cadastrado (sugestões aparecem ao digitar).</div>
-      <div class="flex gap-3">
-        <button onclick="fecharModalExtra()" class="btn flex-1">CANCELAR</button>
-        <button onclick="confirmarExercicioExtra()" class="btn btn-primary flex-1">ADICIONAR</button>
-      </div>
-    </div>
-  </div>
 
   <!-- v30.2.0: LISTA DO DIA. Fica dentro de #view-treinar de proposito: a
        classe .tl-on mora no proprio view, entao sair do TREINAR ja fecha a
@@ -5420,7 +5422,7 @@
          deste arquivo (so .pt-2), entao a classe seria ignorada em silencio. -->
     <div class="mt-6 border-t border-zinc-800" style="padding-top:1rem;">
       <div class="mono text-[10px] text-zinc-500 tracking-widest mb-2">OUTRO · ESCREVER O NOME</div>
-      <input id="trocar-livre-input" list="lista-exercicios-conhecidos" placeholder="Nome do exercicio..." class="w-full mb-3" autocomplete="off" />
+      <input id="trocar-livre-input" list="lista-exercicios-conhecidos" placeholder="Nome do exercicio..." maxlength="80" class="w-full mb-3" autocomplete="off" />
       <button type="button" onclick="trocarPorTextoLivre()" class="btn btn-primary w-full py-3">⇄ TROCAR POR ESTE</button>
     </div>
   </div>
@@ -5782,7 +5784,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.27.1';
+const FORJA_VERSION = 'v30.28.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -8791,7 +8793,7 @@ function renderAlunoPlano() {
     // v30.27.0: conta sem plano nenhum (tipico de quem acabou de entrar com o Google) — diz o que fazer, sem culpar o aluno
     const semPlanoNenhum = !(APP.data.plano || []).length;
     div.innerHTML = semPlanoNenhum
-      ? '<div class="mono text-xs text-zinc-500 py-8 px-4 text-center glass leading-relaxed">Voce ainda nao tem um plano de treino. Seu instrutor monta o plano e ele aparece aqui.<br><br>Se voce ja treina com ele e entrou com o Google, avise qual e o seu e-mail Google para ele ligar esta entrada ao seu cadastro.</div>'
+      ? '<div class="mono text-xs text-zinc-500 py-8 px-4 text-center glass leading-relaxed">Voce ainda nao tem um plano de treino, mas pode treinar do mesmo jeito: toque em TREINAR AGORA e monte o seu treino com + EXERCICIO EXTRA.<br><br>Se voce ja treina com um instrutor e entrou com o Google, avise qual e o seu e-mail Google para ele ligar esta entrada ao seu cadastro e montar o seu plano.</div>'
       : '<div class="mono text-xs text-zinc-500 py-12 text-center glass">Sem exercicios neste dia ainda. Aguarde seu trainer.</div>';
     return;
   }
@@ -10719,16 +10721,32 @@ function setDataTreinarTravada(travada) {
   inp.title = travada ? 'Data fixada no 1o exercicio salvo desta sessao' : '';
 }
 
+// v30.28.0: conta SEM NENHUM plano (quem entrou pelo Google) treina LIVRE, montando a sessao com + EXERCICIO EXTRA. Derivado do plano,
+// nao de flag em memoria: vale tambem ao RETOMAR um treino interrompido.
+function treinoLivre() { return !!(APP.data && !(APP.data.plano || []).length); }
+
 function iniciarTreinar() {
   const rascunho = lerRascunhoTreino();
   if (rascunho && !confirm('Existe um treino interrompido. Começar outro treino vai apagar esse rascunho. Deseja continuar?')) return;
-  if (rascunho) { const key = chaveRascunhoTreino(); try { localStorage.removeItem(key); } catch (e) {} }
   const day = APP.alunoDay;
   const plano = (APP.data.plano || []).filter(p => String(p.dia).toUpperCase() === day);
   if (plano.length === 0) {
+    if (treinoLivre()) {
+      // nada comeca ainda (e o rascunho antigo continua la): so quando o 1o exercicio for confirmado, comecarTreinar roda
+      TREINAR._aguardandoExtra = true;
+      abrirModalExtra();
+      return;
+    }
     toast('Sem exercicios neste dia. Aguarde seu trainer.', 'error');
     return;
   }
+  comecarTreinar(plano);
+}
+
+function comecarTreinar(plano, opc) {
+  const day = APP.alunoDay;
+  // o rascunho antigo so some AGORA, quando o treino novo de fato comeca (antes: logo apos o confirm, mesmo se o aluno desistisse)
+  if (lerRascunhoTreino()) { const key = chaveRascunhoTreino(); try { localStorage.removeItem(key); } catch (e) {} }
   TREINAR.active = true;
   TREINAR.dataTreino = '';
   TREINAR.sobrescrever = [];
@@ -10761,6 +10779,7 @@ function iniciarTreinar() {
   $('view-aluno').classList.add('hidden');
   $('view-treinar').classList.remove('hidden');
   $('treinar-summary').classList.add('hidden');
+  if (opc && opc.semMostrar) return;   // treino livre: o extra e empurrado logo em seguida (confirmarExercicioExtra)
   mostrarExercicioAtual();
   salvarRascunhoTreino();
 }
@@ -10855,8 +10874,9 @@ function mostrarExercicioAtual() {
   }
   // v18: tipo composto/isolado com sugestao de descanso no alvo
   const tiEx = tipoInfo(p.tipo);
-  $('treinar-alvo').textContent =
-    `${p.series || '?'}×${p.reps || '?'} · ${p.carga || '—'} · RIR ${p.rir != null && p.rir !== '' ? p.rir : '—'}` +
+  $('treinar-alvo').textContent = (p._extra && !p.series && !p.reps && !p.carga)
+    ? ''   // v30.28.0: extra livre nao tem alvo; antes aparecia "?×? · — · RIR —"
+    : `${p.series || '?'}×${p.reps || '?'} · ${p.carga || '—'} · RIR ${p.rir != null && p.rir !== '' ? p.rir : '—'}` +
     (tiEx ? ` · ${tiEx.label}` : '');
   // v15: timer removido — tira "Descanso: Xs" do obs, mantem o resto (ex: MONITORAR)
   const obsLimpa = String(p.obs || '').replace(/descanso\s*:?\s*\d+(?:\s*-\s*\d+)?\s*s\s*\|?\s*/ig, '').replace(/^\s*\|\s*/, '').trim();
@@ -11679,11 +11699,13 @@ function abrirModalExtra() {
   // e entra dentro de um atributo HTML.
   if (dl) dl.innerHTML = nomesConhecidosParaExtra().map(n => `<option value="${escapeHtml(n)}">`).join('');
   $('extra-exercicio-input').value = '';
+  $('extra-titulo').textContent = treinoLivre() ? 'TREINO LIVRE · ADICIONAR EXERCÍCIO' : 'EXERCÍCIO EXTRA · FORA DO PLANO';   // v30.28.0
   $('modal-extra-exercicio').classList.remove('hidden');
   setTimeout(() => $('extra-exercicio-input').focus(), 50);
 }
 
 function fecharModalExtra() {
+  TREINAR._aguardandoExtra = false;   // v30.28.0: cancelar = o treino livre nem chegou a comecar
   $('modal-extra-exercicio').classList.add('hidden');
 }
 
@@ -11697,6 +11719,7 @@ function confirmarExercicioExtra() {
   // inteiro do save (pushBuffer -> _flushBufferInner -> apiPost). Tambem nao
   // suja APP.data.plano: os itens do plano sao referencias compartilhadas com
   // ele, mas este objeto e literal novo, criado aqui.
+  if (TREINAR._aguardandoExtra) { TREINAR._aguardandoExtra = false; comecarTreinar([], { semMostrar: true }); }   // v30.28.0: treino livre nasce aqui
   TREINAR.plano.push({ dia: APP.alunoDay, ordem: TREINAR.plano.length + 1, exercicio: nome, series: '', reps: '', carga: '', rir: '', obs: '', _extra: true });
   TREINAR.statuses.push('pending');
   TREINAR.localIds.push(null);
@@ -11761,7 +11784,7 @@ function excluirExercicioAtual() {
   // entao sempre sobra pelo menos 1 item do PLANO, que nao e removivel. O
   // guarda fica assim mesmo porque a tela sem exercicio nenhum e um beco (o
   // proximoExercicio cairia direto no resumo e o progresso viraria 0/0).
-  if (TREINAR.plano.length <= 1) { toast('E o unico exercicio da sessao - nao da pra remover', 'error'); return; }
+  if (TREINAR.plano.length <= 1) { toast(treinoLivre() ? 'E o unico exercicio da sessao - use TROCAR para corrigir o nome' : 'E o unico exercicio da sessao - nao da pra remover', 'error'); return; }
   const nome = nomeEfetivo(idx) || p.exercicio || 'este exercicio';
   if (!confirm('Remover "' + nome + '" da sessao?\n\nSo sai da lista de hoje. Nada foi registrado ainda, entao nada e apagado do historico.')) return;
   const nomeOriginal = p.exercicio;
@@ -11784,6 +11807,11 @@ function proximoExercicio() {
       mostrarExercicioAtual();
       return;
     }
+  }
+  if (treinoLivre() && TREINAR.active) {   // v30.28.0: no treino livre a sessao e aberta; o resumo vem de PROXIMO > (finalizar?)
+    toast('Treino livre: adicione o proximo exercicio, ou CANCELAR e toque PROXIMO para finalizar', 'info');
+    abrirModalExtra();
+    return;
   }
   mostrarSummary(); // nada pendente -> resumo automatico
 }
