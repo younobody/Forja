@@ -1,5 +1,7 @@
-# Fora do site publicado: o SQL do banco e arquivos de configuracao.
+# Fora do site publicado: o SQL do banco, a documentacao, os testes e arquivos de configuracao.
 supabase/
+docs/
+tests/
 .git
 .gitignore
 .assetsignore

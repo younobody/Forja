@@ -1,0 +1,17 @@
+{
+  "name": "forja-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Baterias de navegador do FORJA (Playwright + backend simulado, sem dados reais)",
+  "scripts": {
+    "test": "node run-all.js",
+    "serve": "node serve.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "axe-core": "4.10.2",
+    "playwright": "1.63.0"
+  }
+}
