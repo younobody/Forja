@@ -3526,6 +3526,172 @@
   #btn-summary-corrigir { background: none; box-shadow: none; }
 
 
+  /* =====================================================================
+     v30.30.0 · ABAS DO ALUNO + PLANO EM COLUNAS
+     O painel do aluno era uma rolagem de ~3000px: o plano do dia so comecava em y=1448 (o mapa muscular, ~1100px,
+     vinha antes dele) e PESO / EVOLUCAO / CONSOLE ficavam a mais de 2500px. Agora ha 4 abas fixas no pe da tela
+     (TREINO · EVOLUCAO · CORPO · MAIS) e cada bloco mora no seu painel (data-pane).
+     So VISIBILIDADE: nenhum render mudou de lugar, ids e handlers sao os mesmos. Sem data-aba no <section> (JS
+     quebrado) todos os paineis aparecem, que e o comportamento antigo.
+     Prefixos novos: .abas/.aba (barra) · .dia- (seletor) · .pl- (plano) · .pronto- (painel do mapa) · .pr- (resumo
+     de peso) · .mais- (lista de acoes). O Tailwind deste arquivo e PRE-COMPILADO: classe nova so existe aqui.
+     ===================================================================== */
+  #view-aluno[data-aba="treino"]   [data-pane]:not([data-pane="treino"]),
+  #view-aluno[data-aba="evolucao"] [data-pane]:not([data-pane="evolucao"]),
+  #view-aluno[data-aba="corpo"]    [data-pane]:not([data-pane="corpo"]),
+  #view-aluno[data-aba="mais"]     [data-pane]:not([data-pane="mais"]) { display: none !important; }
+
+  /* margem lateral de 16px (eram 24): +16px de largura util pro plano em 360px. Fundo com folga pra barra fixa. */
+  #view-aluno > main { padding: 1.25rem 1rem calc(6.25rem + env(safe-area-inset-bottom)); }
+  @media (min-width: 640px) { #view-aluno > main { padding-left: 1.5rem; padding-right: 1.5rem; } }
+
+  /* ---- barra de abas (fora do <section>: o .fade-in dele tem transform e prenderia o position:fixed) ---- */
+  .abas {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;   /* abaixo do TREINAR (30), do cabecalho (30) e dos modais (40) */
+    width: 100%; max-width: 34rem; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: #0D1117;   /* opaco: com 97% o texto que rola por tras aparecia fantasma atras dos icones */
+    border-top: 1px solid var(--border-hot);
+    box-shadow: 0 -16px 30px -20px #000;
+  }
+  @media (min-width: 640px) {
+    .abas { bottom: 12px; padding-bottom: 6px; border: 1px solid var(--border-hot); border-radius: 22px; box-shadow: var(--sh-3); }
+  }
+  .aba {
+    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+    min-height: 54px; padding: 6px 2px 5px; border: 0; border-radius: var(--r-md); background: transparent;
+    color: var(--text-faint);   /* 7.3:1 sobre a barra */
+    font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.06em; line-height: 1;
+    text-transform: uppercase; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    transition: color .15s, background-color .15s;
+  }
+  .aba .icn { --icn-size: 22px; --icn-w: 1.9; vertical-align: 0; transition: transform .15s; }
+  .aba[aria-current="page"] { color: var(--text); }
+  .aba[aria-current="page"] .icn { color: var(--acc-ink); }
+  /* a aba ativa se diz por FORMA (traco de brasa no topo) e por cor do icone, nao so por cor */
+  .aba[aria-current="page"]::before {
+    content: ""; position: absolute; top: -7px; left: 50%; width: 30px; height: 3px; margin-left: -15px;
+    border-radius: 0 0 4px 4px; background: linear-gradient(90deg, var(--brasa-3), var(--brasa-4));
+    box-shadow: 0 8px 16px -2px rgba(255,107,51,.65);
+  }
+  .aba:active { background: rgba(255,255,255,.07); }
+  .aba:active .icn { transform: scale(.92); }
+  @media (hover: hover) { .aba:hover { color: var(--text); background: rgba(255,255,255,.04); } }
+  .aba:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+  /* celular deitado (altura <= 480px): a barra ocupava ~19% da tela; fica so com os icones (o nome acessivel esta no aria-label) */
+  @media (max-height: 480px) {
+    .aba span { display: none; }
+    .aba { min-height: 44px; }
+    #view-aluno > main { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
+  }
+  /* o aviso de instalar o app e fixo no rodape: sobe acima da barra */
+  body.tem-abas #install-banner { bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
+
+  /* ---- cabecalho: so o SYNC (SAIR foi pra aba MAIS) ---- */
+  #btn-aluno-refresh { width: 44px; min-width: 44px; padding: 0; }
+
+  /* ---- linha de status e objetivo ---- */
+  #aluno-last {
+    display: inline-flex; align-items: center; margin: 0 0 .75rem; padding: 5px 11px;
+    border: 1px solid var(--border); border-radius: var(--r-pill); background: var(--surface-1);
+    color: var(--text-dim); font-size: 0.6875rem; letter-spacing: 0.06em;
+  }
+  #aluno-meta { margin: 0 0 1rem; font-size: 0.75rem; line-height: 1.4; color: var(--text-dim); }
+  #aluno-meta:empty { display: none; }
+
+  /* ---- seletor de dia: segmentos de largura igual, letra + quantos exercicios ---- */
+  #aluno-day-tabs {
+    display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px;
+    padding: 5px; margin-bottom: 1rem;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--sh-inset);
+  }
+  #aluno-day-tabs .tab-btn { flex-direction: column; gap: 3px; min-height: 54px; margin: 0; padding: 4px 6px; border-bottom: 0; border-radius: 12px; }
+  #aluno-day-tabs .tab-btn + .tab-btn { margin-left: 0; }
+  .dia-l { font-family: 'Bebas Neue', sans-serif; font-size: 1.625rem; font-weight: 400; letter-spacing: 0.02em; line-height: .9; }
+  .dia-n { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.04em; line-height: 1; }
+
+  /* ---- painel "pronto pra treinar" (saiu de dentro do mapa; agora e uma faixa de 2 linhas no TREINO) ---- */
+  #aluno-mapa-painel { margin-bottom: 1rem; }
+  #aluno-mapa-painel:empty { display: none; }
+  .pronto {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "k k s" "t d d" "a a a";
+    column-gap: 12px; row-gap: 4px; align-items: center; width: 100%; margin: 0; padding: 11px 14px 12px; text-align: left;
+    border: 1px solid rgba(9,166,107,.45); border-radius: 14px; background: rgba(9,166,107,.12);
+    color: inherit; font: inherit; -webkit-tap-highlight-color: transparent;
+  }
+  button.pronto { cursor: pointer; }
+  button.pronto:active { background: rgba(9,166,107,.2); }
+  button.pronto:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .pronto-k { grid-area: k; font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.08em; line-height: 1; white-space: nowrap; color: var(--ok-ink); }
+  .pronto-seta { grid-area: s; font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.08em; line-height: 1; white-space: nowrap; color: var(--text-dim); }
+  .pronto-t { grid-area: t; font-family: 'Bebas Neue', sans-serif; font-size: 1.75rem; line-height: 1; letter-spacing: 0.02em; white-space: nowrap; color: var(--text); }
+  .pronto-d { grid-area: d; font-size: 0.8125rem; line-height: 1.35; color: var(--text-dim); }
+  .pronto-alerta { grid-area: a; margin-top: 2px; font-size: 0.75rem; line-height: 1.35; color: var(--falta-soft); }
+  .pronto--novo { grid-template-areas: "k k k" "t d d"; border-color: var(--border-hot); background: var(--surface-1); }
+  .pronto--novo .pronto-k { color: var(--acc-ink); }
+
+  /* ---- plano do dia: cabecalho + linhas compactas (era ~125px por exercicio, agora ~90px) ---- */
+  .pl-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: .25rem 2px .6rem; }
+  .pl-cab-t { font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.1em; color: var(--text-faint); }
+  .pl-cab-t b { color: var(--text); font-weight: 600; }
+  .pl-cab-l { font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; letter-spacing: 0.04em; color: var(--text-faint); }
+  #aluno-plano.fg-lista { gap: 10px; margin-bottom: 1.5rem; }
+  .pl-row { padding: 12px 12px 10px; }
+  .pl-top { display: flex; align-items: flex-start; gap: 10px; }
+  .pl-n { flex: none; width: 1.35rem; padding-top: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; line-height: 1; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+  .pl-ex { flex: 1 1 auto; min-width: 0; margin: 0; padding: 0; border: 0; background: none; text-align: left; color: var(--text);
+           font: 500 1rem/1.25 'DM Sans', system-ui, sans-serif; overflow-wrap: anywhere; }
+  button.pl-ex { cursor: pointer; }
+  button.pl-ex:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
+  .pl-i { font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; color: var(--text-faint); }
+  .pl-tipo { flex: none; margin-top: 2px; white-space: nowrap; }
+  /* as 4 colunas tem a MESMA grade em todos os exercicios: carga, reps e RIR ficam alinhados de um card pro outro */
+  .pl-grid { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.1fr) minmax(0, 1.35fr) minmax(0, .7fr); margin: 10px 0 0; padding: 0; }
+  .pl-grid > div { min-width: 0; padding: 0 8px; border-left: 1px solid var(--border-hot); }
+  .pl-grid > div:first-child { padding-left: 0; border-left: 0; }
+  .pl-grid dt { margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.05em; line-height: 1; color: var(--text-faint); }
+  .pl-grid dd { margin: 5px 0 0; font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 700; line-height: 1.15; color: var(--text);
+                font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .pl-row .obs-fold-btn { margin-top: 6px; }
+  @media (min-width: 640px) { .pl-grid { max-width: 34rem; } }   /* tablet/desktop: as 4 colunas nao se espalham por 850px */
+
+  /* ---- aba CORPO: resumo do peso ---- */
+  .pr-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 14px 14px 16px; margin-bottom: 1rem; }
+  .pr-k { font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.1em; line-height: 1; color: var(--text-faint); }
+  .pr-v { margin-top: 8px; font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; line-height: .9; color: var(--text); font-variant-numeric: tabular-nums; }
+  .pr-v small { margin-left: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; font-weight: 500; color: var(--text-dim); }
+  .pr-sub { margin-top: 7px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; line-height: 1.35; color: var(--text-dim); }
+  .pr-btn { flex: none; }
+
+  /* ---- aba MAIS: lista de acoes (cada uma abre o modal/tela que ja existia) ---- */
+  .mais-lista { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.25rem; }
+  .mais-k { margin: 0 2px 2px; font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.1em; line-height: 1; color: var(--text-faint); }
+  .mais-item {
+    display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 10px 14px; text-align: left; cursor: pointer;
+    background: linear-gradient(180deg, var(--surface-2), var(--surface-1)); border: 1px solid var(--border); border-radius: var(--r-lg);
+    box-shadow: var(--sh-1); color: var(--text); -webkit-tap-highlight-color: transparent;
+  }
+  .mais-item .icn { --icn-size: 22px; flex: none; color: var(--acc-ink); vertical-align: 0; }
+  .mais-t { display: block; font-family: 'JetBrains Mono', monospace; font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.06em; line-height: 1.2; }
+  .mais-s { display: block; margin-top: 3px; font-size: 0.75rem; line-height: 1.3; color: var(--text-dim); }
+  .mais-seta { margin-left: auto; font-style: normal; color: var(--text-faint); }
+  .mais-item:active { transform: translateY(1px); border-color: var(--border-hot); box-shadow: var(--sh-press); }
+  @media (hover: hover) { .mais-item:hover { border-color: var(--border-hot); box-shadow: var(--sh-2); } }
+  .mais-item:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .mais-conta { margin-top: 1.5rem; }
+  .mais-rodape { margin-top: 1.5rem; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; letter-spacing: 0.08em; line-height: 1.9; color: var(--text-faint); }
+  .mais-rodape a { color: var(--text-dim); text-decoration: underline; text-underline-offset: 3px; }
+  #aluno-notas { margin-top: 0; }
+  #aluno-historico-section { padding: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .aba, .aba .icn { transition: none; }
+    .aba:active .icn { transform: none; }
+    .mais-item:active { transform: none; }
+  }
+
 </style>
 
 <style id="console-css">
@@ -4756,27 +4922,26 @@
 <!-- =========================================== -->
 <!-- TELA: ALUNO DASHBOARD                       -->
 <!-- =========================================== -->
-<section id="view-aluno" class="hidden min-h-screen pb-16">
-  <header class="scanbar fx-aco-escovado fx-vidro px-6 py-4 sticky top-0 z-30" style="background:rgba(18,23,31,0.78);backdrop-filter:blur(14px) saturate(125%);border-bottom:1px solid #242C38;box-shadow:0 1px 0 rgba(255,255,255,0.06) inset, 0 6px 20px rgba(0,0,0,0.5)">
+<section id="view-aluno" class="hidden min-h-screen" data-aba="treino">
+  <header role="banner" class="scanbar fx-aco-escovado fx-vidro px-6 py-4 sticky top-0 z-30" style="background:rgba(18,23,31,0.78);backdrop-filter:blur(14px) saturate(125%);border-bottom:1px solid #242C38;box-shadow:0 1px 0 rgba(255,255,255,0.06) inset, 0 6px 20px rgba(0,0,0,0.5)">
     <div class="max-w-4xl mx-auto flex items-center justify-between gap-4">
       <div class="flex items-center gap-3 min0">
         <div id="aluno-avatar" class="avatar bg-steel text-white">—</div>
-        <div id="aluno-nome" class="display text-2xl leading-none min0">—</div>
+        <h1 id="aluno-nome" class="display text-2xl leading-none min0">—</h1>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button id="btn-aluno-refresh" class="btn">SYNC</button>
-        <button onclick="logout()" class="btn">SAIR</button>
+        <button id="btn-aluno-refresh" class="btn btn-ico" type="button" aria-label="Sincronizar dados" title="Sincronizar"><svg class="icn icn--20" aria-hidden="true" focusable="false" style="vertical-align:0"><use href="#icn-sincronizar"></use></svg></button>
       </div>
     </div>
   </header>
   <main class="max-w-4xl mx-auto px-6 py-8">
     <!-- v30.12.0: a linha "ULT: ..." saiu do cabecalho sticky (junto com o nome quebrado em 2
          linhas, deixava ele com 141px = 15% da tela). Mesmo id: renderAlunoDashboard so troca o texto. -->
-    <div id="aluno-last" class="mono text-[10px] text-zinc-500 tracking-widest mb-4">—</div>
+    <div id="aluno-last" class="mono" data-pane="treino">—</div>
     <!-- Tabs (renderizado dinamicamente conforme dias que o aluno tem) -->
-    <div id="aluno-day-tabs" class="flex border-b border-zinc-800 mb-6"></div>
+    <div id="aluno-day-tabs" data-pane="treino" role="group" aria-label="Dia do treino"></div>
     <!-- Objetivo / notas -->
-    <div id="aluno-meta" class="mono text-xs text-zinc-500 mb-6"></div>
+    <div id="aluno-meta" class="mono" data-pane="treino"></div>
     <!-- v30.8.0: o CTA principal saiu da grade do rodape do <main> e subiu
          pra ca. Medido em 375x812 com o plano real do dia A: ele estava em
          y=5087, 6,3 telas de rolagem. Aqui nasce visivel.
@@ -4785,15 +4950,26 @@
          O rotulo carrega o dia (pintarBotaoTreinar): iniciarTreinar() comeca
          APP.alunoDay e o painel do mapa anuncia mapaSugerirDia() — podem
          divergir, e agora o botao esta ACIMA do painel. -->
-    <div class="mb-6">
+    <div class="mb-4" data-pane="treino">
       <button id="btn-aluno-retomar" class="btn btn-ico py-3 text-sm w-full hidden mb-2" type="button">RETOMAR TREINO INTERROMPIDO</button>
       <button id="btn-aluno-treinar" class="btn btn--lg btn-ico btn-success py-4 text-base w-full"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-treinar"></use></svg><span id="btn-aluno-treinar-lbl">TREINAR AGORA</span></button>
     </div>
+    <!-- v30.30.0: painel "pronto pra treinar" — saiu de dentro do mapa. renderMapaMuscular() escreve aqui, por id. -->
+    <div id="aluno-mapa-painel" data-pane="treino"></div>
+    <!-- v30.30.0: aba CORPO — resumo do peso (o botao e o MESMO #btn-aluno-peso, que abre o modal de sempre) -->
+    <section id="aluno-peso-resumo" class="glass pr-card" data-pane="corpo" aria-labelledby="pr-k">
+      <div>
+        <h2 id="pr-k" class="pr-k">PESO CORPORAL</h2>
+        <div class="pr-v"><span id="pr-valor">—</span><small>kg</small></div>
+        <div id="pr-sub" class="pr-sub">—</div>
+      </div>
+      <button id="btn-aluno-peso" class="btn btn-ico pr-btn" type="button"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-adicionar"></use></svg>REGISTRAR</button>
+    </section>
     <!-- v24: Mapa Muscular (heroi do home) -->
     <!-- v30.3.0: o desenho e ESTATICO aqui (SVG de ~17 KB que nunca muda).
          renderMapaMuscular() so repinta cor de path, lista, chip e painel —
          nao reescreve este bloco. Ver o changelog do topo. -->
-    <div id="aluno-mapa" class="mb-8">
+    <div id="aluno-mapa" class="mb-8" data-pane="corpo">
       <section class="map-card" aria-labelledby="map-titulo">
 
         <header class="map-cab">
@@ -5043,24 +5219,26 @@
         <div class="map-lista" role="group" aria-label="Grupos musculares e percentual em recuperação"></div>
 
       </section>
-      <div id="aluno-mapa-painel"></div>
     </div>
     <!-- Plano -->
-    <div id="aluno-plano" class="space-y-3 mb-8"></div>
-    <!-- CTAs -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-12">
-      <button id="btn-aluno-console" class="btn btn-ico py-4 sm:col-span-3"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-ficha"></use></svg>CONSOLE · PLANO E REGRAS</button>
-      <button id="btn-aluno-registrar" class="btn btn-ico py-4"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-lancar"></use></svg>LANÇAR SESSÃO</button>
-      <button id="btn-aluno-historico" class="btn btn-ico py-4"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-evolucao"></use></svg>EVOLUÇÃO</button>
-      <button id="btn-aluno-peso" class="btn btn-ico py-4"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-peso"></use></svg>PESO</button>
-      <button id="btn-aluno-cardio" class="btn btn-ico py-4 sm:col-span-3"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-bike"></use></svg>CARDIO · PEDAL, ESTEIRA, REMO</button>
+    <div id="aluno-plano-cab" class="pl-cab" data-pane="treino">
+      <h2 class="pl-cab-t">PLANO · DIA <b id="pl-dia">A</b> · <span id="pl-cont">—</span></h2>
+      <span id="pl-leg" class="pl-cab-l"></span>
+    </div>
+    <div id="aluno-plano" data-pane="treino"></div>
+    <!-- v30.30.0: aba MAIS — as acoes abrem o modal/tela de sempre (mesmos ids e handlers de antes) -->
+    <div class="mais-lista" data-pane="mais">
+      <h2 class="mais-k">AÇÕES</h2>
+      <button id="btn-aluno-registrar" class="mais-item" type="button"><svg class="icn" aria-hidden="true" focusable="false"><use href="#icn-lancar"></use></svg><span><span class="mais-t">LANÇAR SESSÃO</span><span class="mais-s">registrar um treino que você já fez</span></span><i class="mais-seta" aria-hidden="true">▸</i></button>
+      <button id="btn-aluno-cardio" class="mais-item" type="button"><svg class="icn" aria-hidden="true" focusable="false"><use href="#icn-bike"></use></svg><span><span class="mais-t">CARDIO</span><span class="mais-s">pedal, esteira, remo, corrida</span></span><i class="mais-seta" aria-hidden="true">▸</i></button>
+      <button id="btn-aluno-console" class="mais-item" type="button"><svg class="icn" aria-hidden="true" focusable="false"><use href="#icn-ficha"></use></svg><span><span class="mais-t">CONSOLE · PLANO E REGRAS</span><span class="mais-s">plano completo, log de 30 dias e regras</span></span><i class="mais-seta" aria-hidden="true">▸</i></button>
     </div>
     <!-- Historico / Evolucao (collapse) -->
-    <div id="aluno-historico-section" class="hidden glass p-5">
-      <div class="mono text-[10px] text-zinc-500 tracking-widest mb-4 flex items-center gap-2">
+    <div id="aluno-historico-section" data-pane="evolucao">
+      <h2 class="mono text-[10px] text-zinc-500 tracking-widest mb-4 flex items-center gap-2">
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
         SUA EVOLUÇÃO
-      </div>
+      </h2>
       <div id="evo-periodo-aluno" class="flex flex-wrap gap-2 mb-4"></div>
       <div id="evo-stats-aluno" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"></div>
       <div id="evo-calendario-aluno" class="mb-6"></div>
@@ -5081,15 +5259,27 @@
       <div id="evo-historico-aluno" class="space-y-3"></div>
     </div>
     <!-- NOTAS / RESTRICOES - moved to bottom -->
-    <div id="aluno-notas" class="mt-8 mb-6 p-4 glass rounded border border-zinc-800"></div>
+    <div id="aluno-notas" class="mb-6 p-4 glass rounded border border-zinc-800" data-pane="mais"></div>
 
-    <div class="mt-10 text-center mono text-[10px] text-zinc-700 tracking-widest">
-      FORJA · <span class="forja-ver">v?</span> · backend <span class="forja-backend">?</span>
-      <br class="sm:hidden" />
-      <a href="./manual.html" target="_blank" rel="noopener" class="foot-link hover:text-zinc-500 transition-colors">MANUAL DE USO</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="./privacidade.html" target="_blank" rel="noopener" class="foot-link hover:text-zinc-500 transition-colors">PRIVACIDADE</a>
+    <div class="mais-conta" data-pane="mais">
+      <button type="button" class="btn btn-danger btn-ico w-full py-3" onclick="logout()"><svg class="icn icn--20" aria-hidden="true" focusable="false"><use href="#icn-sair"></use></svg>SAIR DA CONTA</button>
+      <div class="mais-rodape">
+        FORJA · <span class="forja-ver">v?</span> · backend <span class="forja-backend">?</span>
+        <br />
+        <a href="./manual.html" target="_blank" rel="noopener" class="foot-link">MANUAL DE USO</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="./privacidade.html" target="_blank" rel="noopener" class="foot-link">PRIVACIDADE</a>
+      </div>
     </div>
   </main>
 </section>
+
+<!-- v30.30.0: ABAS DO ALUNO. Fica FORA do <section id="view-aluno"> de proposito: o .fade-in dele tem transform e
+     prenderia o position:fixed. O JS (ligarAbasAluno) mostra/esconde a barra junto com a view. -->
+<nav id="aluno-abas" class="abas hidden" aria-label="Seções do app">
+  <button type="button" class="aba" data-aba="treino" aria-label="Treino" aria-current="page"><svg class="icn" aria-hidden="true" focusable="false"><use href="#icn-treinar"></use></svg><span>TREINO</span></button>
+  <button type="button" class="aba" data-aba="evolucao" aria-label="Evolução"><svg class="icn" aria-hidden="true" focusable="false"><use href="#icn-evolucao"></use></svg><span>EVOLUÇÃO</span></button>
+  <button type="button" class="aba" data-aba="corpo" aria-label="Corpo"><svg class="icn" aria-hidden="true" focusable="false"><use href="#icn-peso"></use></svg><span>CORPO</span></button>
+  <button type="button" class="aba" data-aba="mais" aria-label="Mais"><svg class="icn" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.7" fill="currentColor" stroke="none"/></svg><span>MAIS</span></button>
+</nav>
 
 <!-- =========================================== -->
 <!-- TELA: CONSOLE FERRO (v30.0.0)              -->
@@ -5515,6 +5705,8 @@
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
+    <!-- v30.30.0: o LANCAR SESSAO foi pra aba MAIS, longe do seletor de dia do TREINO: o dia se troca aqui dentro -->
+    <div id="modal-reg-dias" class="flex flex-wrap gap-2 mb-4" role="group" aria-label="Dia da sessão"></div>
     <div id="modal-reg-form" class="space-y-4 mb-6"></div>
     <!-- Data do treino (pre-preenchida com hoje, opcional sobrescrever) -->
     <div class="mb-4 pb-4 border-b border-zinc-800">
@@ -5784,7 +5976,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.29.0';
+const FORJA_VERSION = 'v30.30.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -6599,6 +6791,7 @@ function route() {
     return;
   }
   const h = window.location.hash || '#home';
+  const alunoVisivelAntes = !$('view-aluno').classList.contains('hidden');   // v30.30.0: ver o ramo #aluno/ abaixo
   // hidden tudo
   ['view-home','view-config','view-trainer-login','view-trainer','view-edit-aluno','view-aluno-login','view-aluno','view-treinar','view-console']
     .forEach(id => $(id).classList.add('hidden'));
@@ -6624,6 +6817,7 @@ function route() {
       show('view-aluno-login');
       return;
     }
+    if (!alunoVisivelAntes) setAlunoAba('treino', { semHistorico: true });   // v30.30.0: vindo do login/CONSOLE/TREINAR, abre no TREINO
     show('view-aluno'); loadAlunoData(); return;
   }
   // v30.0.0: CONSOLE FERRO (somente leitura). E AQUI que mora a garantia de
@@ -7628,6 +7822,10 @@ function renderEvoStats(regs, containerId, cardio) {
   const diasComSessao = DAYS.filter(d => porDia[d] > 0);
   const labelDias = diasComSessao.length ? diasComSessao.join(' / ') : 'A / B / C';
   const valDias = diasComSessao.length ? diasComSessao.map(d => porDia[d]).join(' / ') : '0 / 0 / 0';
+  // v30.30.0: "7 / 7 / 7 / 7" quebrava em 2 linhas no card de ~110px de miolo. Largura estimada em em (digito .42, barra .3,
+  // espaco .2) e o corpo da fonte cai de 30px ate caber em ~104px (piso 14px). valDias so tem digitos, barras e espacos.
+  const emDias = [...valDias].reduce((w, ch) => w + (/\d/.test(ch) ? 0.42 : ch === '/' ? 0.3 : 0.2), 0);
+  const valDiasHtml = `<span style="font-size:${Math.max(14, Math.min(30, Math.floor(104 / emDias)))}px;white-space:nowrap">${valDias}</span>`;
   // v18: tempo medio de treino (1o save -> ultimo save de cada sessao ao vivo)
   const durs = duracaoSessoes(regs);
   const tempoMedio = durs.length
@@ -7636,7 +7834,7 @@ function renderEvoStats(regs, containerId, cardio) {
   c.innerHTML =
     stat('SESSOES', null, nSessoes === 1 ? 'sessao' : 'sessoes', nSessoes) +
     stat('EXERCICIOS', null, 'registros totais', regs.length) +
-    stat(labelDias, valDias, 'sessoes por dia') +
+    stat(labelDias, valDiasHtml, 'sessoes por dia') +
     stat('TEMPO MEDIO', tempoMedio, durs.length ? `${durs.length} treino${durs.length === 1 ? '' : 's'} cronometrado${durs.length === 1 ? '' : 's'}` : 'treine ao vivo p/ medir') +
     stat('PERIODO', `<span class="text-base">${periodo}</span>`, '') +
     (function () {
@@ -8336,9 +8534,11 @@ function renderEvoHistorico(regs, containerId, isTrainer) {
     : '';
 
   // OPTIMIZATION (Phase 3D): Lazy-load sessions - render only first 50, add "Load More"
-  const INITIAL_LOAD = 50;
-  APP_EVO_CACHE[containerId] = { grupos, keys, isTrainer };
+  // v30.30.0: o aluno abre com as 12 sessoes mais recentes (a EVOLUCAO virou painel proprio; com 50 cards ela passava de 7000px).
+  // O trainer segue com 50. "CARREGAR MAIS" traz o resto.
+  const INITIAL_LOAD = isTrainer ? 50 : 12;
   const keysToRender = keys.slice(0, INITIAL_LOAD);
+  APP_EVO_CACHE[containerId] = { grupos, keys, isTrainer, mostradas: keysToRender.length };
   const hasMore = keys.length > INITIAL_LOAD;
 
   c.innerHTML = bannerRot + keysToRender.map(k => _buildSessionCard(grupos[k], isTrainer)).join('') +
@@ -8427,10 +8627,11 @@ function _attachEvoHistoricoListeners(c, containerId, isTrainer) {
       if (!cache) return;
 
       const { grupos, keys, isTrainer } = cache;
-      const INITIAL_LOAD = 50;
       const LOAD_INCREMENT = 50;
-      const currentlyShown = c.querySelectorAll('.glass').length - 1; // -1 for button itself
+      // v30.30.0: a contagem vem do cache. A antiga (c.querySelectorAll('.glass').length - 1) so batia com o banner de rotacao presente.
+      const currentlyShown = cache.mostradas;
       const nextLoad = Math.min(currentlyShown + LOAD_INCREMENT, keys.length);
+      cache.mostradas = nextLoad;
 
       // Render additional sessions
       const newKeysToRender = keys.slice(currentlyShown, nextLoad);
@@ -8634,6 +8835,27 @@ function renderAlunoDashboard() {
   renderAlunoDayTabs();
   renderAlunoPlano();
   renderMapaMuscular();
+  renderAlunoPesoResumo();
+  if (APP.alunoAba === 'evolucao') renderAlunoHistorico();   // refresh em background com a aba aberta: mantem o dado atual
+}
+
+// v30.30.0: aba CORPO — ultima pesagem + variacao vs. a anterior (so textContent; o historico completo segue no modal PESO)
+function renderAlunoPesoResumo() {
+  const v = $('pr-valor'), sub = $('pr-sub');
+  if (!v || !sub) return;
+  const pl = (APP.data && Array.isArray(APP.data.peso)) ? APP.data.peso : [];
+  const u = pl[0];   // o payload vem do mais recente pro mais antigo (mesma convencao do card PESO da EVOLUCAO)
+  if (!u) { v.textContent = '—'; sub.textContent = 'Nenhuma pesagem ainda. Registre a primeira.'; return; }
+  v.textContent = String(u.peso);
+  const num = x => parseFloat(String(x == null ? '' : x).replace(',', '.'));
+  const a = num(u.peso), b = pl[1] ? num(pl[1].peso) : NaN;
+  let txt = fmtDate(dataLocalIso(u.timestamp));
+  if (u.balanca) txt += ' · ' + u.balanca;
+  if (!isNaN(a) && !isNaN(b)) {
+    const d = Math.round((a - b) * 10) / 10;
+    txt += ' · ' + (d === 0 ? 'igual à anterior' : (d > 0 ? '▲\u00a0' : '▼\u00a0') + Math.abs(d).toFixed(1) + '\u00a0kg vs. anterior');
+  }
+  sub.textContent = txt;
 }
 
 function diasDoAluno() {
@@ -8650,17 +8872,84 @@ function renderAlunoDayTabs() {
   const dias = diasDoAluno();
   if (!dias.includes(APP.alunoDay)) APP.alunoDay = dias[0];
   const container = $('aluno-day-tabs');
-  container.innerHTML = dias.map(d =>
-    `<button class="tab-btn ${d === APP.alunoDay ? 'active' : ''}" data-day="${d}" onclick="setAlunoDay('${d}')">${d}</button>`
-  ).join('');
+  const plano = APP.data.plano || [];
+  container.classList.toggle('hidden', plano.length === 0 || dias.length < 2);   // v30.30.0: sem plano ou com um dia so, o seletor nao tem o que escolher
+  container.innerHTML = dias.map(d => {
+    const n = plano.filter(p => String(p.dia).toUpperCase() === d).length;
+    const on = d === APP.alunoDay;
+    return `<button class="tab-btn ${on ? 'active' : ''}" data-day="${d}" aria-pressed="${on ? 'true' : 'false'}" aria-label="Dia ${d}, ${n} exercício${n === 1 ? '' : 's'}" onclick="setAlunoDay('${d}')"><span class="dia-l">${d}</span><span class="dia-n">${n} ex.</span></button>`;
+  }).join('');
 }
 
 function setAlunoDay(day) {
   APP.alunoDay = day;
   setContextDay(day);  // brilho da tela acompanha a cor do dia (A=vermelho, etc)
-  document.querySelectorAll('#view-aluno .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.day === day));
+  document.querySelectorAll('#view-aluno .tab-btn').forEach(b => { const on = b.dataset.day === day; b.classList.toggle('active', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
   renderAlunoPlano();
 }
+
+// ---------- v30.30.0: ABAS DO ALUNO (TREINO · EVOLUCAO · CORPO · MAIS) ----------
+// So visibilidade: cada bloco do #view-aluno mora num painel (data-pane) e o CSS mostra um painel por vez, conforme
+// #view-aluno[data-aba]. Nenhum render mudou de lugar e todos os ids/handlers antigos continuam (o botao EVOLUCAO virou a aba).
+// BOTAO VOLTAR (Android): trocar pra uma aba que nao e o TREINO empilha UMA entrada de historico (mesma URL, state.forjaAba);
+// voltar desempilha e cai no TREINO. A fonte da verdade e history.state, nao uma flag: se o aluno foi ao CONSOLE e voltou,
+// a entrada antiga fica la embaixo, e uma flag velha mandaria um history.back() pra tela errada.
+const ABAS_ALUNO = ['treino', 'evolucao', 'corpo', 'mais'];
+APP.alunoAba = 'treino';
+APP._abaScroll = {};
+
+function setAlunoAba(aba, opc) {
+  opc = opc || {};
+  if (ABAS_ALUNO.indexOf(aba) < 0) aba = 'treino';
+  const sec = $('view-aluno'), nav = $('aluno-abas');
+  if (!sec || !nav) return;
+  const antes = APP.alunoAba;
+  if (antes === aba) {
+    // tocar de novo na aba ativa leva ao topo (padrao de app)
+    if (opc.toque) window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    return;
+  }
+  if (!sec.classList.contains('hidden')) APP._abaScroll[antes] = window.scrollY || 0;   // cada aba lembra onde parou
+  APP.alunoAba = aba;
+  sec.dataset.aba = aba;
+  nav.querySelectorAll('.aba').forEach(b => { if (b.dataset.aba === aba) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  if (!opc.semHistorico) {
+    try {
+      const marcada = !!(history.state && history.state.forjaAba);
+      if (aba === 'treino') { if (marcada) history.back(); }
+      else if (marcada) history.replaceState({ forjaAba: aba }, '');
+      else history.pushState({ forjaAba: aba }, '');
+    } catch (e) { /* historico indisponivel (iframe, modo restrito): as abas funcionam igual, so sem o botao voltar */ }
+  }
+  // a EVOLUCAO nao tem render proprio no dashboard: monta ao abrir (era o que o botao EVOLUCAO fazia), sempre com o dado atual
+  if (aba === 'evolucao' && APP.data) { try { renderAlunoHistorico(); } catch (e) { console.error('renderAlunoHistorico', e); } }
+  const main = sec.querySelector('main');
+  if (main) { main.classList.remove('fade-in'); void main.offsetWidth; main.classList.add('fade-in'); }
+  window.scrollTo(0, APP._abaScroll[aba] || 0);
+}
+
+(function ligarAbasAluno() {
+  const sec = $('view-aluno'), nav = $('aluno-abas');
+  if (!sec || !nav) return;
+  // a barra acompanha a view: o TREINAR, o CONSOLE e o login escondem o #view-aluno por varios caminhos (route, iniciarTreinar,
+  // encerrarTreinar...). Um observer no atributo class cobre todos sem tocar neles.
+  const sincroniza = () => {
+    const ver = !sec.classList.contains('hidden');
+    nav.classList.toggle('hidden', !ver);
+    document.body.classList.toggle('tem-abas', ver);
+  };
+  new MutationObserver(sincroniza).observe(sec, { attributes: true, attributeFilter: ['class'] });
+  sincroniza();
+  nav.addEventListener('click', ev => {
+    const b = ev.target && ev.target.closest ? ev.target.closest('.aba') : null;
+    if (b) setAlunoAba(b.dataset.aba, { toque: true });
+  });
+  window.addEventListener('popstate', ev => {
+    if (sec.classList.contains('hidden')) return;   // voltar vindo do CONSOLE etc.: quem trata e o route()
+    const alvo = (ev.state && ev.state.forjaAba) ? ev.state.forjaAba : 'treino';
+    if (alvo !== APP.alunoAba) setAlunoAba(alvo, { semHistorico: true });
+  });
+})();
 
 
 // ---------- v30.8.0: acordeao de observacoes ----------
@@ -8786,11 +9075,25 @@ function renderAlunoNotas(notas) {
   el.innerHTML = html;
 }
 
+// v30.30.0: "PLANO · DIA A · 6 exercicios" + a legenda do descanso por tipo (que saiu de dentro de cada linha)
+function pintarCabecalhoPlano(day, plano) {
+  const cab = $('aluno-plano-cab');
+  if (!cab) return;
+  cab.classList.toggle('hidden', plano.length === 0);
+  $('pl-dia').textContent = day;
+  $('pl-cont').textContent = plano.length + (plano.length === 1 ? ' exercício' : ' exercícios');
+  const c = tipoInfo('c'), i = tipoInfo('i');
+  $('pl-leg').textContent = plano.some(p => tipoInfo(p.tipo))
+    ? c.label + ' ' + c.desc.replace(/^descanso\s*/i, '') + ' · ' + i.label + ' ' + i.desc.replace(/^descanso\s*/i, '')
+    : '';
+}
+
 function renderAlunoPlano() {
   pintarBotaoTreinar();   // antes do return antecipado do dia vazio
   const day = APP.alunoDay;
   const plano = (APP.data.plano || []).filter(p => String(p.dia).toUpperCase() === day);
   const div = $('aluno-plano');
+  pintarCabecalhoPlano(day, plano);
   if (plano.length === 0) {
     // v30.27.0: conta sem plano nenhum (tipico de quem acabou de entrar com o Google) — diz o que fazer, sem culpar o aluno
     const semPlanoNenhum = !(APP.data.plano || []).length;
@@ -8805,27 +9108,29 @@ function renderAlunoPlano() {
   div.classList.add('fg-palco', 'fg-lista');
   const trilho = `<div class="fg-trilho" aria-hidden="true">
       <i class="fg-brasa"></i><i class="fg-brasa"></i><i class="fg-brasa"></i></div>`;
-  div.innerHTML = trilho + plano.map((p, i) => `
-    <div class="glass p-4 relative">
-      <div class="flex items-baseline justify-between mb-2 pl-2">
-        <div class="flex items-baseline gap-3">
-          <span class="mono text-xs text-zinc-500">${String(i+1).padStart(2,'0')}</span>
-          ${exInfoDe(p.exercicio)
-            ? `<span class="text-zinc-100" style="cursor:pointer" data-exinfo="${escapeHtml(p.exercicio)}">${escapeHtml(p.exercicio)} <span class="mono text-[10px] text-zinc-500">ⓘ</span></span>`
-            : `<span class="text-zinc-100">${escapeHtml(p.exercicio)}</span>`}
-        </div>
+  // v30.30.0: linhas compactas (~90px, eram ~125px). Nome + tipo no alto; SERIES / REPS / CARGA / RIR numa grade de 4 colunas
+  // IGUAL em todos os exercicios (os numeros alinham de um card pro outro). O descanso saiu de cada linha: ele e funcao do
+  // tipo (composto 2-3min, isolado 1-2min) e agora aparece UMA vez, na legenda do cabecalho do plano.
+  const linhas = plano.map((p, i) => {
+    const ti = tipoInfo(p.tipo);
+    // <button>, nao <span onclick>: foco e Enter/Espaco de graca. O clique segue delegado em ligarObsFold() ([data-exinfo]).
+    const nome = exInfoDe(p.exercicio)
+      ? `<button type="button" class="pl-ex" data-exinfo="${escapeHtml(p.exercicio)}" aria-label="${escapeHtml(p.exercicio)} — ver ficha do exercício">${escapeHtml(p.exercicio)}&nbsp;<span class="pl-i" aria-hidden="true">ⓘ</span></button>`
+      : `<span class="pl-ex">${escapeHtml(p.exercicio)}</span>`;
+    const celula = (rot, val) => `<div><dt>${rot}</dt><dd>${escapeHtml(String(val || '—'))}</dd></div>`;
+    return `
+    <div class="glass pl-row">
+      <div class="pl-top">
+        <span class="pl-n">${String(i+1).padStart(2,'0')}</span>
+        ${nome}
+        ${ti ? `<span class="chip pl-tipo" style="border-color:${ti.cor};color:${ti.cor}">${ti.label}</span>` : ''}
       </div>
-      <div class="flex flex-wrap gap-4 mono text-xs text-zinc-400 pl-2">
-        <div><span class="text-zinc-600">SERIES</span> <span class="text-zinc-100">${escapeHtml(String(p.series||'—'))}</span></div>
-        <div><span class="text-zinc-600">REPS</span> <span class="text-zinc-100">${escapeHtml(String(p.reps||'—'))}</span></div>
-        <div><span class="text-zinc-600">CARGA</span> <span class="text-zinc-100">${escapeHtml(String(p.carga||'—'))}</span></div>
-        <div><span class="text-zinc-600">RIR</span> <span class="text-zinc-100">${escapeHtml(String(p.rir||'—'))}</span></div>
-        ${(() => { const ti = tipoInfo(p.tipo); return ti ? `<div><span class="chip" style="border-color:${ti.cor};color:${ti.cor}">${ti.label}</span> <span class="text-zinc-600">${ti.desc}</span></div>` : ''; })()}
-      </div>
+      <dl class="pl-grid">${celula('SÉRIES', p.series)}${celula('REPS', p.reps)}${celula('CARGA', p.carga)}${celula('RIR', p.rir)}</dl>
       ${p.obs ? obsFoldHtml(APP.alunoDay + '-' + i, p.obs,
                             APP.obsAbertas.has(APP.alunoDay + '-' + i)) : ''}
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
+  div.innerHTML = trilho + linhas;
   // v30.8.0: o [data-exinfo] (tocar no nome ⓘ abre a ficha) era religado
   // aqui a cada render. Virou delegacao em ligarObsFold(), junto do acordeao.
 }
@@ -8982,11 +9287,7 @@ $('btn-salvar-cardio').onclick = async () => {
   }
 };
 
-$('btn-aluno-historico').onclick = () => {
-  const s = $('aluno-historico-section');
-  s.classList.toggle('hidden');
-  if (!s.classList.contains('hidden')) renderAlunoHistorico();
-};
+// v30.30.0: o botao EVOLUCAO virou a aba EVOLUCAO (setAlunoAba monta o historico ao abrir). Handler antigo removido junto com o botao.
 
 // ===== v24: MAPA MUSCULAR (recuperacao por grupo, a partir dos registros) =====
 const MAPA_GRUPOS = ['peito','ombro','triceps','costas','biceps','core','quadriceps','posterior','panturrilha'];
@@ -9571,18 +9872,20 @@ function renderMapaMuscular() {
   const painel = document.getElementById('aluno-mapa-painel');
   if (!painel) return;
   if (!regs.length) {
-    painel.innerHTML = `<div class="mt-4 rounded-2xl border border-zinc-700 p-4">
-      <div class="mono text-[10px] text-cyan-400 tracking-widest mb-1">COMECE POR AQUI</div>
-      <div class="display text-2xl">TREINO ${sug ? sug.dia : 'A'}</div>
-      <div class="text-sm text-zinc-400 mt-1">Registre suas sessoes pra eu colorir o mapa e dizer o que treinar.</div></div>`;
+    // v30.30.0: faixa compacta (o painel mora no TREINO, entre o botao e o plano). sug.dia sai de DAYS (mapaSugerirDia filtra).
+    painel.innerHTML = `<div class="pronto pronto--novo">
+      <span class="pronto-k">COMECE POR AQUI</span>
+      <span class="pronto-t">TREINO ${sug ? sug.dia : 'A'}</span>
+      <span class="pronto-d">Registre suas sessoes pra eu colorir o mapa e dizer o que treinar.</span></div>`;
     return;
   }
   const foco = sug ? sug.grupos.map(g => MAPA_LABEL[g]).filter(Boolean).slice(0, 3).join(' · ') : '';
-  painel.innerHTML = `<div class="mt-4 rounded-2xl p-4" style="border:1px solid rgba(9,166,107,.45);background:rgba(9,166,107,.14)">
-      <div class="mono text-[10px] tracking-widest mb-1" style="color:${MAPA_COR.pronto}">PRONTO PRA TREINAR</div>
-      <div class="display text-3xl">TREINO ${sug ? sug.dia : '—'}</div>
-      <div class="text-sm text-zinc-400 mt-1">${escapeHtml(foco)} recuperados.</div>
-      ${nud ? `<div class="text-xs mt-2" style="color:${MAPA_COR.atrasado}">⚠ ${escapeHtml(MAPA_LABEL[nud])} atrasado ha ${status[nud].dias} dias — encaixe logo.</div>` : ''}</div>`;
+  // faixa inteira e UM botao (alvo grande) que leva ao mapa; sug.dia sai de DAYS e status[].dias e numero
+  painel.innerHTML = `<button type="button" class="pronto" onclick="setAlunoAba('corpo')">
+      <span class="pronto-k">PRONTO PRA TREINAR</span><span class="pronto-seta" aria-hidden="true">VER MAPA ▸</span>
+      <span class="pronto-t">TREINO ${sug ? sug.dia : '—'}</span>
+      <span class="pronto-d">${escapeHtml(foco)} recuperados.</span>
+      ${nud ? `<span class="pronto-alerta">⚠ ${escapeHtml(MAPA_LABEL[nud])} atrasado ha ${status[nud].dias} dias — encaixe logo.</span>` : ''}</button>`;
 }
 
 function renderAlunoHistorico() {
@@ -9591,9 +9894,19 @@ function renderAlunoHistorico() {
 
 // ---------- MODAL REGISTRAR ----------
 
+// v30.30.0: trocar o dia de dentro do modal (muda o dia selecionado do painel tambem, que e o que o TREINAR AGORA usa)
+function trocarDiaLancar(d) {
+  setAlunoDay(d);
+  abrirModalRegistrar();
+}
+
 function abrirModalRegistrar() {
   const day = APP.alunoDay;
   $('modal-reg-day').textContent = 'DIA ' + day;
+  const dias = diasDoAluno();
+  const chips = $('modal-reg-dias');
+  chips.classList.toggle('hidden', dias.length < 2);
+  chips.innerHTML = dias.map(d => `<button type="button" class="tab-btn ${d === day ? 'active' : ''}" aria-pressed="${d === day ? 'true' : 'false'}" aria-label="Dia ${d}" onclick="trocarDiaLancar('${d}')">${d}</button>`).join('');
   // Pre-preenche o campo de data com hoje (sobrescritivel se for backdate)
   const hoje = new Date();
   $('reg-data-treino').value =

@@ -178,9 +178,14 @@
  * trainer (dashboard: ULT dia e id do aluno no onclick; EVOLUCAO: rotulo do cardio e dia da sessao). A sessionStorage do trainer guarda a chave admin.
  * (2) rotulos associados e nomes acessiveis nos campos/botoes de TREINAR, modais e edicao do aluno; contraste do botao SIM (5,38:1).
  * (3) "FORJA Atualizado" so aparece quando havia versao anterior (nao mais na 1a abertura). Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
+ * v30.30.0: ABAS DO ALUNO + PLANO EM COLUNAS. O painel era uma rolagem de ~3000px (o plano so comecava em y=1448; PESO/EVOLUCAO/CONSOLE em ~2500). Agora 4 abas
+ * fixas no pe da tela (TREINO · EVOLUCAO · CORPO · MAIS), cada bloco num painel (data-pane): so visibilidade, nenhum render mudou de lugar. O botao voltar do
+ * Android leva de qualquer aba ao TREINO. Plano do dia em linhas compactas (SERIES/REPS/CARGA/RIR em 4 colunas alinhadas). EVOLUCAO do aluno abre com 12 sessoes
+ * (+ CARREGAR MAIS). Seletor de dia dentro do LANCAR SESSAO (a acao foi pra aba MAIS). h1/h2 e marcos (axe sem violacoes). Manual atualizado nos textos.
+ * Frontend-only; bump aqui so pra invalidar o cache antigo do shell (manual.html tambem esta em ASSETS).
  */
 
-const CACHE_VERSION = 'forja-v30.29.0';
+const CACHE_VERSION = 'forja-v30.30.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).

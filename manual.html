@@ -353,20 +353,20 @@
     <!-- ============ PAINEL ============ -->
     <section id="painel">
       <div class="partline"><span class="parttag tag-aluno">Aluno</span><h2>Sua tela inicial</h2></div>
-      <p class="sub">É o seu ponto de partida: o que treinar hoje, como seu corpo está de recuperação e os atalhos para registrar.</p>
+      <p class="sub">No pé da tela ficam quatro abas: <strong>TREINO</strong>, <strong>EVOLUÇÃO</strong>, <strong>CORPO</strong> e <strong>MAIS</strong>. O app sempre abre no TREINO: o que fazer hoje, a um toque.</p>
 
       <div class="passo">
         <div>
           <h3>O que tem nessa tela</h3>
           <ul class="bul">
-            <li><strong>Seu nome e a última sessão</strong> — ex.: <code>ULT: C · 2d atrás</code>. Se você registrou cardio, ele aparece do lado, separado.</li>
-            <li><strong>Abas A / B / C</strong> — seus dias de treino. Toque para ver o plano de cada um.</li>
-            <li><strong>Mapa muscular</strong> — um bonequinho colorido mostrando quais grupos estão descansados e quais ainda estão se recuperando.</li>
-            <li><strong>Lista de exercícios do dia</strong> — séries, reps, carga sugerida e RIR.</li>
-            <li><strong>Botões de ação</strong> — treinar, lançar sessão, evolução, peso e cardio.</li>
+            <li><strong>TREINO</strong> (a tela de abertura) — seu nome, a última sessão (ex.: <code>ULT: C · 2d atrás</code>; se você registrou cardio, ele aparece do lado, separado), os dias A / B / C / D com a quantidade de exercícios, o botão <strong>TREINAR AGORA</strong>, a faixa <strong>PRONTO PRA TREINAR</strong> (toque nela para ver o mapa) e a lista do dia, com séries, reps, carga e RIR em colunas.</li>
+            <li><strong>EVOLUÇÃO</strong> — números do período, calendário, gráfico de carga e as sessões registradas (as 12 mais recentes; <em>CARREGAR MAIS</em> traz o resto).</li>
+            <li><strong>CORPO</strong> — seu peso (último valor e variação) com o botão <strong>REGISTRAR</strong>, e o mapa muscular.</li>
+            <li><strong>MAIS</strong> — <strong>LANÇAR SESSÃO</strong>, <strong>CARDIO</strong>, <strong>CONSOLE · PLANO E REGRAS</strong>, suas notas e restrições e o <strong>SAIR DA CONTA</strong>.</li>
+            <li><strong>Atalhos</strong> — o botão voltar do celular leva de qualquer aba de volta ao TREINO. Tocar de novo na aba em que você já está rola a tela para o topo, e cada aba lembra onde você parou.</li>
           </ul>
 
-          <h3 style="margin-top:24px">Como ler o mapa muscular</h3>
+          <h3 style="margin-top:24px">Como ler o mapa muscular (aba CORPO)</h3>
           <p>O app olha seus últimos treinos e pinta cada grupo muscular:</p>
           <div class="legend">
             <span class="lg"><span class="dot9" style="background:#10935E"></span>Pronto pra treinar</span>
@@ -411,11 +411,11 @@
               </div>
 
               <div class="btn-s go" style="margin:10px 0 7px">▸ TREINAR AGORA</div>
-              <div class="grid2">
-                <div class="btn-s">LANÇAR SESSÃO</div>
-                <div class="btn-s">EVOLUÇÃO</div>
-                <div class="btn-s">⚖ PESO</div>
-                <div class="btn-s br">🚴 CARDIO</div>
+              <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px">
+                <div class="btn-s go" style="letter-spacing:.02em;padding-left:0;padding-right:0">TREINO</div>
+                <div class="btn-s" style="letter-spacing:.02em;padding-left:0;padding-right:0">EVOLUÇÃO</div>
+                <div class="btn-s" style="letter-spacing:.02em;padding-left:0;padding-right:0">CORPO</div>
+                <div class="btn-s" style="letter-spacing:.02em;padding-left:0;padding-right:0">MAIS</div>
               </div>
             </div>
           </div>
@@ -429,7 +429,7 @@
     <!-- ============ CONSOLE ============ -->
     <section id="console">
       <div class="partline"><span class="parttag tag-aluno">Aluno</span><h2>Console</h2></div>
-      <p class="sub">A tela de consulta. Toque em <strong>▤ CONSOLE</strong> na sua tela inicial. Ela só mostra — não registra nada, não altera nada, e não busca nada na internet: usa o que o app já carregou quando você entrou. Funciona igual sem sinal na academia.</p>
+      <p class="sub">A tela de consulta. Abra a aba <strong>MAIS</strong> e toque em <strong>CONSOLE · PLANO E REGRAS</strong>. Ela só mostra — não registra nada, não altera nada, e não busca nada na internet: usa o que o app já carregou quando você entrou. Funciona igual sem sinal na academia.</p>
 
       <div class="passo">
         <div>
@@ -493,7 +493,7 @@
         <div>
           <h3>Como funciona</h3>
           <ol class="steps">
-            <li>Na sua tela inicial, escolha o dia (A, B ou C) e toque em <strong>▸ TREINAR AGORA</strong>.</li>
+            <li>Na aba <strong>TREINO</strong> (a tela de abertura), escolha o dia e toque em <strong>▸ TREINAR AGORA</strong>.</li>
             <li>O app mostra o <strong>primeiro exercício</strong>, com o desenho e as instruções na tela.</li>
             <li>Faça a série. Entre uma série e outra, toque em <strong>⏱ DESCANSAR</strong> — os botões <strong>−</strong> e <strong>+</strong> ajustam o tempo.</li>
             <li>Preencha <strong>CARGA</strong>, <strong>REPS</strong> e <strong>RIR</strong>.</li>
@@ -598,7 +598,7 @@
       <div class="passo solo">
         <div>
           <ol class="steps">
-            <li>Escolha o dia (A, B ou C) e toque em <strong>LANÇAR SESSÃO</strong>.</li>
+            <li>Abra a aba <strong>MAIS</strong> e toque em <strong>LANÇAR SESSÃO</strong>. No alto da janela, escolha o <strong>dia</strong> (A, B, C…) que você treinou.</li>
             <li>Confira a <strong>data do treino</strong> no topo — já vem com hoje.</li>
             <li>Preencha carga, reps e RIR de cada exercício. Cada card mostra a linha <em>ÚLTIMO</em> com o que você fez da última vez e um botão <strong>USAR</strong> que aplica a carga sugerida.</li>
             <li>Se faltou algum exercício, toque no <strong>✓ SIM</strong> daquele card para virar <strong>✗ FALTOU</strong>.</li>
@@ -619,7 +619,7 @@
       <div class="passo">
         <div>
           <ol class="steps">
-            <li>Na sua tela inicial, toque em <strong>🚴 CARDIO</strong>.</li>
+            <li>Abra a aba <strong>MAIS</strong> e toque em <strong>CARDIO</strong>.</li>
             <li>Escolha o <strong>tipo</strong>: pedal, esteira, remo, corrida ou outro.</li>
             <li>Em <strong>detalhe</strong> você pode ser específico (ex.: "Bicicleta ar livre", "HIIT").</li>
             <li>Em <strong>distância / tempo / obs</strong>, anote o que importa: <code>20km</code>, <code>45min zona 2</code>.</li>
@@ -668,7 +668,7 @@
       <div class="partline"><span class="parttag tag-aluno">Aluno</span><h2>Peso</h2></div>
       <div class="passo solo">
         <div>
-          <p class="sub">Toque em <strong>⚖ PESO</strong> na sua tela inicial, digite os quilos, escolha onde pesou (academia, casa ou outra) e salve. Abaixo do formulário ficam suas últimas pesagens.</p>
+          <p class="sub">Abra a aba <strong>CORPO</strong>, toque em <strong>REGISTRAR</strong>, digite os quilos, escolha onde pesou (academia, casa ou outra) e salve. Abaixo do formulário ficam suas últimas pesagens.</p>
           <div class="nota">Pese sempre na <strong>mesma balança e no mesmo horário</strong> — de manhã, em jejum, é o mais consistente. O que importa é a tendência ao longo das semanas, não o número de um dia.</div>
         </div>
       </div>
@@ -679,7 +679,7 @@
     <!-- ============ EVOLUÇÃO ============ -->
     <section id="evolucao">
       <div class="partline"><span class="parttag tag-aluno">Aluno</span><h2>Evolução</h2></div>
-      <p class="sub">Onde você vê se está progredindo de verdade. Toque em <strong>EVOLUÇÃO</strong> na tela inicial.</p>
+      <p class="sub">Onde você vê se está progredindo de verdade. Toque na aba <strong>EVOLUÇÃO</strong>.</p>
 
       <div class="passo">
         <div>
@@ -830,7 +830,7 @@
           <ul class="bul">
             <li><strong>Registrar pelo aluno</strong> — lançar um treino em nome dele (útil se ele esqueceu o celular).</li>
             <li><strong>Ver a evolução dele</strong> — mesma tela de evolução do aluno, com a opção de comparar alunos no gráfico.</li>
-            <li><strong>Editar dados</strong> — nome, objetivo, PIN e notas/restrições (que ele vê no rodapé da tela dele).</li>
+            <li><strong>Editar dados</strong> — nome, objetivo, PIN e notas/restrições (que ele vê na aba MAIS).</li>
             <li><strong>Apagar registros</strong> — remover linhas erradas do histórico.</li>
           </ul>
 
@@ -866,7 +866,7 @@
         </details>
         <details>
           <summary>Fiz o treino A mas só um exercício extra (um pedal, por exemplo). Conta como treino A?</summary>
-          <p>Não. Cardio é registrado à parte, pelo botão 🚴 CARDIO, e não fecha dia de musculação. O dia A continua em aberto até você registrar exercícios do plano A.</p>
+          <p>Não. Cardio é registrado à parte, pela aba MAIS › CARDIO, e não fecha dia de musculação. O dia A continua em aberto até você registrar exercícios do plano A.</p>
         </details>
         <details>
           <summary>O que é RIR?</summary>
