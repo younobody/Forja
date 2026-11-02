@@ -174,9 +174,13 @@
  * v30.27.1: botao do Google sem a moldura branca (color-scheme light no slot). Frontend-only; bump so pra invalidar o cache do shell.
  * v30.28.0: TREINO LIVRE (conta sem plano treina com + EXERCICIO EXTRA); modal de extra fora do #view-treinar; obs do treino com maxlength.
  * Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
+ * v30.29.0: SEGURANCA + ACESSIBILIDADE no HTML. (1) XSS armazenado: 4 pontos renderizavam texto livre vindo do banco sem escapeHtml no painel do
+ * trainer (dashboard: ULT dia e id do aluno no onclick; EVOLUCAO: rotulo do cardio e dia da sessao). A sessionStorage do trainer guarda a chave admin.
+ * (2) rotulos associados e nomes acessiveis nos campos/botoes de TREINAR, modais e edicao do aluno; contraste do botao SIM (5,38:1).
+ * (3) "FORJA Atualizado" so aparece quando havia versao anterior (nao mais na 1a abertura). Frontend-only; bump aqui so pra invalidar o cache antigo do shell.
  */
 
-const CACHE_VERSION = 'forja-v30.28.0';
+const CACHE_VERSION = 'forja-v30.29.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).
