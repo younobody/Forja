@@ -6062,7 +6062,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.31.0';
+const FORJA_VERSION = 'v30.31.1';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -8646,8 +8646,13 @@ function renderEvoHistorico(regs, containerId, isTrainer) {
 }
 
 function _attachEvoHistoricoListeners(c, containerId, isTrainer) {
+  // v30.31.1: o CARREGAR MAIS chama esta funcao de novo sobre o MESMO container. Sem a marca, os botoes dos cards ja renderizados ganhavam
+  // um 2o listener a cada clique: 1 toque na lixeira abria 2 confirm() e mandava 2 remocoes, e o proprio CARREGAR MAIS carregava em dobro
+  // (e o 2o listener quebrava com 'The element has no parent' quando o 1o ja tinha removido o botao). Com 12 sessoes iniciais (v30.30.0)
+  // esse caminho deixou de ser raro. novos() devolve so os elementos que ainda nao foram ligados.
+  const novos = sel => Array.from(c.querySelectorAll(sel)).filter(b => !b._evoLigado && (b._evoLigado = true));
   // Remover SESSAO inteira (trainer): bulk delete num unico round-trip
-  c.querySelectorAll('.btn-del-sessao').forEach(b => {
+  novos('.btn-del-sessao').forEach(b => {
     b.addEventListener('click', async () => {
       const timestamps = String(b.dataset.tss || '').split('|').filter(Boolean);
       const label = b.dataset.label || '';
@@ -8673,7 +8678,7 @@ function _attachEvoHistoricoListeners(c, containerId, isTrainer) {
   });
 
   // Remover registro INDIVIDUAL — funciona para trainer (admin) e aluno (so os proprios)
-  c.querySelectorAll('.btn-del-reg').forEach(b => {
+  novos('.btn-del-reg').forEach(b => {
     b.addEventListener('click', async () => {
       if (!confirm('Remover este registro? Esta acao nao pode ser desfeita.')) return;
       showLoading(true);
@@ -8717,7 +8722,7 @@ function _attachEvoHistoricoListeners(c, containerId, isTrainer) {
   });
 
   // OPTIMIZATION (Phase 3D): Handle "Load More" button for lazy-loaded sessions
-  c.querySelectorAll('.btn-evo-load-more').forEach(b => {
+  novos('.btn-evo-load-more').forEach(b => {
     b.addEventListener('click', () => {
       const containerId = b.dataset.container;
       const totalCount = parseInt(b.dataset.count, 10);
