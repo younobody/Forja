@@ -15,7 +15,8 @@ Hospedagem: Cloudflare Worker `forja` (só arquivos estáticos; `wrangler.jsonc`
 - **Produção estava na v30.28.0**, com o XSS armazenado ainda aberto no front. Estas mudanças só chegam à produção com o merge em `main`
   (Workers Builds publica a cada push em `main` — **inferido** do histórico: commit "Dispara o primeiro build do Workers Builds").
 - **Banco já alterado ao vivo** (não depende do deploy): migration `20261102143559 forja_valida_dia_modalidade` (seção 5).
-- Branch de trabalho: `claude/gifted-hawking-hpty3g`.
+- **Atualização pós-merge (02/11/2026):** o PR #3 foi mergeado em `main` por rebase (`5626f06`, 19:34 UTC) e a API da Cloudflare mostra o Worker `forja` modificado às 19:35:05 UTC, uns 30 s depois:
+  o deploy automático rodou. **O conteúdo servido não foi conferido** por quem fez o merge (o host `forja.imovelmedia.workers.dev` não era alcançável da sessão): confira como no item abaixo.
 - Para saber se já foi publicado: abra `https://forja.imovelmedia.workers.dev/forja.html`, procure `const FORJA_VERSION` (deve ser `v30.31.1`) e `…/sw.js`
   (`CACHE_VERSION = 'forja-v30.31.1'`). Se estiver em `v30.28.0`, o merge ou o build ainda não aconteceu.
 
@@ -44,6 +45,8 @@ digitais idênticas às do banco vivo (`bash supabase/replay/replay.sh`), e o te
 Isso corrigiu o backup antigo, que **não restaurava**: o SNAPSHOT do schema não tinha os DEFAULTs, o de funções quebrava na ordem e deixava `api_get`/`api_post` executáveis por PUBLIC, e faltavam
 as 4 migrations do login Google/limites/validação.
 
+**E-mail do trainer:** foi omitido do arquivo `20261023001907_forja_login_google.sql`. Ele continua aparecendo como e-mail de autor nos commits antigos do repositório, então a omissão só evita mais uma cópia.
+
 **Migration aplicada nesta rodada:** `forja_valida_dia_modalidade` (`f_valores_item` + 2 linhas em `f_checar_limites_aluno`; nada de tabela ou dado). **Rollback** (bloco comentado no fim do
 arquivo): recriar `f_checar_limites_aluno` sem as duas linhas e `drop function public.f_valores_item(jsonb)`.
 
@@ -51,7 +54,9 @@ arquivo): recriar `f_checar_limites_aluno` sem as duas linhas e `drop function p
 
 - `plano.meta` está **vazio nas 93 linhas**. É coerente com o bug da v30.31.0 já ter rodado, mas o banco não diz se algum dia houve valor, e não há backup de dados no repositório.
   **Decisão do dono do projeto:** reinserir os ALVOs à mão, ou restaurar da planilha antiga (congelada desde 18/07/2026; a skill de treino do dono do projeto manda não lê-la, então não toquei).
-- Nenhum registro suspeito de XSS: nos 1103 registros, `dia` está em A–E ou vazio, e `modalidade` vazia ou da lista. Por isso a whitelist não rejeita nada que exista.
+- Nenhum registro suspeito de XSS: nos 1117 registros (conferido de novo antes do merge; eram 1103 quando a migration foi aplicada), `dia` está em A–E ou vazio, e `modalidade` vazia ou da lista.
+  Os 93 `plano.dia` também são A–E, e o app só envia `dia` de `DAYS` (A–E) ou vazio no cardio, e `modalidade` da lista `CARDIO_TIPOS`. Ou seja, a whitelist não rejeita nada que exista nem que o app envie.
+- Teste direto da whitelist no banco vivo (função de checagem, sem gravar nada): `dia` A, `b` e cardio `pedal` passam; `dia` e `modalidade` com payload XSS, `dia` F e um lote com 1 item ruim são recusados com `limite: dia ou modalidade invalido`.
 - **Cadastro pelo Google está aberto** (`google_signup='sim'`) e há 1 identidade Google no banco. Tetos: 50 contas Google, 20 cadastros/24 h, 80 registros/24 h por conta Google (300 nas demais).
   Para fechar: `update config set value='nao' where key='google_signup';`.
 - Advisors de segurança: só o esperado — "RLS sem policy" (deny-all é o desenho), `api_get`/`api_post` executáveis por anon e `api_google` por authenticated (são as portas de entrada), e
@@ -84,7 +89,7 @@ check novo do histórico falha na v30.31.0. **Não há CI**; rodar à mão antes
 
 | Item | Classe | Nota |
 |---|---|---|
-| Publicação depende do Workers Builds, **inferido** e não verificado | **gerenciável** (era o ponto mais frágil) | até o merge, a produção segue na v30.28.0; o banco já protege `dia`/`modalidade` |
+| Deploy confirmado só **indiretamente** (Worker modificado ~30 s após o merge); o conteúdo servido não foi conferido | **gerenciável** (é o ponto mais frágil) | conferir os 2 endereços da seção 2. Se ficar na v30.28.0, olhar o painel Workers Builds; o banco já protege `dia`/`modalidade` de qualquer forma |
 | ALVOs zerados no banco (seção 5) | **gerenciável**, mas é perda de dado real | exige decisão do dono do projeto |
 | Cadastro Google aberto | **gerenciável** | tetos e whitelist mitigam; decidir se mantém |
 | Sem CSP; 59 `onclick` inline; chave admin em `sessionStorage` | gerenciável | próximo passo de segurança: delegação de eventos + CSP. Sem isso, qualquer XSS futuro lê a chave |
