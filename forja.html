@@ -4633,23 +4633,23 @@
       <div class="mono text-[10px] text-zinc-500 tracking-widest mb-4">PERFIL</div>
       <div class="grid md:grid-cols-2 gap-4 mb-4">
         <div>
-          <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">ID (slug)</label>
+          <label for="edit-id" class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">ID (slug)</label>
           <input id="edit-id" type="text" disabled class="w-full opacity-50" />
         </div>
         <div>
-          <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">CÓDIGO (8 CARACTERES)</label>
+          <label for="edit-pin" class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">CÓDIGO (8 CARACTERES)</label>
           <input id="edit-pin" type="text" class="w-full" />
         </div>
         <div class="md:col-span-2">
-          <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">NOME</label>
+          <label for="edit-nome" class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">NOME</label>
           <input id="edit-nome" type="text" class="w-full" />
         </div>
         <div class="md:col-span-2">
-          <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">OBJETIVO</label>
+          <label for="edit-objetivo" class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">OBJETIVO</label>
           <input id="edit-objetivo" type="text" class="w-full" />
         </div>
         <div class="md:col-span-2">
-          <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">NOTAS / RESTRIÇÕES</label>
+          <label for="edit-notas" class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">NOTAS / RESTRIÇÕES</label>
           <textarea id="edit-notas" rows="3" class="w-full"></textarea>
         </div>
       </div>
@@ -4684,7 +4684,7 @@
               <th style="width: 6.5rem">TIPO</th>
               <th style="width: 4.5rem">ALVO</th>
               <th>OBS</th>
-              <th style="width: 4rem"></th>
+              <th style="width: 4rem"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">Ações</span></th>
             </tr>
           </thead>
           <tbody id="plano-tbody"></tbody>
@@ -4713,7 +4713,7 @@
           <label class="mono text-[10px] text-zinc-500 tracking-widest flex items-center gap-1.5 cursor-pointer ml-auto mr-2">
             <input type="checkbox" id="evo-compare-trainer" style="accent-color:#E85616" /> COMPARAR ALUNOS
           </label>
-          <select id="evo-select-trainer" class="text-xs"></select>
+          <select id="evo-select-trainer" aria-label="Exercício do gráfico de progressão" class="text-xs"></select>
         </div>
         <!-- v30.4.0: era <canvas> do Chart.js; agora o proprio app monta o
              SVG aqui dentro. A altura fixa saiu junto: o SVG tem viewBox e
@@ -5067,7 +5067,7 @@
       <div class="glass p-4 mb-6">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div class="mono text-[10px] text-zinc-500 tracking-widest">PROGRESSÃO DE CARGA</div>
-          <select id="evo-select-aluno" class="text-xs"></select>
+          <select id="evo-select-aluno" aria-label="Exercício do gráfico de progressão" class="text-xs"></select>
         </div>
         <!-- v30.4.0: era <canvas> do Chart.js; agora o proprio app monta o
              SVG aqui dentro. A altura fixa saiu junto: o SVG tem viewBox e
@@ -5177,11 +5177,11 @@
     <div id="treinar-sugestao" class="hidden mono text-[11px] p-3 mb-3 border tracking-wider" style="cursor:pointer;" onclick="aplicarSugestaoTreinar()"></div>
     <div class="grid grid-cols-3 gap-3 tr-fields">
       <div>
-        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">CARGA</label>
+        <label for="treinar-input-carga" class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">CARGA</label>
         <input id="treinar-input-carga" type="text" inputmode="decimal" autocomplete="off" maxlength="40" class="w-full text-2xl py-3 text-center" />
       </div>
       <div>
-        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">REPS</label>
+        <label for="treinar-input-reps" class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">REPS</label>
         <input id="treinar-input-reps" type="text" inputmode="text" autocomplete="off" maxlength="60" class="w-full text-2xl py-3 text-center" />
         <div class="flex justify-center gap-2 mt-1">
           <button type="button" class="btn px-3 py-1" onclick="ajustarRepsSerie(-1)" aria-label="Diminuir uma repetição">−</button>
@@ -5189,7 +5189,7 @@
         </div>
       </div>
       <div>
-        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">RIR</label>
+        <label for="treinar-input-rir" class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">RIR</label>
         <input id="treinar-input-rir" type="text" inputmode="numeric" autocomplete="off" maxlength="40" class="w-full text-2xl py-3 text-center" />
       </div>
     </div>
@@ -5246,7 +5246,7 @@
       <input id="treinar-input-obs" type="text" placeholder="opcional" maxlength="1500" class="w-full" />
     </div>
     <div id="tr-data-linha" class="mb-6">
-      <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DATA DO TREINO (opcional, padrão hoje)</label>
+      <label for="treinar-input-data" class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DATA DO TREINO (opcional, padrão hoje)</label>
       <input id="treinar-input-data" type="date" class="w-full text-sm" />
     </div>
     <!-- Navegacao livre: pula pro proximo/anterior SEM registrar. Util quando
@@ -5324,7 +5324,7 @@
         <div class="display text-4xl">PESO</div>
         <div class="mono text-[10px] text-zinc-500 tracking-widest">REGISTRAR PESAGEM</div>
       </div>
-      <button onclick="document.getElementById('modal-peso').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
+      <button type="button" aria-label="Fechar" onclick="document.getElementById('modal-peso').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -5334,7 +5334,7 @@
         <input id="peso-input-kg" type="text" inputmode="decimal" autocomplete="off" placeholder="ex: 84.4" class="w-full text-3xl py-3 text-center" />
       </div>
       <div>
-        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">BALANÇA</label>
+        <label for="peso-input-balanca" class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">BALANÇA</label>
         <select id="peso-input-balanca" class="w-full text-sm">
           <option value="Academia">Academia</option>
           <option value="Casa">Casa</option>
@@ -5365,13 +5365,13 @@
         <div class="display text-4xl">CARDIO</div>
         <div class="mono text-[10px] text-zinc-500 tracking-widest">CONDICIONAMENTO · FORA DA FORÇA</div>
       </div>
-      <button onclick="document.getElementById('modal-cardio').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
+      <button type="button" aria-label="Fechar" onclick="document.getElementById('modal-cardio').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
     <div class="glass p-5 space-y-4">
       <div>
-        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">TIPO</label>
+        <label for="cardio-tipo" class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">TIPO</label>
         <select id="cardio-tipo" class="w-full text-sm"></select>
       </div>
       <div>
@@ -5383,7 +5383,7 @@
         <input id="cardio-obs" type="text" autocomplete="off" placeholder="ex: 20km · 45min · zona 2" class="w-full text-sm" />
       </div>
       <div>
-        <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DATA</label>
+        <label for="cardio-data" class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DATA</label>
         <input id="cardio-data" type="date" class="w-full text-sm" />
       </div>
       <div class="flex gap-3 pt-2">
@@ -5404,7 +5404,7 @@
         <div class="display text-4xl">TROCAR</div>
         <div class="mono text-[10px] text-zinc-500 tracking-widest">SUBSTITUIR SÓ NESTA SESSÃO</div>
       </div>
-      <button onclick="document.getElementById('modal-trocar').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
+      <button type="button" aria-label="Fechar" onclick="document.getElementById('modal-trocar').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -5436,7 +5436,7 @@
         <div class="display text-4xl">FICHA</div>
         <div id="exinfo-nome" class="mono text-[10px] text-zinc-500 tracking-widest"></div>
       </div>
-      <button onclick="document.getElementById('modal-exinfo').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
+      <button type="button" aria-label="Fechar" onclick="document.getElementById('modal-exinfo').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -5464,7 +5464,7 @@
         <div id="li-exercicio-nome" class="display text-3xl leading-tight">—</div>
         <div class="mono text-[10px] text-zinc-500 tracking-widest">LANÇAR EXECUÇÃO INDIVIDUAL</div>
       </div>
-      <button onclick="document.getElementById('modal-lancar-individual').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
+      <button type="button" aria-label="Fechar" onclick="document.getElementById('modal-lancar-individual').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -5511,14 +5511,14 @@
         <div id="modal-reg-day" class="display text-4xl">—</div>
         <div class="mono text-[10px] text-zinc-500 tracking-widest">REGISTRAR EXECUÇÃO</div>
       </div>
-      <button onclick="document.getElementById('modal-registrar').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
+      <button type="button" aria-label="Fechar" onclick="document.getElementById('modal-registrar').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
     <div id="modal-reg-form" class="space-y-4 mb-6"></div>
     <!-- Data do treino (pre-preenchida com hoje, opcional sobrescrever) -->
     <div class="mb-4 pb-4 border-b border-zinc-800">
-      <label class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DATA DO TREINO (opcional, padrao hoje)</label>
+      <label for="reg-data-treino" class="mono text-[10px] text-zinc-500 tracking-widest block mb-1">DATA DO TREINO (opcional, padrao hoje)</label>
       <input id="reg-data-treino" type="date" class="w-full text-sm" />
     </div>
     <div class="flex gap-3">
@@ -5535,7 +5535,7 @@
   <div class="max-w-xl mx-auto px-6 py-12">
     <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
       <div class="display text-3xl">COMPARTILHAR</div>
-      <button onclick="document.getElementById('modal-share').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
+      <button type="button" aria-label="Fechar" onclick="document.getElementById('modal-share').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -5567,7 +5567,7 @@
   <div class="max-w-md mx-auto px-6 py-12">
     <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
       <div class="display text-3xl">NOVO ALUNO</div>
-      <button onclick="document.getElementById('modal-novo').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
+      <button type="button" aria-label="Fechar" onclick="document.getElementById('modal-novo').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -5611,7 +5611,7 @@
         <div class="display text-3xl">IMPORTAR ALUNO</div>
         <div class="mono text-[10px] text-zinc-500 tracking-widest">VIA JSON</div>
       </div>
-      <button onclick="document.getElementById('modal-import').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
+      <button type="button" aria-label="Fechar" onclick="document.getElementById('modal-import').classList.add('hidden')" class="tap-44 text-zinc-400 hover:text-white">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -5784,7 +5784,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.28.0';
+const FORJA_VERSION = 'v30.29.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -7076,19 +7076,19 @@ function renderTrainerDashboard() {
     const last = ultimaPorAluno[String(a.id)];
     const ativoCor = ativos.has(String(a.id)) ? 'border-emerald-700' : 'border-zinc-800';
     return `
-    <div class="border ${ativoCor} p-4 bg-zinc-900/30 hover:bg-zinc-900/60 transition-colors cursor-pointer" onclick="navigateTo('#trainer/edit/${a.id}')">
+    <div class="border ${ativoCor} p-4 bg-zinc-900/30 hover:bg-zinc-900/60 transition-colors cursor-pointer" data-aluno-id="${escapeHtml(a.id)}" onclick="navigateTo('#trainer/edit/' + this.dataset.alunoId)">
       <div class="flex items-start justify-between mb-3">
         <div class="flex items-center gap-3">
           <div class="avatar bg-steel text-white">${escapeHtml(initials(a.nome))}</div>
           <div>
             <div class="display text-2xl leading-none">${escapeHtml(a.nome || a.id)}</div>
-            <div class="mono text-[10px] text-zinc-500">@${a.id}</div>
+            <div class="mono text-[10px] text-zinc-500">@${escapeHtml(a.id)}</div>
           </div>
         </div>
       </div>
       <div class="mono text-xs text-zinc-400 mb-2 truncate">${escapeHtml(a.objetivo || '—')}</div>
       <div class="mono text-[10px] text-zinc-500 flex justify-between border-t border-zinc-800 pt-2 mt-3">
-        <span>${last ? `ÚLT: ${last.dia} · ${daysAgo(dataSessao(last))}` : 'SEM REGISTROS'}</span>
+        <span>${last ? `ÚLT: ${escapeHtml(last.dia)} · ${daysAgo(dataSessao(last))}` : 'SEM REGISTROS'}</span>
         <span class="text-cyan-400">EDITAR ▸</span>
       </div>
     </div>`;
@@ -7296,7 +7296,7 @@ function renderPlanoTable() {
   const tipoSel = (i, val) => {
     const v = String(val || '').toLowerCase();
     const sel = (x) => v.startsWith(x) ? ' selected' : '';
-    return `<select data-i="${i}" data-f="tipo" class="w-full text-xs">
+    return `<select data-i="${i}" data-f="tipo" aria-label="Tipo do exercício ${i+1}" class="w-full text-xs">
       <option value=""${v === '' ? ' selected' : ''}>—</option>
       <option value="composto"${sel('c')}>COMPOSTO</option>
       <option value="isolado"${sel('i')}>ISOLADO</option>
@@ -7305,19 +7305,19 @@ function renderPlanoTable() {
   tbody.innerHTML = list.map((ex, i) => `
     <tr>
       <td class="mono text-xs text-zinc-500 text-center">${i+1}</td>
-      <td><input type="text" data-i="${i}" data-f="exercicio" value="${escapeHtml(ex.exercicio || '')}" /></td>
-      <td><input type="text" data-i="${i}" data-f="series" value="${escapeHtml(ex.series || '')}" /></td>
-      <td><input type="text" data-i="${i}" data-f="reps" value="${escapeHtml(ex.reps || '')}" /></td>
-      <td><input type="text" data-i="${i}" data-f="carga" value="${escapeHtml(ex.carga || '')}" /></td>
-      <td><input type="text" data-i="${i}" data-f="rir" value="${escapeHtml(ex.rir != null ? ex.rir : '')}" /></td>
+      <td><input type="text" data-i="${i}" data-f="exercicio" aria-label="Exercício ${i+1}" value="${escapeHtml(ex.exercicio || '')}" /></td>
+      <td><input type="text" data-i="${i}" data-f="series" aria-label="Séries do exercício ${i+1}" value="${escapeHtml(ex.series || '')}" /></td>
+      <td><input type="text" data-i="${i}" data-f="reps" aria-label="Repetições do exercício ${i+1}" value="${escapeHtml(ex.reps || '')}" /></td>
+      <td><input type="text" data-i="${i}" data-f="carga" aria-label="Carga do exercício ${i+1}" value="${escapeHtml(ex.carga || '')}" /></td>
+      <td><input type="text" data-i="${i}" data-f="rir" aria-label="RIR do exercício ${i+1}" value="${escapeHtml(ex.rir != null ? ex.rir : '')}" /></td>
       <td>${tipoSel(i, ex.tipo)}</td>
-      <td><input type="text" data-i="${i}" data-f="meta" value="${escapeHtml(ex.meta != null ? ex.meta : '')}" placeholder="kg" /></td>
-      <td><input type="text" data-i="${i}" data-f="obs" value="${escapeHtml(ex.obs || '')}" /></td>
+      <td><input type="text" data-i="${i}" data-f="meta" aria-label="Alvo em kg do exercício ${i+1}" value="${escapeHtml(ex.meta != null ? ex.meta : '')}" placeholder="kg" /></td>
+      <td><input type="text" data-i="${i}" data-f="obs" aria-label="Observação do exercício ${i+1}" value="${escapeHtml(ex.obs || '')}" /></td>
       <td class="text-center whitespace-nowrap">
         <button data-act="lancar" data-i="${i}" title="Lancar execucao deste exercicio" aria-label="Lancar execucao deste exercicio" class="text-zinc-500 hover:text-emerald-400 px-1"><svg class="icn icn--16 icn--mid" aria-hidden="true" focusable="false"><use href="#icn-lancar"></use></svg></button>
-        <button data-act="up" data-i="${i}" class="text-zinc-500 hover:text-cyan-400 px-1">▲</button>
-        <button data-act="down" data-i="${i}" class="text-zinc-500 hover:text-cyan-400 px-1">▼</button>
-        <button data-act="del" data-i="${i}" class="text-zinc-500 hover:text-red-500 px-1">✕</button>
+        <button data-act="up" data-i="${i}" aria-label="Subir exercício ${i+1}" class="text-zinc-500 hover:text-cyan-400 px-1">▲</button>
+        <button data-act="down" data-i="${i}" aria-label="Descer exercício ${i+1}" class="text-zinc-500 hover:text-cyan-400 px-1">▼</button>
+        <button data-act="del" data-i="${i}" aria-label="Remover exercício ${i+1}" class="text-zinc-500 hover:text-red-500 px-1">✕</button>
       </td>
     </tr>
   `).join('');
@@ -7650,7 +7650,9 @@ function renderEvoStats(regs, containerId, cardio) {
     (function () {
       if (!cardio.length) return '';
       const ult = [...cardio].sort((a, b) => String(dataSessao(b)).localeCompare(String(dataSessao(a))))[0];
-      const sub = cardioEmoji(ult.modalidade) + ' ' + cardioLabel(ult.modalidade) + ' · ' + daysAgo(dataSessao(ult));
+      // v30.29.0: cardioLabel() devolve a modalidade CRUA quando ela nao e um dos 5 tipos conhecidos (a coluna e texto livre
+      // e o aluno escreve nela direto na API). stat() injeta o sub via innerHTML, entao o rotulo precisa de escapeHtml aqui.
+      const sub = cardioEmoji(ult.modalidade) + ' ' + escapeHtml(cardioLabel(ult.modalidade)) + ' · ' + daysAgo(dataSessao(ult));
       return stat('CARDIO', null, sub, cardio.length);
     })();
   // dispara o count-up dos numeros recem-inseridos
@@ -8226,7 +8228,7 @@ function _buildSessionCard(grupo, isTrainer) {
   return `
     <div class="glass">
       <div class="flex items-center gap-3 px-3 py-2 border-b border-zinc-800">
-        <span class="display text-2xl leading-none" style="color:${cor}">${dia || '?'}</span>
+        <span class="display text-2xl leading-none" style="color:${cor}">${escapeHtml(dia || '?')}</span>
         <span class="mono text-xs text-zinc-300">${fmtDate(d)}${horaLocal}${durTxt}</span>
         <span class="mono text-[10px] text-zinc-600 ml-auto">${regsD.length} exercicios</span>
         ${delSessaoBtn}
@@ -9612,24 +9614,24 @@ function abrirModalRegistrar() {
       <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
         <div>
           <div class="mono text-[10px] text-zinc-500 tracking-widest mb-1">CARGA</div>
-          <input type="text" data-f="carga" value="${escapeHtml(String(p.carga||''))}" class="w-full" />
+          <input type="text" data-f="carga" aria-label="Carga — ${escapeHtml(p.exercicio)}" value="${escapeHtml(String(p.carga||''))}" class="w-full" />
         </div>
         <div>
           <div class="mono text-[10px] text-zinc-500 tracking-widest mb-1">REPS</div>
-          <input type="text" data-f="reps" value="${escapeHtml(String(p.reps||''))}" class="w-full" />
+          <input type="text" data-f="reps" aria-label="Repetições — ${escapeHtml(p.exercicio)}" value="${escapeHtml(String(p.reps||''))}" class="w-full" />
         </div>
         <div>
           <div class="mono text-[10px] text-zinc-500 tracking-widest mb-1">RIR FINAL</div>
-          <input type="text" data-f="rir" value="${escapeHtml(String(p.rir||''))}" class="w-full" />
+          <input type="text" data-f="rir" aria-label="RIR final — ${escapeHtml(p.exercicio)}" value="${escapeHtml(String(p.rir||''))}" class="w-full" />
         </div>
         <div>
           <div class="mono text-[10px] text-zinc-500 tracking-widest mb-1">FECHOU?</div>
-          <button data-f="completou" data-val="1" type="button" class="w-full py-2 mono text-xs bg-emerald-600 text-white tracking-widest">✓ SIM</button>
+          <button data-f="completou" data-val="1" type="button" class="w-full py-2 mono text-xs bg-emerald-700 text-white tracking-widest">✓ SIM</button>
         </div>
       </div>
       <div class="mt-2">
         <div class="mono text-[10px] text-zinc-500 tracking-widest mb-1">OBS</div>
-        <input type="text" data-f="obs" placeholder="opcional" class="w-full" />
+        <input type="text" data-f="obs" aria-label="Observação — ${escapeHtml(p.exercicio)}" placeholder="opcional" class="w-full" />
       </div>
     </div>
   `).join('');
@@ -9639,7 +9641,7 @@ function abrirModalRegistrar() {
       const yes = b.dataset.val === '1';
       b.dataset.val = yes ? '0' : '1';
       if (b.dataset.val === '1') {
-        b.className = 'w-full py-2 mono text-xs bg-emerald-600 text-white tracking-widest';
+        b.className = 'w-full py-2 mono text-xs bg-emerald-700 text-white tracking-widest';
         b.textContent = '✓ SIM';
       } else {
         b.className = 'w-full py-2 mono text-xs border border-zinc-700 text-zinc-400 tracking-widest';
@@ -13040,13 +13042,19 @@ $('treinar-ficha-toggle').onclick = function () {
   }
 
   // Mostrar modal de versao se versao mudou
+  // v30.29.0: so quando HOUVE uma versao anterior neste aparelho. Antes, a 1a abertura (instalacao nova, dados do
+  // navegador limpos, ou o endereco novo do Worker, onde o localStorage comeca vazio) tambem abria "FORJA Atualizado"
+  // por cima do login - aviso falso, nao ha o que atualizar. A versao e gravada sempre. O setItem fica em try/catch
+  // porque agora roda sincrono no boot (antes rodava dentro do setTimeout): uma excecao aqui nao pode derrubar o init.
   const lastVersion = localStorage.getItem('forja-last-version');
   if (lastVersion !== FORJA_VERSION) {
-    setTimeout(() => {
-      document.getElementById('version-text').textContent = `Versão ${FORJA_VERSION} carregada com sucesso`;
-      document.getElementById('version-modal').classList.remove('hidden');
-      localStorage.setItem('forja-last-version', FORJA_VERSION);
-    }, 500);
+    try { localStorage.setItem('forja-last-version', FORJA_VERSION); } catch (e) {}
+    if (lastVersion) {
+      setTimeout(() => {
+        document.getElementById('version-text').textContent = `Versão ${FORJA_VERSION} carregada com sucesso`;
+        document.getElementById('version-modal').classList.remove('hidden');
+      }, 500);
+    }
   }
 
   // PWA: Registrar o service worker para offline + installability
