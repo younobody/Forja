@@ -3598,6 +3598,13 @@
     border: 1px solid var(--border); border-radius: var(--r-pill); background: var(--surface-1);
     color: var(--text-dim); font-size: 0.6875rem; letter-spacing: 0.06em;
   }
+  #aluno-last { margin-right: 6px; }
+  /* v30.31.0: "PROXIMO: D" (a rotacao do CONSOLE) fica ao lado da ultima sessao, em brasa */
+  #aluno-prox {
+    display: inline-flex; align-items: center; margin: 0 0 .75rem; padding: 5px 11px;
+    border: 1px solid rgba(232,86,22,.5); border-radius: var(--r-pill); background: var(--acc-soft);
+    color: var(--acc-ink); font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.06em;
+  }
   #aluno-meta { margin: 0 0 1rem; font-size: 0.75rem; line-height: 1.4; color: var(--text-dim); }
   #aluno-meta:empty { display: none; }
 
@@ -3609,6 +3616,10 @@
   }
   #aluno-day-tabs .tab-btn { flex-direction: column; gap: 3px; min-height: 54px; margin: 0; padding: 4px 6px; border-bottom: 0; border-radius: 12px; }
   #aluno-day-tabs .tab-btn + .tab-btn { margin-left: 0; }
+  #aluno-day-tabs .tab-btn { position: relative; }
+  /* ponto de brasa no dia que a rotacao manda treinar (acompanha o dia mesmo quando o aluno escolhe outro) */
+  .dia-prox { position: absolute; top: 6px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--brasa-4); box-shadow: 0 0 0 2px var(--surface-1); }
+  #aluno-day-tabs .tab-btn.active .dia-prox { background: #fff; box-shadow: none; }
   .dia-l { font-family: 'Bebas Neue', sans-serif; font-size: 1.625rem; font-weight: 400; letter-spacing: 0.02em; line-height: .9; }
   .dia-n { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.04em; line-height: 1; }
 
@@ -3690,6 +3701,75 @@
     .aba, .aba .icn { transition: none; }
     .aba:active .icn { transform: none; }
     .mais-item:active { transform: none; }
+  }
+
+  /* =====================================================================
+     v30.31.0 · EDITOR DO PLANO NO CELULAR (tela de editar aluno do trainer)
+     Medido em 360px: o cabecalho (EXPORTAR / COMPARTILHAR / REMOVER) estourava a PAGINA inteira (487px de largura: o REMOVER
+     ficava fora da tela) e a tabela de 10 colunas deixava 5 letras do nome do exercicio, cortava carga e reps e escondia RIR,
+     TIPO, ALVO e OBS numa rolagem lateral. Abaixo de 768px cada exercicio vira um cartao com os MESMOS <input>/<select>
+     (data-i / data-f e todos os handlers intactos); de 768px pra cima segue a tabela de sempre.
+     ===================================================================== */
+  .ed-fim { display: none; }
+  @media (max-width: 767.98px) {
+    /* cabecalho em 2 linhas e fora do sticky (uma barra fixa de 2 linhas comia ~17% da tela enquanto se edita) */
+    #view-edit-aluno > header { position: static; }
+    #view-edit-aluno .ed-head { flex-wrap: wrap; row-gap: 8px; }
+    #edit-aluno-title { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #view-edit-aluno .ed-acoes { flex: 1 1 100%; }
+    #view-edit-aluno .ed-acoes .btn { flex: 1 1 auto; min-width: 0; padding-left: .5rem; padding-right: .5rem; letter-spacing: 0.06em; }   /* largura pelo texto: com 3 partes iguais o COMPARTILHAR era cortado */
+    #view-edit-aluno > main { padding-left: 1rem; padding-right: 1rem; }
+    /* titulo do cartao do plano + botoes: quebram em vez de espremer */
+    #view-edit-aluno .ed-cab { flex-wrap: wrap; gap: 8px; }
+    #view-edit-aluno .ed-cab > .flex { flex: 1 1 100%; }
+    #view-edit-aluno .ed-cab .btn { flex: 1 1 0; }
+    /* a tabela vira uma pilha de cartoes: 1 exercicio = 1 cartao */
+    #plano-table, #plano-table tbody { display: block; width: 100%; }
+    #plano-table thead { display: none; }
+    #plano-tbody { counter-reset: exn; }
+    #plano-tbody > tr {
+      counter-increment: exn; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 10px 8px;
+      margin-bottom: 10px; padding: 12px;
+      background: linear-gradient(180deg, var(--surface-2), var(--surface-1)); border: 1px solid var(--border);
+      border-radius: var(--r-lg); box-shadow: var(--sh-1);
+    }
+    #plano-tbody > tr > td { display: block; min-width: 0; padding: 0; border: 0; text-align: left; }
+    #plano-tbody > tr > td:nth-child(1) { display: none; }                  /* # (o numero vai no rotulo do exercicio) */
+    /* grade de 12 colunas, larguras pelo tamanho do conteudo; a ordem visual e a do DOM (o foco do teclado nao pula):
+       exercicio / series 3 + reps 4 + carga 5 / rir 3 + tipo 9 / alvo 4 + obs 8 / acoes */
+    #plano-tbody > tr > td:nth-child(2) { grid-column: span 12; }
+    #plano-tbody > tr > td:nth-child(3) { grid-column: span 3; }
+    #plano-tbody > tr > td:nth-child(4) { grid-column: span 4; }
+    #plano-tbody > tr > td:nth-child(5) { grid-column: span 5; }
+    #plano-tbody > tr > td:nth-child(6) { grid-column: span 3; }
+    #plano-tbody > tr > td:nth-child(7) { grid-column: span 9; }
+    #plano-tbody > tr > td:nth-child(8) { grid-column: span 4; }
+    #plano-tbody > tr > td:nth-child(9) { grid-column: span 8; }
+    #plano-tbody > tr > td:nth-child(10) { grid-column: span 12; display: flex; gap: 8px; margin-top: 2px; }
+    /* o <thead> some, entao cada campo carrega o proprio rotulo (o nome acessivel continua sendo o aria-label do campo) */
+    #plano-tbody > tr > td[data-r]::before, #plano-tbody > tr > td:nth-child(2)::before {
+      display: block; margin-bottom: 5px; font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; font-weight: 500;
+      letter-spacing: 0.08em; line-height: 1; color: var(--text-faint);
+    }
+    #plano-tbody > tr > td[data-r]::before { content: attr(data-r); }
+    #plano-tbody > tr > td:nth-child(2)::before { content: 'EXERCÍCIO ' counter(exn, decimal-leading-zero); }
+    /* campos de 44px (a tabela densa tirava esse piso) */
+    #plano-tbody input, #plano-tbody select { min-height: 44px; width: 100%; padding-left: 0.5rem; padding-right: 0.5rem; }
+    #plano-tbody > tr > td:nth-child(10) button {
+      flex: none; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0 12px;
+      border: 1px solid var(--border-hot); border-radius: var(--r-md); background: var(--surface-1); font-size: 1rem; line-height: 1;
+    }
+    #plano-tbody > tr > td:nth-child(10) button[data-act="lancar"] { flex: 1 1 auto; gap: 6px; }
+    #plano-tbody > tr > td:nth-child(10) button[data-act="lancar"]::after {
+      content: "LANÇAR"; font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.08em;
+    }
+    #plano-tbody > tr > td:nth-child(10) button[data-act="del"] { color: var(--falta-soft); border-color: rgba(235,77,69,.5); }
+    /* dia sem exercicios: a linha de aviso nao vira cartao */
+    #plano-tbody > tr.pl-vazio { display: block; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+    #plano-tbody > tr.pl-vazio > td { display: block; }
+    /* depois de editar uma lista longa o SALVAR do topo fica a ~2000px: repete os dois botoes no fim */
+    .ed-fim { display: flex; gap: 8px; margin-top: 4px; }
+    .ed-fim .btn { flex: 1 1 0; }
   }
 
 </style>
@@ -4783,10 +4863,10 @@
 <!-- =========================================== -->
 <section id="view-edit-aluno" class="hidden min-h-screen pb-16">
   <header class="scanbar fx-aco-escovado fx-vidro px-6 py-4 sticky top-0 z-30" style="background:rgba(18,23,31,0.78);backdrop-filter:blur(14px) saturate(125%);border-bottom:1px solid #242C38;box-shadow:0 1px 0 rgba(255,255,255,0.06) inset, 0 6px 20px rgba(0,0,0,0.5)">
-    <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
+    <div class="max-w-6xl mx-auto flex items-center justify-between gap-4 ed-head">
       <button onclick="navigateTo('#trainer')" class="tap-44 mono text-xs text-zinc-400 hover:text-white tracking-widest">◂ ALUNOS</button>
       <div id="edit-aluno-title" class="display text-2xl"></div>
-      <div class="flex gap-2">
+      <div class="flex gap-2 ed-acoes">
         <button id="btn-export-aluno" class="btn">EXPORTAR</button>
         <button id="btn-share-aluno" class="btn">COMPARTILHAR</button>
         <button id="btn-remover-aluno" class="btn btn-danger">REMOVER</button>
@@ -4823,7 +4903,7 @@
     </div>
     <!-- Plano por tabs -->
     <div class="glass p-5 mb-8">
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center justify-between mb-4 ed-cab">
         <div class="mono text-[10px] text-zinc-500 tracking-widest">PLANO DE TREINO</div>
         <div class="flex gap-2">
           <button id="btn-add-exercise" class="btn">+ EXERCICIO</button>
@@ -4855,6 +4935,11 @@
           </thead>
           <tbody id="plano-tbody"></tbody>
         </table>
+      </div>
+      <!-- v30.31.0: so no celular (CSS): os mesmos dois botoes do topo, no fim da lista -->
+      <div class="ed-fim">
+        <button type="button" class="btn" onclick="document.getElementById('btn-add-exercise').click()">+ EXERCICIO</button>
+        <button type="button" class="btn btn-success" onclick="document.getElementById('btn-salvar-plano').click()">SALVAR PLANO</button>
       </div>
     </div>
     <!-- EVOLUCAO / HISTORICO -->
@@ -4938,6 +5023,7 @@
     <!-- v30.12.0: a linha "ULT: ..." saiu do cabecalho sticky (junto com o nome quebrado em 2
          linhas, deixava ele com 141px = 15% da tela). Mesmo id: renderAlunoDashboard so troca o texto. -->
     <div id="aluno-last" class="mono" data-pane="treino">—</div>
+    <div id="aluno-prox" class="mono hidden" data-pane="treino"></div>
     <!-- Tabs (renderizado dinamicamente conforme dias que o aluno tem) -->
     <div id="aluno-day-tabs" data-pane="treino" role="group" aria-label="Dia do treino"></div>
     <!-- Objetivo / notas -->
@@ -5976,7 +6062,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.30.0';
+const FORJA_VERSION = 'v30.31.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -6847,6 +6933,7 @@ function show(id) {
 }
 
 function logout() {
+  APP._diaProx = null;
   limparRascunhoTreino();
   APP.trainerKey = null;
   APP.alunoSession = null;
@@ -6979,6 +7066,7 @@ function tentarSalvarCredencial(id, senha, nome) {
 // de todos os alunos, e persistir arriscaria deixar acesso permanente se o
 // Marcos logar como trainer num celular que nao e so dele e esquecer o SAIR.
 function entrarComoAluno(sessao, data, opc) {
+  APP._diaProx = null;   // v30.31.0: o dia selecionado e re-sincronizado com a rotacao desta conta
   APP.trainerKey = null;
   sessionStorage.removeItem('forja-trainer-key');
   APP.alunoSession = sessao;
@@ -7456,6 +7544,10 @@ async function loadEditAluno(id) {
         carga: p.carga,
         rir: p.rir,
         tipo: p.tipo || '',
+        // v30.31.0: o editor tem o campo ALVO (meta) mas esta copia nunca o carregava: abria vazio e o SALVAR PLANO mandava o plano
+        // sem meta. f_salvar_plano apaga as linhas do aluno e reinsere com coalesce(meta,''), ou seja, todo salvamento zerava o
+        // alvo (meta de 1 ano) de TODOS os exercicios — a linha tracejada do grafico e o "meta atingida" da progressao.
+        meta: p.meta,
         obs: p.obs,
       });
     });
@@ -7484,7 +7576,7 @@ function renderPlanoTable() {
   const tbody = $('plano-tbody');
   const list = APP.editPlano[APP.editDay] || [];
   if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" class="mono text-xs text-zinc-500 text-center py-6">Sem exercicios neste dia. Clique em + EXERCICIO.</td></tr>';
+    tbody.innerHTML = '<tr class="pl-vazio"><td colspan="10" class="mono text-xs text-zinc-500 text-center py-6">Sem exercicios neste dia. Clique em + EXERCICIO.</td></tr>';
     return;
   }
   const tipoSel = (i, val) => {
@@ -7500,13 +7592,13 @@ function renderPlanoTable() {
     <tr>
       <td class="mono text-xs text-zinc-500 text-center">${i+1}</td>
       <td><input type="text" data-i="${i}" data-f="exercicio" aria-label="Exercício ${i+1}" value="${escapeHtml(ex.exercicio || '')}" /></td>
-      <td><input type="text" data-i="${i}" data-f="series" aria-label="Séries do exercício ${i+1}" value="${escapeHtml(ex.series || '')}" /></td>
-      <td><input type="text" data-i="${i}" data-f="reps" aria-label="Repetições do exercício ${i+1}" value="${escapeHtml(ex.reps || '')}" /></td>
-      <td><input type="text" data-i="${i}" data-f="carga" aria-label="Carga do exercício ${i+1}" value="${escapeHtml(ex.carga || '')}" /></td>
-      <td><input type="text" data-i="${i}" data-f="rir" aria-label="RIR do exercício ${i+1}" value="${escapeHtml(ex.rir != null ? ex.rir : '')}" /></td>
-      <td>${tipoSel(i, ex.tipo)}</td>
-      <td><input type="text" data-i="${i}" data-f="meta" aria-label="Alvo em kg do exercício ${i+1}" value="${escapeHtml(ex.meta != null ? ex.meta : '')}" placeholder="kg" /></td>
-      <td><input type="text" data-i="${i}" data-f="obs" aria-label="Observação do exercício ${i+1}" value="${escapeHtml(ex.obs || '')}" /></td>
+      <td data-r="SÉRIES"><input type="text" data-i="${i}" data-f="series" aria-label="Séries do exercício ${i+1}" value="${escapeHtml(ex.series || '')}" /></td>
+      <td data-r="REPS"><input type="text" data-i="${i}" data-f="reps" aria-label="Repetições do exercício ${i+1}" value="${escapeHtml(ex.reps || '')}" /></td>
+      <td data-r="CARGA"><input type="text" data-i="${i}" data-f="carga" aria-label="Carga do exercício ${i+1}" value="${escapeHtml(ex.carga || '')}" /></td>
+      <td data-r="RIR"><input type="text" data-i="${i}" data-f="rir" aria-label="RIR do exercício ${i+1}" value="${escapeHtml(ex.rir != null ? ex.rir : '')}" /></td>
+      <td data-r="TIPO">${tipoSel(i, ex.tipo)}</td>
+      <td data-r="ALVO (KG)"><input type="text" data-i="${i}" data-f="meta" aria-label="Alvo em kg do exercício ${i+1}" value="${escapeHtml(ex.meta != null ? ex.meta : '')}" placeholder="kg" /></td>
+      <td data-r="OBSERVAÇÃO"><input type="text" data-i="${i}" data-f="obs" aria-label="Observação do exercício ${i+1}" value="${escapeHtml(ex.obs || '')}" /></td>
       <td class="text-center whitespace-nowrap">
         <button data-act="lancar" data-i="${i}" title="Lancar execucao deste exercicio" aria-label="Lancar execucao deste exercicio" class="text-zinc-500 hover:text-emerald-400 px-1"><svg class="icn icn--16 icn--mid" aria-hidden="true" focusable="false"><use href="#icn-lancar"></use></svg></button>
         <button data-act="up" data-i="${i}" aria-label="Subir exercício ${i+1}" class="text-zinc-500 hover:text-cyan-400 px-1">▲</button>
@@ -7590,6 +7682,12 @@ $('btn-li-salvar').onclick = async () => {
 $('btn-add-exercise').onclick = () => {
   APP.editPlano[APP.editDay].push({ exercicio: '', series: '3', reps: '10', carga: '', rir: '2', tipo: '', meta: '', obs: '' });
   renderPlanoTable();
+  // v30.31.0: leva o cursor ao nome do exercicio novo. No celular o cartao nasce abaixo da dobra (o botao fica no fim da lista).
+  const novo = document.querySelector('#plano-tbody input[data-f="exercicio"][data-i="' + (APP.editPlano[APP.editDay].length - 1) + '"]');
+  if (novo) {
+    novo.focus();
+    novo.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }
 };
 
 $('btn-salvar-perfil').onclick = async () => {
@@ -8868,16 +8966,31 @@ function diasDoAluno() {
   return arr.length ? arr : ['A']; // fallback: pelo menos mostra A
 }
 
+// v30.31.0: o dia que abre selecionado e o PROXIMO TREINO da rotacao: frcRotacao(), "o dia mais atrasado vence" (dia nunca
+// treinado vence de todos; empate pela letra; cardio nao conta) — a MESMA regra que o CONSOLE anuncia como "Proximo treino".
+// Antes abria sempre no 1o dia do plano (A), que so batia quando A era o proximo. NAO e a sugestao do mapa muscular
+// (mapaSugerirDia, por recuperacao): essa segue na faixa "pronto pra treinar" e pode divergir — avisar, nunca vetar.
+function diaProximoTreino() {
+  try { const r = frcRotacao(); return r.length ? r[0].d : null; } catch (e) { return null; }
+}
+
 function renderAlunoDayTabs() {
   const dias = diasDoAluno();
+  // A escolha manual do aluno vale ate o proximo treino MUDAR (dado novo) ou ate ele terminar um treino (finalizarTreinar zera
+  // APP._diaProx). Um refresh em background com o mesmo dado nao desfaz o dia que ele tocou.
+  const prox = diaProximoTreino();
+  if (prox && prox !== APP._diaProx) { APP._diaProx = prox; APP.alunoDay = prox; }
   if (!dias.includes(APP.alunoDay)) APP.alunoDay = dias[0];
+  const pilula = $('aluno-prox');
+  if (pilula) { pilula.classList.toggle('hidden', !prox || dias.length < 2); pilula.textContent = 'PRÓXIMO: ' + prox; }
   const container = $('aluno-day-tabs');
   const plano = APP.data.plano || [];
   container.classList.toggle('hidden', plano.length === 0 || dias.length < 2);   // v30.30.0: sem plano ou com um dia so, o seletor nao tem o que escolher
   container.innerHTML = dias.map(d => {
     const n = plano.filter(p => String(p.dia).toUpperCase() === d).length;
     const on = d === APP.alunoDay;
-    return `<button class="tab-btn ${on ? 'active' : ''}" data-day="${d}" aria-pressed="${on ? 'true' : 'false'}" aria-label="Dia ${d}, ${n} exercício${n === 1 ? '' : 's'}" onclick="setAlunoDay('${d}')"><span class="dia-l">${d}</span><span class="dia-n">${n} ex.</span></button>`;
+    const ehProx = d === prox && dias.length >= 2;   // um dia so (ou sem plano): nao ha o que sugerir
+    return `<button class="tab-btn ${on ? 'active' : ''}" data-day="${d}" aria-pressed="${on ? 'true' : 'false'}" aria-label="Dia ${d}, ${n} exercício${n === 1 ? '' : 's'}${ehProx ? ', próximo treino' : ''}" onclick="setAlunoDay('${d}')"><span class="dia-l">${d}</span><span class="dia-n">${n} ex.</span>${ehProx ? '<span class="dia-prox" aria-hidden="true"></span>' : ''}</button>`;
   }).join('');
 }
 
@@ -12221,6 +12334,7 @@ async function mostrarSummary() {
 
 async function finalizarTreinar() {
   TREINAR.active = false;
+  APP._diaProx = null;   // v30.31.0: treino terminado: o dia selecionado volta a seguir o proximo da rotacao, mesmo que ele tenha escolhido outro a mao
   limparRascunhoTreino();
   if (TREINAR.timerInt) { clearInterval(TREINAR.timerInt); TREINAR.timerInt = null; }
   if (TREINAR.restTimer) { clearInterval(TREINAR.restTimer); TREINAR.restTimer = null; }

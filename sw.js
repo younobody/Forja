@@ -183,9 +183,15 @@
  * Android leva de qualquer aba ao TREINO. Plano do dia em linhas compactas (SERIES/REPS/CARGA/RIR em 4 colunas alinhadas). EVOLUCAO do aluno abre com 12 sessoes
  * (+ CARREGAR MAIS). Seletor de dia dentro do LANCAR SESSAO (a acao foi pra aba MAIS). h1/h2 e marcos (axe sem violacoes). Manual atualizado nos textos.
  * Frontend-only; bump aqui so pra invalidar o cache antigo do shell (manual.html tambem esta em ASSETS).
+ * v30.31.0: DIA SUGERIDO + EDITOR DO PLANO NO CELULAR. (1) O dia do TREINO abre no PROXIMO TREINO da rotacao (frcRotacao: "o dia mais atrasado vence", a regra
+ * do CONSOLE) em vez de sempre no 1o dia do plano; pilula "PROXIMO: X" e ponto no segmento; a escolha manual vale ate o dado mudar ou o treino terminar.
+ * (2) Editor do plano do trainer abaixo de 768px: 1 cartao por exercicio (mesmos inputs/handlers), cabecalho que nao estoura a pagina (486px -> 360px),
+ * + EXERCICIO / SALVAR PLANO tambem no fim da lista, + EXERCICIO leva o cursor ao cartao novo. (3) BUGFIX DE DADOS: loadEditAluno nao carregava o meta (ALVO) e o
+ * SALVAR PLANO zerava o alvo de TODOS os exercicios do aluno (f_salvar_plano apaga as linhas e reinsere com coalesce(meta,'')). Frontend-only; bump so pra
+ * invalidar o cache antigo do shell.
  */
 
-const CACHE_VERSION = 'forja-v30.30.0';
+const CACHE_VERSION = 'forja-v30.31.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).
