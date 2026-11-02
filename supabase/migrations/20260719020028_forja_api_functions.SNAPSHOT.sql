@@ -13,6 +13,12 @@
 -- anon" nas duas RPCs, INFO "RLS sem policy" nas tabelas) — sao avisos
 -- ESPERADOS, o design e intencional.
 
+-- Achado em 02/11/2026 ao reproduzir a cadeia do zero num Postgres local: este SNAPSHOT traz f_exercicios_json ja na forma
+-- evoluida (le exercicios.musculos_primarios, coluna criada so na migration seguinte, forja_exercicios_ricos_schema). Sem a
+-- linha abaixo o CREATE falha com 'column musculos_primarios does not exist' (funcao LANGUAGE sql valida o corpo ao criar).
+-- Com ela, as funcoes sao criadas sem validar corpo; as migrations seguintes recriam as versoes certas.
+set check_function_bodies = off;
+
 -- ===== HELPERS =====
 
 CREATE OR REPLACE FUNCTION public.f_slug(s text)
@@ -792,8 +798,16 @@ revoke all on function
   f_remover_aluno, f_import_aluno
   from public, anon, authenticated;
 
-grant execute on function api_get(jsonb) to anon, authenticated;
-grant execute on function api_post(jsonb) to anon, authenticated;
+-- CORRIGIDO em 02/11/2026: este SNAPSHOT dizia `to anon, authenticated`, mas a migration original (e o banco vivo) concedem SO a anon;
+-- `authenticated` (conta logada com Google) nao tem EXECUTE em api_get/api_post, so em api_google (migration forja_login_google).
+-- Achado em 02/11/2026 no replay do zero: a lista de revoke acima nao incluia api_get/api_post, entao ficavam com EXECUTE para PUBLIC
+-- (= qualquer papel, inclusive `authenticated`). A migration original faz `revoke execute on all functions in schema public from
+-- public, anon, authenticated` antes dos grants; aqui o equivalente para as duas RPCs:
+revoke all on function api_get(jsonb), api_post(jsonb) from public, anon, authenticated;
+grant execute on function api_get(jsonb) to anon;
+grant execute on function api_post(jsonb) to anon;
 
 -- admin_key inicial (hash bcrypt; troca real: ver f_check_admin_key acima)
 -- insert into config (key, value) values ('admin_key', extensions.crypt('SUACHAVE', extensions.gen_salt('bf')));
+
+reset check_function_bodies;

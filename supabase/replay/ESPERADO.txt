@@ -1,0 +1,7 @@
+colunas|72|b3dcd155d11ad6cd7c83e1ebcfc4ce21
+constraints|12|feca13fd8c3173433cca385fada30760
+funcs_attrs|34|3c48810ed03b6a95a93785f438140b86
+funcs_corpo|34|7c44c30340f67e6d39cd61bd54dbd828
+funcs_privs|34|b1f2291a6d56752e8160e140f45fc7b6
+indices|15|cf2a9978e698d460e3e04063188bb102
+tabelas_rls_privs|8|0fd59221b6bcd4564ef31e1e007cd69d

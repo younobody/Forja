@@ -119,6 +119,8 @@ $function$;
 -- ---------------------------------------------------------------------------
 -- 3. delete individual do ALUNO — por pk, com fallback de 1 linha
 -- ---------------------------------------------------------------------------
+-- Comentario movido do corpo para ca em 02/11/2026 (o corpo aplicado no banco nao tem comentarios; assim o replay do zero fica identico):
+--   Cliente legado (payload em cache sem pk): apaga NO MAXIMO uma linha; e este LIMIT que impede o clique em 1 exercicio de levar a sessao junto.
 create or replace function public.f_remover_registro_aluno(body jsonb)
 returns jsonb
 language plpgsql
@@ -137,8 +139,6 @@ begin
   if v_pk is not null then
     delete from registro where pk = v_pk and aluno_id = v_aluno;
   else
-    -- Cliente legado (payload em cache sem pk). Apaga NO MAXIMO uma linha:
-    -- e este LIMIT que impede o clique em 1 exercicio de levar a sessao junto.
     if v_ts = '' then
       return jsonb_build_object('ok', false, 'error', 'pk ou timestamp obrigatorio', 'removidos', 0);
     end if;
@@ -156,6 +156,8 @@ end $function$;
 -- ---------------------------------------------------------------------------
 -- 4. delete individual do TRAINER — ganha guarda de aluno e o mesmo limite
 -- ---------------------------------------------------------------------------
+-- Comentario movido do corpo para ca em 02/11/2026 (o corpo aplicado no banco nao tem comentarios; assim o replay do zero fica identico):
+--   aluno_id continua opcional aqui (o trainer e dono de todos), mas quando vem preenchido vira guarda: erro de tela nao atinge outro aluno.
 create or replace function public.f_remover_registro(body jsonb)
 returns jsonb
 language plpgsql
@@ -168,8 +170,6 @@ declare
   v_ts      text   := coalesce(body->>'timestamp','');
 begin
   if v_pk is not null then
-    -- aluno_id continua opcional aqui (o trainer e dono de todos), mas quando
-    -- vem preenchido vira guarda: erro de tela nao atinge outro aluno.
     delete from registro
     where pk = v_pk
       and (v_aluno = '' or aluno_id = v_aluno);
