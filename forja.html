@@ -4868,6 +4868,8 @@
       <div id="edit-aluno-title" class="display text-2xl"></div>
       <div class="flex gap-2 ed-acoes">
         <button id="btn-export-aluno" class="btn">EXPORTAR</button>
+        <button id="btn-hist-xlsx-t" class="btn">EXCEL</button>
+        <button id="btn-hist-pdf-t" class="btn">PDF</button>
         <button id="btn-share-aluno" class="btn">COMPARTILHAR</button>
         <button id="btn-remover-aluno" class="btn btn-danger">REMOVER</button>
       </div>
@@ -5325,6 +5327,11 @@
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
         SUA EVOLUÇÃO
       </h2>
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <span class="mono text-[10px] text-zinc-500 tracking-widest">BAIXAR HISTÓRICO</span>
+        <button id="btn-hist-xlsx" class="btn">EXCEL</button>
+        <button id="btn-hist-pdf" class="btn">PDF</button>
+      </div>
       <div id="evo-periodo-aluno" class="flex flex-wrap gap-2 mb-4"></div>
       <div id="evo-stats-aluno" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"></div>
       <div id="evo-calendario-aluno" class="mb-6"></div>
@@ -6062,7 +6069,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.31.1';
+const FORJA_VERSION = 'v30.32.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -7734,6 +7741,425 @@ $('btn-salvar-plano').onclick = async () => {
     showLoading(false);
   }
 };
+
+// ---------- v30.29.0: EXPORTAR HISTORICO (EXCEL .xlsx + PDF), sem biblioteca ----------
+// Pedido do Marcos (06/11/2026): o aluno exportar TODO o historico de treinos em PDF/Excel.
+// Tudo gerado aqui dentro (zip "stored" + XML minimo; PDF escrito a mao com Courier), entao
+// funciona offline e nao adiciona asset ao service worker. Funcoes puras (exportDados,
+// xlsxBytes, pdfLinhas, pdfBytes) sao testadas por _pecas_v30/export.test.js.
+// PRIVACIDADE: lista branca de campos. Nunca espalhar objeto (...aluno / ...r): o payload do
+// trainer carrega pin e e-mail de todos. E sempre filtra por aluno_id, mesmo no modo aluno.
+
+function exportSerial(iso) {
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  return Math.round((Date.UTC(+m[1], +m[2] - 1, +m[3]) - Date.UTC(1899, 11, 30)) / 86400000);
+}
+
+function exportDataBr(iso) {
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? m[3] + '/' + m[2] + '/' + m[1] : '';
+}
+
+function exportNum(v) {
+  const t = String(v == null ? '' : v).trim().replace(',', '.');
+  return /^-?\d+(\.\d+)?$/.test(t) ? parseFloat(t) : String(v == null ? '' : v);
+}
+
+// Celula: string | number | { d: 'YYYY-MM-DD' } (data).
+function exportDados(data, alunoId) {
+  const id = String(alunoId).trim();
+  const meu = (r) => !!r && (r.aluno_id == null || r.aluno_id === '' || String(r.aluno_id).trim() === id);
+  const lista = (k) => (data && Array.isArray(data[k]) ? data[k] : []).filter(meu);
+  let nome = '';
+  if (data && data.aluno && String(data.aluno.id).trim() === id) nome = data.aluno.nome;
+  else {
+    const a = (data && Array.isArray(data.alunos) ? data.alunos : []).find((x) => String(x.id).trim() === id);
+    if (a) nome = a.nome;
+  }
+  const regs = lista('registros');
+  const ordem = (a, b) => (dataSessao(a) + '|' + String(a.timestamp)).localeCompare(dataSessao(b) + '|' + String(b.timestamp));
+  const treinos = regs.filter((r) => !ehCardio(r)).sort(ordem);
+  const cardio = regs.filter((r) => ehCardio(r)).sort(ordem);
+  const abas = [];
+  abas.push({
+    nome: 'Treinos',
+    colunas: ['Data', 'Dia', 'Exercício', 'Carga', 'Reps', 'RIR', 'Completou', 'Obs'],
+    larg: [12, 6, 34, 12, 10, 6, 11, 60],
+    linhas: treinos.map((r) => [
+      { d: dataSessao(r) },
+      String(r.dia == null ? '' : r.dia).toUpperCase(),
+      String(r.exercicio == null ? '' : r.exercicio),
+      String(r.carga == null ? '' : r.carga),
+      String(r.reps == null ? '' : r.reps),
+      String(r.rir == null ? '' : r.rir),
+      String(r.completou).toLowerCase() === 'sim' ? 'Sim' : (r.completou === true ? 'Sim' : 'Não'),
+      String(r.obs == null ? '' : r.obs),
+    ]),
+  });
+  if (cardio.length) {
+    abas.push({
+      nome: 'Cardio',
+      colunas: ['Data', 'Modalidade', 'Nome', 'Obs'],
+      larg: [12, 16, 30, 70],
+      linhas: cardio.map((r) => [
+        { d: dataSessao(r) },
+        cardioLabel(r.modalidade),
+        String(r.exercicio == null ? '' : r.exercicio),
+        String(r.obs == null ? '' : r.obs),
+      ]),
+    });
+  }
+  const dataDe = (p) => dataTreinoLimpa(p.data) || dataLocalIso(p.timestamp) || '';
+  const peso = lista('peso').map((p) => ({ p: p, iso: dataDe(p) })).filter((x) => x.iso)
+    .sort((a, b) => a.iso.localeCompare(b.iso));
+  if (peso.length) {
+    abas.push({
+      nome: 'Peso',
+      colunas: ['Data', 'Peso (kg)'],
+      larg: [12, 12],
+      linhas: peso.map((x) => [{ d: x.iso }, exportNum(x.p.peso)]),
+    });
+  }
+  const per = lista('perimetros').map((p) => ({ p: p, iso: dataDe(p) })).filter((x) => x.iso)
+    .sort((a, b) => a.iso.localeCompare(b.iso));
+  if (per.length) {
+    abas.push({
+      nome: 'Medidas',
+      colunas: ['Data'].concat(FRC_PERIMETROS.map((k) => k[1] + ' (cm)')),
+      larg: [12].concat(FRC_PERIMETROS.map(() => 14)),
+      linhas: per.map((x) => [{ d: x.iso }].concat(FRC_PERIMETROS.map((k) => exportNum(x.p[k[0]])))),
+    });
+  }
+  return {
+    aluno: { id: id, nome: nome || id },
+    abas: abas,
+    total: treinos.length + cardio.length + peso.length + per.length,
+    gerado: '',
+  };
+}
+
+// ---------- XLSX ----------
+function exportXml(s) {
+  return String(s == null ? '' : s)
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g, '')
+    .replace(/([\uD800-\uDBFF][\uDC00-\uDFFF])|[\uD800-\uDFFF]/g, (m, par) => par || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+let EXPORT_CRC_TAB = null;
+function exportCrc32(b) {
+  if (!EXPORT_CRC_TAB) {
+    EXPORT_CRC_TAB = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      EXPORT_CRC_TAB[n] = c >>> 0;
+    }
+  }
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < b.length; i++) c = EXPORT_CRC_TAB[(c ^ b[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+// ZIP sem compressao (method 0). files: [{ nome (ASCII), dados: Uint8Array }]
+function exportZip(files) {
+  const enc = new TextEncoder();
+  const DOS_DATA = ((2026 - 1980) << 9) | (1 << 5) | 1;
+  const locais = [];
+  const centrais = [];
+  let off = 0;
+  files.forEach((f) => {
+    const nome = enc.encode(f.nome);
+    const crc = exportCrc32(f.dados);
+    const lh = new Uint8Array(30 + nome.length);
+    const v = new DataView(lh.buffer);
+    v.setUint32(0, 0x04034b50, true); v.setUint16(4, 20, true); v.setUint16(6, 0, true);
+    v.setUint16(8, 0, true); v.setUint16(10, 0, true); v.setUint16(12, DOS_DATA, true);
+    v.setUint32(14, crc, true); v.setUint32(18, f.dados.length, true); v.setUint32(22, f.dados.length, true);
+    v.setUint16(26, nome.length, true); v.setUint16(28, 0, true);
+    lh.set(nome, 30);
+    const ch = new Uint8Array(46 + nome.length);
+    const w = new DataView(ch.buffer);
+    w.setUint32(0, 0x02014b50, true); w.setUint16(4, 20, true); w.setUint16(6, 20, true);
+    w.setUint16(8, 0, true); w.setUint16(10, 0, true); w.setUint16(12, 0, true); w.setUint16(14, DOS_DATA, true);
+    w.setUint32(16, crc, true); w.setUint32(20, f.dados.length, true); w.setUint32(24, f.dados.length, true);
+    w.setUint16(28, nome.length, true); w.setUint16(30, 0, true); w.setUint16(32, 0, true);
+    w.setUint16(34, 0, true); w.setUint16(36, 0, true); w.setUint32(38, 0, true); w.setUint32(42, off, true);
+    ch.set(nome, 46);
+    locais.push(lh, f.dados);
+    centrais.push(ch);
+    off += lh.length + f.dados.length;
+  });
+  let cdTam = 0;
+  centrais.forEach((c) => { cdTam += c.length; });
+  const eocd = new Uint8Array(22);
+  const e = new DataView(eocd.buffer);
+  e.setUint32(0, 0x06054b50, true); e.setUint16(4, 0, true); e.setUint16(6, 0, true);
+  e.setUint16(8, files.length, true); e.setUint16(10, files.length, true);
+  e.setUint32(12, cdTam, true); e.setUint32(16, off, true); e.setUint16(20, 0, true);
+  const partes = locais.concat(centrais, [eocd]);
+  let total = 0;
+  partes.forEach((p) => { total += p.length; });
+  const out = new Uint8Array(total);
+  let pos = 0;
+  partes.forEach((p) => { out.set(p, pos); pos += p.length; });
+  return out;
+}
+
+function exportAbaXml(aba) {
+  const col = (i) => String.fromCharCode(65 + i);
+  const celula = (c, ref, cab) => {
+    if (cab) return '<c r="' + ref + '" s="1" t="inlineStr"><is><t xml:space="preserve">' + exportXml(c) + '</t></is></c>';
+    if (typeof c === 'number' && isFinite(c)) return '<c r="' + ref + '"><v>' + c + '</v></c>';
+    if (c && typeof c === 'object') {
+      const n = exportSerial(c.d);
+      return n == null ? '' : '<c r="' + ref + '" s="2"><v>' + n + '</v></c>';
+    }
+    const t = String(c == null ? '' : c).slice(0, 32000);
+    if (t === '') return '';
+    return '<c r="' + ref + '" t="inlineStr"><is><t xml:space="preserve">' + exportXml(t) + '</t></is></c>';
+  };
+  let x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' +
+    '<cols>' + aba.larg.map((w, i) => '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>').join('') + '</cols>' +
+    '<sheetData>';
+  x += '<row r="1">' + aba.colunas.map((c, i) => celula(c, col(i) + '1', true)).join('') + '</row>';
+  aba.linhas.forEach((l, ri) => {
+    x += '<row r="' + (ri + 2) + '">' + l.map((c, i) => celula(c, col(i) + (ri + 2), false)).join('') + '</row>';
+  });
+  return x + '</sheetData></worksheet>';
+}
+
+function xlsxBytes(dados) {
+  const enc = new TextEncoder();
+  const H = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  const abas = dados.abas;
+  const nomeAba = (n) => String(n).replace(/[\[\]:*?\/\\]/g, ' ').slice(0, 31);
+  const arq = [];
+  arq.push({ nome: '[Content_Types].xml', txt: H + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+    abas.map((a, i) => '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('') +
+    '</Types>' });
+  arq.push({ nome: '_rels/.rels', txt: H + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' });
+  arq.push({ nome: 'xl/workbook.xml', txt: H + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' +
+    abas.map((a, i) => '<sheet name="' + exportXml(nomeAba(a.nome)) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join('') +
+    '</sheets></workbook>' });
+  arq.push({ nome: 'xl/_rels/workbook.xml.rels', txt: H + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    abas.map((a, i) => '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>').join('') +
+    '<Relationship Id="rId' + (abas.length + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>' });
+  arq.push({ nome: 'xl/styles.xml', txt: H + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>' +
+    '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>' +
+    '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    '<cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+    '<xf numFmtId="14" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs>' +
+    '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+    '</styleSheet>' });
+  abas.forEach((a, i) => arq.push({ nome: 'xl/worksheets/sheet' + (i + 1) + '.xml', txt: exportAbaXml(a) }));
+  return exportZip(arq.map((f) => ({ nome: f.nome, dados: enc.encode(f.txt) })));
+}
+
+// ---------- PDF (Courier, A4, largura fixa) ----------
+const PDF_CP1252 = { 8364: 128, 8218: 130, 402: 131, 8222: 132, 8230: 133, 8224: 134, 8225: 135, 710: 136, 8240: 137,
+  352: 138, 8249: 139, 338: 140, 381: 142, 8216: 145, 8217: 146, 8220: 147, 8221: 148, 8226: 149, 8211: 150,
+  8212: 151, 732: 152, 8482: 153, 353: 154, 8250: 155, 339: 156, 382: 158, 376: 159 };
+
+// Devolve texto onde cada caractere e UM byte WinAnsi (codigo 32..255).
+function pdfLimpa(s) {
+  const t = String(s == null ? '' : s).replace(/[\r\n\t]+/g, ' ');
+  let o = '';
+  for (let i = 0; i < t.length; i++) {
+    const c = t.charCodeAt(i);
+    let b = 63;
+    if (c >= 32 && c < 127) b = c;
+    else if (c >= 160 && c <= 255) b = c;
+    else if (PDF_CP1252[c]) b = PDF_CP1252[c];
+    o += String.fromCharCode(b);
+  }
+  return o;
+}
+
+function pdfEsc(s) {
+  return s.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+}
+
+function pdfQuebra(s, n) {
+  const t = pdfLimpa(s).trim();
+  const out = [];
+  let rest = t;
+  while (rest.length > n) {
+    let k = rest.lastIndexOf(' ', n);
+    if (k < n / 2) k = n;
+    out.push(rest.slice(0, k).trim());
+    rest = rest.slice(k).trim();
+  }
+  out.push(rest);
+  return out;
+}
+
+function pdfPad(s, n) {
+  const t = pdfLimpa(s);
+  return t.length >= n ? t.slice(0, n) : t + ' '.repeat(n - t.length);
+}
+
+// Linhas logicas: { k: 'h' titulo | 's' secao | 'x' texto | 'b' branco, s }
+function pdfLinhas(dados) {
+  const L = [];
+  const COL = 96;
+  const obs = (txt, ind) => {
+    if (!String(txt || '').trim()) return;
+    const q = pdfQuebra('obs: ' + txt, COL - ind);
+    q.slice(0, 3).forEach((l, i) => L.push({ k: 'x', s: ' '.repeat(ind) + l + (i === 2 && q.length > 3 ? '...' : '') }));
+  };
+  L.push({ k: 'h', s: 'HISTORICO DE TREINOS' });
+  L.push({ k: 'x', s: 'Aluno: ' + dados.aluno.nome });
+  if (dados.gerado) L.push({ k: 'x', s: 'Gerado em: ' + dados.gerado });
+  const por = {};
+  dados.abas.forEach((a) => { por[a.nome] = a.linhas; });
+  const tre = por.Treinos || [];
+  L.push({ k: 'x', s: 'Registros de treino: ' + tre.length });
+  L.push({ k: 'b', s: '' });
+  if (!tre.length) L.push({ k: 'x', s: 'Nenhum treino registrado.' });
+  let chave = '';
+  tre.forEach((r) => {
+    const k = r[0].d + '|' + r[1];
+    if (k !== chave) {
+      if (chave) L.push({ k: 'b', s: '' });
+      L.push({ k: 's', s: exportDataBr(r[0].d) + '  -  Treino ' + r[1] });
+      L.push({ k: 'x', s: pdfPad('Exercicio', 34) + ' ' + pdfPad('Carga', 12) + ' ' + pdfPad('Reps', 8) + ' ' + pdfPad('RIR', 4) + ' OK' });
+      chave = k;
+    }
+    L.push({ k: 'x', s: pdfPad(r[2], 34) + ' ' + pdfPad(r[3], 12) + ' ' + pdfPad(r[4], 8) + ' ' + pdfPad(r[5], 4) + ' ' + (r[6] === 'Sim' ? 'sim' : 'nao') });
+    obs(r[7], 4);
+  });
+  if (por.Cardio) {
+    L.push({ k: 'b', s: '' });
+    L.push({ k: 's', s: 'CARDIO' });
+    por.Cardio.forEach((r) => {
+      L.push({ k: 'x', s: exportDataBr(r[0].d) + '  ' + pdfPad(r[1], 16) + ' ' + pdfLimpa(r[2]).slice(0, 60) });
+      obs(r[3], 4);
+    });
+  }
+  if (por.Peso) {
+    L.push({ k: 'b', s: '' });
+    L.push({ k: 's', s: 'PESO' });
+    por.Peso.forEach((r) => L.push({ k: 'x', s: exportDataBr(r[0].d) + '  ' + pdfLimpa(r[1]) + ' kg' }));
+  }
+  if (por.Medidas) {
+    const nomes = FRC_PERIMETROS.map((k) => k[1]);
+    L.push({ k: 'b', s: '' });
+    L.push({ k: 's', s: 'MEDIDAS (cm)' });
+    por.Medidas.forEach((r) => {
+      const partes = [];
+      nomes.forEach((n, i) => { if (String(r[i + 1]) !== '') partes.push(n + ' ' + r[i + 1]); });
+      const q = pdfQuebra(partes.join('  -  '), COL - 12);
+      q.forEach((l, i) => L.push({ k: 'x', s: (i === 0 ? exportDataBr(r[0].d) + '  ' : ' '.repeat(12)) + l }));
+    });
+  }
+  return L;
+}
+
+function pdfBytes(linhas, opc) {
+  const titulo = pdfLimpa((opc && opc.titulo) || 'FORJA');
+  const rodape = pdfLimpa((opc && opc.rodape) || '');
+  const POR_PAG = 60;
+  const paginas = [];
+  for (let i = 0; i < linhas.length; i += POR_PAG) paginas.push(linhas.slice(i, i + POR_PAG));
+  if (!paginas.length) paginas.push([]);
+  let out = '%PDF-1.4\n%âãÏÓ\n';
+  const off = [];
+  const obj = (n, corpo) => { off[n] = out.length; out += n + ' 0 obj\n' + corpo + '\nendobj\n'; };
+  const nObj = 4 + paginas.length * 2;
+  const kids = paginas.map((p, i) => (5 + i * 2) + ' 0 R').join(' ');
+  obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2, '<< /Type /Pages /Kids [' + kids + '] /Count ' + paginas.length + ' >>');
+  obj(3, '<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>');
+  obj(4, '<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>');
+  paginas.forEach((p, i) => {
+    const pg = 5 + i * 2;
+    const tx = (fonte, tam, x, y, s) => 'BT /' + fonte + ' ' + tam + ' Tf ' + x + ' ' + y + ' Td (' + pdfEsc(pdfLimpa(s)) + ') Tj ET\n';
+    let c = tx('F2', 8, 40, 812, 'FORJA - ' + titulo);
+    let y = 780;
+    p.forEach((l) => {
+      if (l.k === 'h') c += tx('F2', 14, 40, y, l.s);
+      else if (l.k === 's') c += tx('F2', 10, 40, y, l.s);
+      else if (l.k === 'x') c += tx('F1', 9, 40, y, l.s);
+      y -= 12;
+    });
+    c += tx('F1', 7, 40, 28, rodape + '  -  pag. ' + (i + 1) + '/' + paginas.length);
+    obj(pg, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' + (pg + 1) + ' 0 R >>');
+    obj(pg + 1, '<< /Length ' + c.length + ' >>\nstream\n' + c + 'endstream');
+  });
+  const xref = out.length;
+  out += 'xref\n0 ' + (nObj + 1) + '\n0000000000 65535 f \n';
+  for (let n = 1; n <= nObj; n++) out += String(off[n]).padStart(10, '0') + ' 00000 n \n';
+  out += 'trailer\n<< /Size ' + (nObj + 1) + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF\n';
+  const b = new Uint8Array(out.length);
+  for (let i = 0; i < out.length; i++) b[i] = out.charCodeAt(i) & 0xFF;
+  return b;
+}
+
+// ---------- entrega do arquivo ----------
+function exportAncora(arquivo, nome) {
+  const url = URL.createObjectURL(arquivo);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nome;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  // Revogar na hora cancela o download em alguns navegadores moveis.
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+function exportBaixar(bytes, nome, mime) {
+  const arquivo = new File([bytes], nome, { type: mime });
+  const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // iPhone (principalmente o app na tela de inicio) nao baixa Blob por <a download>: usa a folha de compartilhar.
+  if (ios && navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+    navigator.share({ files: [arquivo], title: nome }).catch((e) => {
+      if (!e || e.name !== 'AbortError') exportAncora(arquivo, nome);
+    });
+    return;
+  }
+  exportAncora(arquivo, nome);
+}
+
+function exportarHistorico(formato, alunoId) {
+  try {
+    if (!APP.data || !alunoId) { toast('Dados ainda não carregados', 'error'); return; }
+    const dados = exportDados(APP.data, alunoId);
+    if (!dados.total) { toast('Ainda não há nada para exportar', 'info'); return; }
+    const d = new Date();
+    const p2 = (n) => String(n).padStart(2, '0');
+    dados.gerado = p2(d.getDate()) + '/' + p2(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
+    const base = 'forja-historico-' + String(alunoId).replace(/[^A-Za-z0-9_-]/g, '_') + '-' + hojeIso();
+    if (formato === 'pdf') {
+      exportBaixar(pdfBytes(pdfLinhas(dados), { titulo: dados.aluno.nome, rodape: 'FORJA ' + FORJA_VERSION + ' - dados de ' + dados.gerado }),
+        base + '.pdf', 'application/pdf');
+    } else {
+      exportBaixar(xlsxBytes(dados), base + '.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    }
+    let pend = 0;
+    try { pend = (JSON.parse(localStorage.getItem('forja-pending-' + alunoId) || '[]') || []).length; } catch (e) { pend = 0; }
+    toast(pend ? 'Arquivo gerado. ' + pend + ' registro(s) ainda não enviados não entram — sincronize e exporte de novo.' : 'Arquivo gerado: ' + dados.total + ' linhas', pend ? 'info' : 'success');
+  } catch (e) {
+    toast('Não consegui gerar o arquivo: ' + (e && e.message ? e.message : e), 'error');
+  }
+}
+
+$('btn-hist-xlsx').onclick = () => exportarHistorico('xlsx', APP.alunoSession && APP.alunoSession.id);
+$('btn-hist-pdf').onclick = () => exportarHistorico('pdf', APP.alunoSession && APP.alunoSession.id);
+$('btn-hist-xlsx-t').onclick = () => exportarHistorico('xlsx', APP.currentAluno);
+$('btn-hist-pdf-t').onclick = () => exportarHistorico('pdf', APP.currentAluno);
 
 // Exporta TODOS os dados do aluno num arquivo JSON unico, pronto pra backup,
 // migracao ou pra compartilhar contexto. Mesmo formato dos bootstrap_*.json,

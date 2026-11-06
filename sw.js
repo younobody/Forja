@@ -192,9 +192,10 @@
  * v30.31.1: BUGFIX no historico (EVOLUCAO). O CARREGAR MAIS religava os botoes dos cards ja renderizados (2o listener): 1 toque na lixeira de um registro abria
  * 2 confirm() e mandava 2 remocoes, e o CARREGAR MAIS carregava em dobro. A v30.30.0 (aluno abre com 12 sessoes) tornou esse caminho comum. Frontend-only; bump
  * so pra invalidar o cache antigo do shell.
+ * v30.32.0: EXPORTAR HISTORICO em EXCEL (.xlsx) e PDF, gerados no proprio app (sem biblioteca). Frontend-only; bump so pra invalidar o cache do shell.
  */
 
-const CACHE_VERSION = 'forja-v30.31.1';
+const CACHE_VERSION = 'forja-v30.32.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).
