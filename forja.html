@@ -1058,6 +1058,7 @@
   .day-tx-c { color: #3FD9A0; } .day-bg-c { background-color: #09A66B; }
   .day-tx-d { color: #35B4E0; } .day-bg-d { background-color: #0598CE; }
   .day-tx-e { color: #A78BFA; } .day-bg-e { background-color: #9276E2; }
+  .day-tx-f { color: #E879B0; } .day-bg-f { background-color: #C2588F; }
   .toast-info { background: #1D2531; border-color: #323C4B; color: #E9EDF3; }
   .toast-ok { background: rgba(9,166,107,.16); border-color: #09A66B; color: #3FD9A0; }
   .toast-err { background: rgba(235,77,69,.16); border-color: #EB4D45; color: #F5938D; }
@@ -3354,6 +3355,14 @@
     white-space: pre-wrap; overflow-wrap: anywhere;
   }
   .obs-fold[hidden] { display: none; }
+  /* v30.33.0 */
+  #treinar-obs { white-space: pre-line; }
+  .obs-hist { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 8px; }
+  .obs-hist > summary { cursor: pointer; font-size: 10px; letter-spacing: .08em; color: var(--text-dim); list-style: none; padding: 4px 0; }
+  .obs-hist > summary::-webkit-details-marker { display: none; }
+  .obs-hist > summary::before { content: '\25b8  '; }
+  .obs-hist[open] > summary::before { content: '\25be  '; }
+  .obs-hist[open] { color: var(--text-dim); opacity: .85; }
   .obs-fold b { color: var(--text); font-weight: 600; }
 
   /* ==================================================================
@@ -4918,6 +4927,7 @@
         <button class="tab-btn" data-day="C" onclick="setEditDay('C')">C</button>
         <button class="tab-btn" data-day="D" onclick="setEditDay('D')">D</button>
         <button class="tab-btn" data-day="E" onclick="setEditDay('E')">E</button>
+        <button class="tab-btn" data-day="F" onclick="setEditDay('F')">F</button>
       </div>
       <div class="overflow-x-auto">
         <table class="editable" id="plano-table">
@@ -6069,7 +6079,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.32.0';
+const FORJA_VERSION = 'v30.33.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -6081,12 +6091,12 @@ const SUPABASE_URL = 'https://aupfamquyihqagzwmpkb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1cGZhbXF1eWlocWFnendtcGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0MTIyODQsImV4cCI6MjA5OTk4ODI4NH0.jLNZ5n2zLrZ-uU5mAUS5hkTsw3lv59jHLBLcnJPGS98';
 
 // Dias suportados pelo sistema
-const DAYS = ['A', 'B', 'C', 'D', 'E'];
+const DAYS = ['A', 'B', 'C', 'D', 'E', 'F']; // v30.33.0: F (plano PPL 6x)
 // v29: classes proprias .day-* (definidas no CSS) — evita colisao com o override
 // global das utilitarias cyan (o accent brasa remapeia text-cyan-400, que era o dia D)
-const DAY_COLORS_TEXT = { A: 'day-tx-a', B: 'day-tx-b', C: 'day-tx-c', D: 'day-tx-d', E: 'day-tx-e' };
-const DAY_COLORS_BG   = { A: 'day-bg-a', B: 'day-bg-b', C: 'day-bg-c', D: 'day-bg-d', E: 'day-bg-e' };
-const DAY_COLORS_HEX  = { A: '#EB4D45',  B: '#BE7C05',  C: '#09A66B',  D: '#0598CE',  E: '#9276E2'  };
+const DAY_COLORS_TEXT = { A: 'day-tx-a', B: 'day-tx-b', C: 'day-tx-c', D: 'day-tx-d', E: 'day-tx-e', F: 'day-tx-f' };
+const DAY_COLORS_BG   = { A: 'day-bg-a', B: 'day-bg-b', C: 'day-bg-c', D: 'day-bg-d', E: 'day-bg-e', F: 'day-bg-f' };
+const DAY_COLORS_HEX  = { A: '#EB4D45',  B: '#BE7C05',  C: '#09A66B',  D: '#0598CE',  E: '#9276E2', F: '#C2588F' };
 function dayColorText(d) { return DAY_COLORS_TEXT[String(d).toUpperCase()] || 'text-zinc-400'; }
 function dayColorBg(d)   { return DAY_COLORS_BG[String(d).toUpperCase()]   || 'bg-zinc-400'; }
 function dayColorHex(d)  { return DAY_COLORS_HEX[String(d).toUpperCase()]  || '#7C8797'; }
@@ -7732,6 +7742,7 @@ $('btn-salvar-plano').onclick = async () => {
       action: 'salvarPlano',
       key: APP.trainerKey,
       aluno_id: APP.currentAluno,
+      dias: DAYS, // v30.33.0: f_salvar_plano recusa se o banco tiver dia fora desta lista (front velho apagaria o dia F)
       plano: planoFlat,
     });
     toast('Plano salvo · ' + planoFlat.length + ' exercicios', 'success');
@@ -9515,6 +9526,21 @@ const OBS_REGRA_RE = [
   /s[o\u00f3]\s+at[e\u00e9]\s+\d+\s*graus/i,
   /teto\s+\d+\s*graus/i,
 ];
+// v30.33.0: a obs do plano pode ter, depois de uma linha "--- HISTORICO ...",
+// o texto de planos antigos. Na tela e nas regras (teto, falha proibida, teto de
+// RIR, sugestao de carga) vale SO a parte de cima: regra velha do historico nao
+// pode disparar aviso. O historico continua no banco e aparece atras de um toque.
+const OBS_HIST_RE = /^\s*-{3,}\s*HIST[OÓ]RICO[^\n]*$/im;
+function obsAtual(obs) {
+  const t = String(obs == null ? '' : obs);
+  const m = t.match(OBS_HIST_RE);
+  return (m ? t.slice(0, m.index) : t).trim();
+}
+function obsHistorico(obs) {
+  const t = String(obs == null ? '' : obs);
+  const m = t.match(OBS_HIST_RE);
+  return m ? t.slice(m.index + m[0].length).trim() : '';
+}
 function obsTemRegra(obs) {
   const t = String(obs == null ? '' : obs);
   if (!t) return false;
@@ -9526,7 +9552,7 @@ function obsTemRegra(obs) {
 // observacao, quantas notas tem dentro, e se carrega regra.
 function obsFoldRotulo(obs, aberto) {
   if (aberto) return '\u25be FECHAR OBSERVA\u00c7\u00d5ES';
-  const t = String(obs == null ? '' : obs);
+  const t = obsAtual(obs);
   const n = t.split('\n').filter(function (l) { return l.trim(); }).length;
   return '\u25b8 REGRA E OBSERVA\u00c7\u00d5ES'
        + (n > 1 ? ' \u00b7 ' + n + ' NOTAS' : '')
@@ -9542,7 +9568,12 @@ function obsFoldHtml(chave, obs, aberto) {
        + ' aria-expanded="' + (aberto ? 'true' : 'false') + '" aria-controls="' + id + '">'
        + escapeHtml(obsFoldRotulo(obs, aberto)) + '</button>'
        + '<div class="obs-fold" id="' + id + '"' + (aberto ? '' : ' hidden') + '>'
-       + frcTexto(obs) + '</div>';
+       + frcTexto(obsAtual(obs))
+       + (obsHistorico(obs)
+          ? '<details class="obs-hist"><summary>VER HISTÓRICO (planos anteriores)</summary>'
+            + frcTexto(obsHistorico(obs)) + '</details>'
+          : '')
+       + '</div>';
 }
 
 // Delegacao ligada UMA vez na secao inteira: sobrevive a todo innerHTML de
@@ -11094,7 +11125,7 @@ function _trechoDaObs(obs, m) {
 // vals = { carga, reps, rir } ja NUMERICOS (null quando nao da pra ler)
 // Devolve [] quando nao ha conflito — e o caso comum, e tem que ser barato.
 function conflitosDoPlano(p, vals) {
-  const obs = String((p && p.obs) || '');
+  const obs = obsAtual(p && p.obs);
   const out = [];
   if (!obs) return out;
   const v = vals || {};
@@ -11203,13 +11234,33 @@ function volumeSeriesDoRegistro(obs) {
   if (cargas.some(c => c == null)) return null;
   return lista.reduce((total, s, i) => total + cargas[i] * Number(s.reps), 0);
 }
+function _prefixoSeries(sets) {
+  return sets.map(s => s.reps).join('/') + ' · Séries: ' +
+    sets.map(s => String(s.carga || 'peso corporal') + '×' + s.reps + (s.rir ? ' (RIR ' + s.rir + ')' : '')).join(' · ');
+}
+// v30.33.0: so o que o aluno ESCREVEU (mais a nota de troca), sem o resumo
+// automatico "8/8 · Séries: ..." e sem o marcador [[FORJA_SETS:...]].
+function obsNotaLivre(obs) {
+  let t = String(obs == null ? '' : obs).replace(/\s*\[\[FORJA_SETS:[^\]]*\]\]/g, '').trim();
+  const sets = seriesDetalhadasDoRegistro(obs);
+  if (sets && sets.length) {
+    const pre = _prefixoSeries(sets);
+    if (t.indexOf(pre) === 0) t = t.slice(pre.length).replace(/^\s*·\s*/, '');
+  }
+  return t.trim();
+}
+// "21 × 10/9" (mesma carga) ou "60kg×12 · 80kg×9" (carga variou)
+function resumoSeriesTexto(sets) {
+  if (!sets || !sets.length) return '';
+  const c0 = String(sets[0].carga || '');
+  if (sets.every(s => String(s.carga || '') === c0)) return (c0 ? c0 + ' × ' : '×') + sets.map(s => s.reps).join('/');
+  return sets.map(s => (s.carga ? s.carga : '') + '×' + s.reps).join(' · ');
+}
 function obsComSeries(obs, series) {
   const sets = (series || []).filter(s => s && /^\d{1,2}$/.test(String(s.reps)) && Number(s.reps) >= 1 && Number(s.reps) <= 60);
   if (!sets.length) return String(obs || '').trim();
-  const reps = sets.map(s => s.reps).join('/');
-  const resumo = sets.map(s => String(s.carga || 'peso corporal') + '×' + s.reps + (s.rir ? ' (RIR ' + s.rir + ')' : '')).join(' · ');
   const base = String(obs || '').trim();
-  const humano = reps + ' · Séries: ' + resumo + (base ? ' · ' + base : '');
+  const humano = _prefixoSeries(sets) + (base ? ' · ' + base : '');
   return humano + ' [[FORJA_SETS:' + encodeURIComponent(JSON.stringify(sets)) + ']]';
 }
 
@@ -11220,6 +11271,11 @@ function sugestaoProgressao(nome, planoItem) {
   const ult = ultimoRegistroDe(nome);
   if (!ult) return null;
   const p = planoItem || {};
+  // v30.33.0: carga assistida (Graviton) anda ao contrario: mais numero = mais
+  // ajuda = mais facil. Somar 2,5 seria regredir; sem sugestao automatica.
+  if (/assist/i.test(String(p.carga || '')) || /graviton|assist/i.test(String(nome || ''))) {
+    return { ult, tipo: 'so-historico', novaCarga: null, texto: '' };
+  }
   const cargaNum = parseCargaNum(ult.carga);
   // meta do plano (alvo 1 ano) ja alcancada? celebra, nao empurra mais.
   const metaNum = parseCargaNum(p.meta);
@@ -11241,8 +11297,8 @@ function sugestaoProgressao(nome, planoItem) {
   const fechou = registroFechou(ult);
   // v30.2.0: teto de carga e a ordem "progride so em reps", vindos da obs do
   // PLANO (ver tetoDeCargaDaObs pro historico completo do bug).
-  const teto = tetoDeCargaDaObs(p.obs);
-  const soReps = soProgrideEmReps(p.obs);
+  const teto = tetoDeCargaDaObs(obsAtual(p.obs));
+  const soReps = soProgrideEmReps(obsAtual(p.obs));
   // "bateu as reps": pior serie >= topo da faixa, OU o aluno FECHOU (✓ SIM) e
   // registrou as reps identicas as do plano (na pratica ele loga a faixa
   // "15-20" sem editar — fechou + faixa cumprida = cumpriu o planejado, que e
@@ -11555,6 +11611,8 @@ function trocarExercicioIdx(i) {
   const idx = TREINAR.idx;
   const original = (TREINAR.plano[idx] || {}).exercicio || '';
   TREINAR.substituto[idx] = (slugify(nome) === slugify(original)) ? null : nome;
+  // v30.33.0: series lancadas antes da troca eram do exercicio antigo
+  if (TREINAR.seriesLog && !TREINAR.salvos[idx]) TREINAR.seriesLog[idx] = [];
   $('modal-trocar').classList.add('hidden');
   mostrarExercicioAtual();
   if (TREINAR.substituto[idx]) toast('⇄ Trocado para ' + nome + ' (so nesta sessao)', 'success');
@@ -11738,7 +11796,7 @@ function mostrarExercicioAtual() {
     : `${p.series || '?'}×${p.reps || '?'} · ${p.carga || '—'} · RIR ${p.rir != null && p.rir !== '' ? p.rir : '—'}` +
     (tiEx ? ` · ${tiEx.label}` : '');
   // v15: timer removido — tira "Descanso: Xs" do obs, mantem o resto (ex: MONITORAR)
-  const obsLimpa = String(p.obs || '').replace(/descanso\s*:?\s*\d+(?:\s*-\s*\d+)?\s*s\s*\|?\s*/ig, '').replace(/^\s*\|\s*/, '').trim();
+  const obsLimpa = obsAtual(p.obs).replace(/descanso\s*:?\s*\d+(?:\s*-\s*\d+)?\s*s\s*\|?\s*/ig, '').replace(/^\s*\|\s*/, '').trim();
   // v30.8.0: a regra tem que chegar nos olhos sem ele pedir. v30.15.0: observacao LONGA abre em
   // PREVIA de 4 linhas (o inicio, com o alerta e a regra principal) + "LER TUDO"; a curta aparece
   // inteira e sem botao. Nunca some: o texto completo esta a um toque.
@@ -11765,12 +11823,16 @@ function mostrarExercicioAtual() {
     const uReps = valorRegistroLimpo(ult.reps);
     const uRir = valorRegistroLimpo(ult.rir);
     const partes = [];
-    if (uCarga) partes.push(uCarga);
-    if (uReps) partes.push('×' + uReps);
+    const uSets = seriesDetalhadasDoRegistro(ult.obs);
+    if (uSets && uSets.length) partes.push(resumoSeriesTexto(uSets));
+    else {
+      if (uCarga) partes.push(uCarga);
+      if (uReps) partes.push('×' + uReps);
+    }
     if (uRir) partes.push('RIR ' + uRir);
     $('treinar-ultimo-head').textContent = 'ÚLTIMO TREINO · ' + fmtDate(dataSessao(ult));
     $('treinar-ultimo-nums').textContent = partes.join(' · ') || '—';
-    const obsU = String(ult.obs || '').trim();
+    const obsU = obsNotaLivre(ult.obs); // v30.33.0: antes saia o marcador [[FORJA_SETS:...]] cru
     const obsUel = $('treinar-ultimo-obs');
     obsUel.textContent = obsU ? '“' + obsU + '”' : '';
     obsUel.classList.toggle('hidden', !obsU);
@@ -11837,7 +11899,17 @@ function mostrarExercicioAtual() {
   // v17: se este exercicio ja foi registrado NESTA sessao, mostra o que foi
   // salvo (em vez de voltar pro padrao do plano) e bloqueia salvar de novo.
   const salvo = TREINAR.salvos[TREINAR.idx];
-  $('treinar-input-carga').value = salvo ? (salvo.carga || '') : (p.carga || '');
+  // v30.33.0: (1) com TROCA, a carga vem do ultimo registro do SUBSTITUTO (antes
+  // ficava a do exercicio do plano: Graviton gravado com "leve (15 com folga)");
+  // (2) "calibrar" nao e carga: campo vazio com o aviso no placeholder, ou a
+  // carga do ultimo registro se ja houver historico.
+  const trocouAqui = !!(TREINAR.substituto && TREINAR.substituto[TREINAR.idx]);
+  const cargaUlt = ult ? valorRegistroLimpo(ult.carga) : '';
+  const cargaUltOk = /calibr/i.test(cargaUlt) ? '' : cargaUlt;
+  const planoCalibrar = /calibr/i.test(String(p.carga || ''));
+  const cargaPadrao = trocouAqui ? cargaUltOk : (planoCalibrar ? cargaUltOk : (p.carga || ''));
+  $('treinar-input-carga').value = salvo ? (salvo.carga || '') : cargaPadrao;
+  $('treinar-input-carga').placeholder = (!trocouAqui && planoCalibrar && !cargaUltOk) ? 'calibrar: anote a carga' : '';
   const seriesAtuais = (TREINAR.seriesLog && TREINAR.seriesLog[TREINAR.idx]) || [];
   const seriesHistorico = seriesDetalhadasDoRegistro(ult && ult.obs);
   const repsHistorico = (repsDaObsDoRegistro(ult && ult.obs) || []).slice(-1)[0];
@@ -13290,7 +13362,7 @@ function frcAlertas() {
   // 4) RIR 0 em exercicio cuja obs do plano diz FALHA PROIBIDA / TETO RIR
   const travas = {};
   plano.forEach(p => {
-    if (!/FALHA\s+PROIBIDA|TETO\s+RIR/i.test(String(p.obs || ''))) return;
+    if (!/FALHA\s+PROIBIDA|TETO\s+RIR/i.test(obsAtual(p.obs))) return;
     slugsEquivalentes(p.exercicio).forEach(s => { travas[s] = p; });
   });
   regs.forEach(x => {
@@ -13303,7 +13375,7 @@ function frcAlertas() {
     if (!p) return;
     out.push({
       cor: 'red', t: x.r.exercicio + ' — RIR 0 em exercicio com trava',
-      txt: 'Registro de ' + fmtDate(x._iso) + ' com RIR "' + rir + '". A obs do plano diz: ' + String(p.obs || '').slice(0, 160),
+      txt: 'Registro de ' + fmtDate(x._iso) + ' com RIR "' + rir + '". A obs do plano diz: ' + obsAtual(p.obs).slice(0, 160),
       fonte: 'registro + plano.obs',
     });
   });
@@ -13454,7 +13526,7 @@ function frcSwitchDeload(rotulo) {
 function frcExCard(p, id) {
   const sr = frcSeriesReps(p);
   const ti = tipoInfo(p.tipo);
-  const obs = String(p.obs == null ? '' : p.obs);
+  const obs = obsAtual(p.obs);
   const carga = String(p.carga == null ? '' : p.carga).trim();
   return '<div class="card">' +
     '<div class="ex-top">' +
