@@ -21,6 +21,7 @@ const BATERIAS = [
   ['xss3.js', 'varredura de sinks de HTML: trainer e aluno'],
   ['xss4.js', 'varredura de sinks de HTML: feed público e telas do aluno'],
   ['v30_33.js', 'dia F, obs atual x historico, card ULTIMO TREINO, troca e calibrar'],
+  ['v30_34.js', 'editar registro ja feito: aluno e trainer'],
 ];
 
 const args = process.argv.slice(2);

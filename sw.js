@@ -195,9 +195,10 @@
  * v30.32.0: EXPORTAR HISTORICO em EXCEL (.xlsx) e PDF, gerados no proprio app (sem biblioteca). Frontend-only; bump so pra invalidar o cache do shell.
  * v30.33.0: DIA F (plano PPL 6x) no app e no banco; obs do plano mostra so a parte atual (historico atras de um toque, regras velhas nao
  * disparam aviso); card ULTIMO TREINO sem o marcador interno de series; TROCA nao herda mais a carga do exercicio antigo; 'calibrar' nao vira carga.
+ * v30.34.0: EDITAR REGISTRO ja feito (lapis no historico, aluno e trainer); banco: f_editar_registro_core + acoes editarRegistroAluno/editarRegistro.
  */
 
-const CACHE_VERSION = 'forja-v30.33.0';
+const CACHE_VERSION = 'forja-v30.34.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const SHELL_URL = './forja.html';
 // Opcionais: se falharem, o app continua (so perde o offline desse item).

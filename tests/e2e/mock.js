@@ -136,7 +136,7 @@ async function installMock(page, opts = {}) {
   });
   await page.route('**/rest/v1/rpc/api_post', async route => {
     const body = JSON.parse(route.request().postData() || '{}').payload || {};
-    calls.push(['api_post', body.action]);
+    calls.push(['api_post', body.action, body]);
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }), headers: { 'access-control-allow-origin': '*' } });
   });
   await page.route('**/auth/v1/settings', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ external: { google: false } }), headers: { 'access-control-allow-origin': '*' } }));

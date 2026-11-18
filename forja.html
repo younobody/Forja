@@ -3355,6 +3355,23 @@
     white-space: pre-wrap; overflow-wrap: anywhere;
   }
   .obs-fold[hidden] { display: none; }
+  /* v30.34.0: modal EDITAR REGISTRO */
+  .btn-edit-reg { color: var(--text-dim); background: none; border: 0; padding: 4px 6px; min-width: 28px; min-height: 28px; cursor: pointer; }
+  .btn-edit-reg:hover { color: var(--text); }
+  .btn-edit-reg[disabled] { opacity: .3; cursor: not-allowed; }
+  .er-campos { display: flex; flex-direction: column; gap: 6px; }
+  .er-l { display: block; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: .1em; color: var(--text-dim); margin-top: 8px; }
+  .er-dica { letter-spacing: 0; opacity: .7; margin-left: 6px; }
+  .er-dupla { display: grid; grid-template-columns: 1fr 96px; gap: 10px; }
+  .er-tripla { display: grid; grid-template-columns: 1.4fr 1fr .7fr; gap: 8px; }
+  .er-serie { display: grid; grid-template-columns: 20px 1.4fr 1fr .8fr 32px; gap: 6px; align-items: center; margin-top: 6px; }
+  .er-serie .er-n { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim); }
+  .er-serie input { min-width: 0; }
+  .er-rm { background: none; border: 0; color: var(--text-dim); min-height: 36px; cursor: pointer; }
+  .er-mini { margin-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim); background: none; border: 1px dashed var(--line); padding: 8px 10px; cursor: pointer; }
+  .er-check { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; }
+  .er-erro { color: #F87171; font-size: 12px; margin-top: 8px; }
+  #modal-editreg input, #modal-editreg select, #modal-editreg textarea { font-size: 16px; }
   /* v30.33.0 */
   #treinar-obs { white-space: pre-line; }
   .obs-hist { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 8px; }
@@ -5690,6 +5707,44 @@
 </div>
 
 <!-- MODAL: TROCAR EXERCICIO (v26) — substitui por equivalente so na sessao atual -->
+<!-- v30.34.0: EDITAR REGISTRO ja feito (aluno e trainer) -->
+<div id="modal-editreg" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-40 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="editreg-tit">
+  <div class="max-w-md mx-auto px-6 py-10">
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
+      <div>
+        <div id="editreg-tit" class="display text-4xl">EDITAR</div>
+        <div id="editreg-sub" class="mono text-[10px] text-zinc-500 tracking-widest">TREINO JÁ FEITO</div>
+      </div>
+      <button type="button" aria-label="Fechar" onclick="fecharEditarRegistro()" class="tap-44 text-zinc-400 hover:text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    <div class="er-campos">
+      <label class="er-l" for="editreg-ex">EXERCÍCIO</label>
+      <input id="editreg-ex" type="text" maxlength="120" list="lista-exercicios-conhecidos" autocomplete="off" class="w-full" />
+      <div class="er-dupla">
+        <div><label class="er-l" for="editreg-data">DATA</label><input id="editreg-data" type="date" class="w-full" /></div>
+        <div id="editreg-dia-box"><label class="er-l" for="editreg-dia">DIA</label><select id="editreg-dia" class="w-full"></select></div>
+      </div>
+      <div id="editreg-series-box">
+        <div class="er-l">SÉRIES <span class="er-dica">carga · reps · RIR</span></div>
+        <div id="editreg-series"></div>
+        <button type="button" id="editreg-add" class="er-mini">+ SÉRIE</button>
+      </div>
+      <div id="editreg-simples-box" class="er-tripla">
+        <div><label class="er-l" for="editreg-carga">CARGA</label><input id="editreg-carga" type="text" maxlength="60" class="w-full" /></div>
+        <div><label class="er-l" for="editreg-reps">REPS</label><input id="editreg-reps" type="text" maxlength="120" class="w-full" /></div>
+        <div><label class="er-l" for="editreg-rir">RIR</label><input id="editreg-rir" type="text" maxlength="60" class="w-full" /></div>
+      </div>
+      <label class="er-l" for="editreg-nota">OBSERVAÇÃO</label>
+      <textarea id="editreg-nota" rows="3" maxlength="3000" class="w-full"></textarea>
+      <label class="er-check"><input id="editreg-ok" type="checkbox" /> completou</label>
+      <div id="editreg-erro" class="er-erro" role="alert" hidden></div>
+      <button type="button" id="editreg-salvar" class="btn btn-success w-full" style="margin-top:14px">SALVAR ALTERAÇÕES</button>
+    </div>
+  </div>
+</div>
+
 <div id="modal-trocar" class="hidden fixed inset-0 bg-zinc-950/95 backdrop-blur-sm z-40 overflow-y-auto">
   <div class="max-w-md mx-auto px-6 py-10">
     <div class="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800">
@@ -6079,7 +6134,7 @@
 // A regex do sw.js e a do gate verificar_release.py leem a PRIMEIRA ocorrencia no
 // arquivo, entao a declaracao tem que existir uma vez so, numa linha so, e NENHUM
 // comentario pode repetir o formato dela (igual, aspas simples, versao, aspas).
-const FORJA_VERSION = 'v30.33.0';
+const FORJA_VERSION = 'v30.34.0';
 
 // v29.5.0: backend = Supabase (Postgres em sa-east-1). A anon key abaixo e
 // PUBLICA por design (igual a URL do Apps Script antes): sozinha ela nao
@@ -7727,6 +7782,12 @@ $('btn-salvar-perfil').onclick = async () => {
   }
 };
 
+$('editreg-salvar').addEventListener('click', salvarEditarRegistro);
+$('editreg-add').addEventListener('click', () => {
+  const l = _editregLerSeries(); const u = l[l.length - 1] || { carga: '', reps: '', rir: '' };
+  l.push({ carga: u.carga, reps: '', rir: u.rir }); _editregRenderSeries(l);
+});
+
 $('btn-salvar-plano').onclick = async () => {
   const planoFlat = [];
   DAYS.forEach(dia => {
@@ -8931,6 +8992,9 @@ function _buildSessionCard(grupo, isTrainer) {
     // 07/09/2026; pior caso, 8 registros num clique). data-ts fica como
     // fallback pra payload antigo em cache, que nao tem pk.
     const delBtn = `<button data-pk="${escapeHtml(String(r.pk == null ? '' : r.pk))}" data-ts="${escapeHtml(String(r.timestamp))}" class="btn-del-reg text-zinc-700 hover:text-red-500 mono ml-1" title="remover">✕</button>`;
+    // v30.34.0: editar registro ja feito. Sem pk (ainda no buffer offline) nao da pra editar.
+    const temPk = r.pk != null && String(r.pk) !== '';
+    const editBtn = `<button type="button" data-pk="${escapeHtml(String(temPk ? r.pk : ''))}" class="btn-edit-reg mono ml-1" title="${temPk ? 'editar' : 'ainda nao sincronizado'}" aria-label="Editar registro de ${escapeHtml(String(r.exercicio || ''))}"${temPk ? '' : ' disabled'}>✎</button>`;
     const rir = (r.rir !== '' && r.rir != null)
       ? `<span class="mono text-zinc-600 whitespace-nowrap">RIR ${escapeHtml(String(r.rir))}</span>` : '';
     return `
@@ -8940,6 +9004,7 @@ function _buildSessionCard(grupo, isTrainer) {
         <span class="mono text-zinc-600 whitespace-nowrap">${escapeHtml(String(r.reps || ''))}</span>
         ${rir}
         <span class="${ok ? 'text-emerald-500' : 'text-red-500'}">${ok ? '✓' : '✗'}</span>
+        ${editBtn}
         ${delBtn}
       </div>`;
   }).join('');
@@ -9112,6 +9177,11 @@ function _attachEvoHistoricoListeners(c, containerId, isTrainer) {
         toast(e.message, 'error');
       } finally { showLoading(false); }
     });
+  });
+
+  // v30.34.0: editar registro INDIVIDUAL — trainer (admin) e aluno (so os proprios)
+  novos('.btn-edit-reg').forEach(b => {
+    b.addEventListener('click', () => abrirEditarRegistro(b.dataset.pk, isTrainer));
   });
 
   // Remover registro INDIVIDUAL — funciona para trainer (admin) e aluno (so os proprios)
@@ -10984,6 +11054,141 @@ function ultimoRegistroDe(nome) {
   if (!matches.length) return null;
   matches.sort((a, b) => String(dataSessao(b) || '').localeCompare(String(dataSessao(a) || '')));
   return matches[0];
+}
+
+// ===== v30.34.0: EDITAR REGISTRO JA FEITO =====
+// Aluno edita os proprios (acao editarRegistroAluno, com PIN); trainer edita de
+// qualquer aluno (editarRegistro, com chave). O banco acha a linha por pk E
+// aluno_id, canoniza o nome e valida tamanho, dia e data (f_editar_registro_core).
+// Com series detalhadas ([[FORJA_SETS]]), o modal edita as SERIES e deriva
+// carga/reps/RIR como o salvar do TREINAR faz (carga e RIR da ultima, reps
+// unidas por "/"); a obs e refeita por obsComSeries com a nota livre.
+const EDITREG = { r: null, trainer: false, comSeries: false };
+
+function _editregSerieHtml(s, i) {
+  return '<div class="er-serie" data-i="' + i + '">'
+    + '<span class="er-n">' + (i + 1) + '</span>'
+    + '<input type="text" maxlength="40" aria-label="Carga da série ' + (i + 1) + '" data-k="carga" value="' + escapeHtml(String(s.carga || '')) + '">'
+    + '<input type="text" inputmode="numeric" maxlength="2" aria-label="Reps da série ' + (i + 1) + '" data-k="reps" value="' + escapeHtml(String(s.reps || '')) + '">'
+    + '<input type="text" maxlength="5" aria-label="RIR da série ' + (i + 1) + '" data-k="rir" value="' + escapeHtml(String(s.rir || '')) + '">'
+    + '<button type="button" class="er-rm" aria-label="Remover série ' + (i + 1) + '">✕</button>'
+    + '</div>';
+}
+function _editregLerSeries() {
+  return [...document.querySelectorAll('#editreg-series .er-serie')].map(row => ({
+    carga: row.querySelector('[data-k="carga"]').value.trim(),
+    reps: row.querySelector('[data-k="reps"]').value.trim(),
+    rir: row.querySelector('[data-k="rir"]').value.trim(),
+  }));
+}
+function _editregRenderSeries(lista) {
+  const box = $('editreg-series');
+  box.innerHTML = lista.map(_editregSerieHtml).join('');
+  box.querySelectorAll('.er-rm').forEach((b, i) => b.addEventListener('click', () => {
+    const l = _editregLerSeries(); l.splice(i, 1); _editregRenderSeries(l);
+  }));
+}
+function _editregErro(msg) {
+  const e = $('editreg-erro');
+  e.textContent = msg || ''; e.hidden = !msg;
+}
+function fecharEditarRegistro() { $('modal-editreg').classList.add('hidden'); EDITREG.r = null; }
+
+function abrirEditarRegistro(pk, isTrainer) {
+  if (!pk) { toast('Este registro ainda nao foi sincronizado. Espere a rede voltar.', 'error'); return; }
+  // treino em andamento com SOBRESCREVER pendente apagaria a sessao antiga ao
+  // finalizar — inclusive um registro editado agora no meio do caminho.
+  if (!isTrainer && TREINAR && Array.isArray(TREINAR.sobrescrever) && TREINAR.sobrescrever.length) {
+    toast('Termine (ou descarte) o treino em andamento antes de editar o historico.', 'error'); return;
+  }
+  const regs = (APP.data && Array.isArray(APP.data.registros)) ? APP.data.registros : [];
+  const r = regs.find(x => String(x.pk) === String(pk));
+  if (!r) { toast('Registro nao encontrado. Atualize a tela.', 'error'); return; }
+  // exercicio do treino em andamento: o REABRIR regravaria os valores antigos
+  // (apaga por local_id e reinsere TREINAR.salvos) e a edicao sumiria sem aviso.
+  if (!isTrainer && r.local_id && Array.isArray(TREINAR.localIds) && TREINAR.localIds.indexOf(String(r.local_id)) >= 0) {
+    toast('Este exercicio e do treino em andamento: corrija la (REABRIR) ou termine o treino antes de editar.', 'error'); return;
+  }
+  EDITREG.r = r; EDITREG.trainer = !!isTrainer;
+  const cardio = String(r.modalidade || '').trim() !== '';
+  $('editreg-sub').textContent = (cardio ? 'CARDIO · ' : 'DIA ' + (r.dia || '?') + ' · ') + fmtDate(dataSessao(r));
+  $('editreg-ex').value = String(r.exercicio || '');
+  const iso = String(r.data_treino || '').match(/^\d{4}-\d{2}-\d{2}/) ? String(r.data_treino).slice(0, 10)
+            : (String(dataSessao(r) || '').slice(0, 10));
+  $('editreg-data').value = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : '';
+  const selDia = $('editreg-dia');
+  selDia.innerHTML = DAYS.map(d => '<option value="' + d + '">' + d + '</option>').join('');
+  selDia.value = DAYS.includes(String(r.dia || '').toUpperCase()) ? String(r.dia).toUpperCase() : DAYS[0];
+  $('editreg-dia-box').hidden = cardio;
+  const sets = seriesDetalhadasDoRegistro(r.obs);
+  EDITREG.comSeries = !!(sets && sets.length);
+  $('editreg-series-box').hidden = !EDITREG.comSeries;
+  $('editreg-simples-box').hidden = EDITREG.comSeries;
+  if (EDITREG.comSeries) _editregRenderSeries(sets);
+  $('editreg-carga').value = String(r.carga || '');
+  $('editreg-reps').value = String(r.reps || '');
+  $('editreg-rir').value = String(r.rir == null ? '' : r.rir);
+  $('editreg-nota').value = obsNotaLivre(r.obs);
+  $('editreg-ok').checked = String(r.completou).toLowerCase() === 'sim';
+  _editregErro('');
+  $('modal-editreg').classList.remove('hidden');
+  setTimeout(() => { try { $('editreg-ex').focus(); } catch (e) {} }, 50);
+}
+
+async function salvarEditarRegistro() {
+  const r = EDITREG.r;
+  if (!r) return;
+  if (navigator.onLine === false) { _editregErro('Sem conexao. A edicao precisa de rede (nao fica guardada no aparelho).'); return; }
+  const exercicio = $('editreg-ex').value.trim();
+  if (!exercicio) { _editregErro('O nome do exercicio nao pode ficar vazio.'); return; }
+  const nota = $('editreg-nota').value.trim();
+  let carga, reps, rir, obs;
+  if (EDITREG.comSeries) {
+    const lista = _editregLerSeries().filter(x => x.reps !== '' || x.carga !== '');
+    const ruim = lista.find(x => !/^\d{1,2}$/.test(x.reps) || Number(x.reps) < 1 || Number(x.reps) > 60);
+    if (!lista.length) { _editregErro('Deixe pelo menos uma serie (ou apague o registro).'); return; }
+    if (ruim) { _editregErro('Reps de cada serie: numero de 1 a 60.'); return; }
+    const ult = lista[lista.length - 1];
+    carga = ult.carga; rir = ult.rir; reps = lista.map(x => x.reps).join('/');
+    obs = obsComSeries(nota, lista);
+  } else {
+    carga = $('editreg-carga').value.trim();
+    reps = $('editreg-reps').value.trim();
+    rir = $('editreg-rir').value.trim();
+    obs = nota;
+  }
+  const payload = {
+    pk: String(r.pk), exercicio, carga, reps, rir, obs,
+    data_treino: $('editreg-data').value || '',
+    completou: $('editreg-ok').checked,
+  };
+  if (String(r.modalidade || '').trim() === '') payload.dia = $('editreg-dia').value;
+  if (EDITREG.trainer) {
+    Object.assign(payload, { action: 'editarRegistro', key: APP.trainerKey, aluno_id: String(r.aluno_id || APP.currentAluno || '').trim() });
+  } else {
+    Object.assign(payload, { action: 'editarRegistroAluno', aluno_id: APP.alunoSession.id, pin: APP.alunoSession.pin });
+  }
+  const btn = $('editreg-salvar');
+  btn.disabled = true;
+  showLoading(true);
+  try {
+    const res = await apiPost(payload);
+    if (res && res.error) throw new Error(res.error);
+    fecharEditarRegistro();
+    toast('Registro atualizado', 'success');
+    if (EDITREG.trainer) {
+      loadEditAluno(APP.currentAluno);
+    } else {
+      await loadAlunoData({ force: true });
+      $('aluno-historico-section').classList.remove('hidden');
+      renderAlunoHistorico();
+    }
+  } catch (e) {
+    _editregErro(String((e && e.message) || e));
+  } finally {
+    btn.disabled = false;
+    showLoading(false);
+  }
 }
 
 // ===== v29.6.0: PROGRESSAO DE CARGA (inspirado nas progression rules do wger) =====
